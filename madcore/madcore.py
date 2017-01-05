@@ -21,7 +21,7 @@ class MadcoreCli(App):
         )
         commands = {
             'stack describe': stack.StackDescribe,
-            'core list': core.CoreList,
+            'core followme': core.CoreFollowme,
         }
 
         for k, v in commands.iteritems():

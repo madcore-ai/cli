@@ -41,7 +41,7 @@ setup(
     scripts=[],
 
     provides=[],
-    install_requires=['cliff','boto3'],
+    install_requires=['cliff','boto3','urllib3'],
 
     namespace_packages=[],
     packages=find_packages(),
@@ -53,6 +53,7 @@ setup(
         ],
         'madcore': [
             'stack describe = madcore.stack:StackDescribe',
+            'core followme = madcore.core:CoreFollowme',
         ],
     },
 
