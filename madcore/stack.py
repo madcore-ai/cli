@@ -14,16 +14,36 @@ class Stack(Command):
 
     log = logging.getLogger(__name__)
 
+    def stack_list(self, *args):
+        self.app.stdout.write('STACK LISTING...\n')
+
+    def stack_describe(self, *args):
+        self.app.stdout.write('STACK DESCRIBING...\n')
+
+    def stack_create(self, *args):
+        self.app.stdout.write('STACK CREATING...\n')
+
     def get_parser(self, prog_name):
         parser = super(Stack, self).get_parser(prog_name)
-        parser.add_argument('list', nargs='?', default='.')
+        sp = parser.add_subparsers()
+        sp_list = sp.add_parser('list', help='Starts %(prog)s daemon')
+        sp_describe = sp.add_parser('describe', help='Starts %(prog)s daemon')
+        sp_create = sp.add_parser('create', help='Starts %(prog)s daemon')
+        #group = parser.add_mutually_exclusive_group()
+        #parser.add_argument('list', nargs='?', default='.')
+        #parser.add_argument('create', nargs='*', default='.')
         parser.add_argument('args', nargs=1) #or nargs=argparse.REMAINDER for multi args
+
+        sp_create.set_defaults(func=self.stack_create)
+        sp_list.set_defaults(func=self.stack_list)
+        sp_describe.set_defaults(func=self.stack_describe)
         return parser
 
     def take_action(self, parsed_args):
-        self.log.info('sending greeting')
-        self.log.debug('debugging')
-        self.app.stdout.write('hi!\n')
+        self.log.info('STACK TAKE ACTION info')
+        self.log.debug('STACK TAKE ACTION debugging')
+        self.app.stdout.write('STACK TAKE ACTION STDOUT\n')
+        parsed_args.func(parsed_args)
 
 
 class Error(Command):
