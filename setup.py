@@ -16,7 +16,7 @@ setup(
     name=PROJECT,
     version=VERSION,
 
-    description='Demo app for cliff',
+    description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller',
     long_description=long_description,
 
     author='Peter Styk',
@@ -24,14 +24,10 @@ setup(
 
     url='https://github.com/madcore-ai/cli',
     download_url='https://github.com/madcore-ai/cli/tarball/master',
-
+    keywords = ['aws', 'infrastructure'],
     classifiers=['Development Status :: 3 - Alpha',
-                 'License :: OSI Approved :: Apache Software License',
-                 'Programming Language :: Python',
-                 'Programming Language :: Python :: 2',
+                 'License :: OSI Approved :: MIT License',
                  'Programming Language :: Python :: 2.7',
-                 'Programming Language :: Python :: 3',
-                 'Programming Language :: Python :: 3.2',
                  'Intended Audience :: Developers',
                  'Environment :: Console',
                  ],
