@@ -1,6 +1,8 @@
 import os
 import sys
 import logging
+import boto3
+import prettytable
 import argparse
 from cliff.app import App
 from cliff.commandmanager import CommandManager
@@ -8,6 +10,22 @@ from cliff.command import Command
 from cliff.show import ShowOne
 from cliff.lister import Lister
 
+class StackDescribe(Lister):
+    """Show a list of files in the current directory.
+
+    The file name and size are printed by default.
+    """
+
+    log = logging.getLogger(__name__)
+
+    def take_action(self, parsed_args):
+        self.log.info('STACK DESCRIBE info')
+        self.log.debug('STACK DESCRIBE debugging')
+        self.app.stdout.write('STACK DESCRIBE STDOUT\n')
+        cf = boto3.resource('cloudformation')
+        return (('Name', 'Status','Creation Time','Last Updated Time'),
+                ([(stack.name,stack.stack_status,stack.creation_time,stack.last_updated_time) for stack in cf.stacks.all()])
+                )
 
 class Stack(Command):
     "Show details about a file"

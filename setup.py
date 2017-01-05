@@ -41,7 +41,7 @@ setup(
     scripts=[],
 
     provides=[],
-    install_requires=['cliff'],
+    install_requires=['cliff','boto3'],
 
     namespace_packages=[],
     packages=find_packages(),
@@ -49,10 +49,10 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'madcore = madcore.madcore:main's
+            'madcore = madcore.madcore:main'
         ],
         'madcore': [
-            'stack = madcore.stack:Stack',
+            'stack describe = madcore.stack:StackDescribe',
         ],
     },
 

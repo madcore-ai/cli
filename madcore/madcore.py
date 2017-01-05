@@ -7,6 +7,7 @@ from cliff.command import Command
 from cliff.show import ShowOne
 from cliff.lister import Lister
 import stack
+import core
 
 
 class MadcoreCli(App):
@@ -19,13 +20,18 @@ class MadcoreCli(App):
                 command_manager=command,
         )
         commands = {
-            'stack': stack.Stack,
+            'stack describe': stack.StackDescribe,
+            'core list': core.CoreList,
         }
 
         for k, v in commands.iteritems():
             command.add_command(k, v)
 
     def initialize_app(self, argv):
+        print
+        print "Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller"
+        print "Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai"
+        print
         self.LOG.debug('initialize_app')
 
     def prepare_to_run_command(self, cmd):

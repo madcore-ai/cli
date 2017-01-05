@@ -1,24 +1,22 @@
-
-
+import os
+import sys
 import logging
-
+from cliff.app import App
+from cliff.commandmanager import CommandManager
 from cliff.command import Command
+from cliff.show import ShowOne
+from cliff.lister import Lister
 
 
-class Core(Command):
+class CoreList(Command):
     "A simple command that prints a message."
 
     log = logging.getLogger(__name__)
 
-    def get_parser(self, prog_name):
-        parser = super(File, self).get_parser(prog_name)
-        parser.add_argument('stack', nargs='?', default='.')
-        return parser
-
     def take_action(self, parsed_args):
-        self.log.info('sending greeting')
-        self.log.debug('debugging')
-        self.app.stdout.write('hi!\n')
+        self.log.info('Core List')
+        self.log.debug('debugging Core List')
+        self.app.stdout.write('Core List!\n')
 
 
 class Error(Command):
