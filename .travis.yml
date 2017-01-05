@@ -7,3 +7,5 @@ install:
   - sudo python setup.py install
 script:
   - echo "all good!"
+notifications:
+  slack: madcore:oTogs8r7HT8YsvFszVcXJ77q
