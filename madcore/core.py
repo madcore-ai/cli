@@ -7,6 +7,7 @@ from cliff.command import Command
 from cliff.show import ShowOne
 from cliff.lister import Lister
 import urllib3
+import boto3
 
 
 class CoreFollowme(ShowOne):
@@ -24,12 +25,29 @@ class CoreFollowme(ShowOne):
             raise RuntimeError('No Internet')
         return r.data
 
+    def get_from_dict(self, dic):
+        return next(i for i in dic if i['ParameterKey'] == 'FollowMeIpAddress')['ParameterValue']
+
+    def get_stack_followme(self):
+        cf = boto3.client('cloudformation')
+        r = cf.describe_stacks(
+                StackName='MADCORE-FollowMe'
+        )
+        return r['Stacks'][0]
+
     def take_action(self, parsed_args):
         ipv4 = self.get_ipv4()
         self.log.info('Core Followme: Your public IP detected as: {0}'.format(ipv4))
-        columns = ('Detected IPv4',
+        stack = self.get_stack_followme()
+        previous_parameters = stack['Parameters']
+        ipv4_previous = self.get_from_dict(previous_parameters)
+        columns = ('New IPv4',
+            'Stack ID',
+            'Previous IPv4'
                    )
-        data = (ipv4,
+        data = (''.join(ipv4.split()),
+                stack['StackId'],
+                ipv4_previous
                 )
         return (columns, data)
 
