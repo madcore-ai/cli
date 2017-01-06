@@ -1,5 +1,6 @@
 ![Travis CI](https://travis-ci.org/madcore-ai/cli.svg?branch=master)
 
-# cli
+# Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller
 
-Madcore CLI pip package
+More Info...
+https://wiki.madcore.ai/cli
