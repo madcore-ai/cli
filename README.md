@@ -3,4 +3,4 @@
 # Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller
 
 More Info...
-https://wiki.madcore.ai/cli
+https://wiki.madcore.ai/core/cli
