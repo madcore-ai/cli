@@ -24,7 +24,7 @@ setup(
 
     url='https://github.com/madcore-ai/cli',
     download_url='https://github.com/madcore-ai/cli/tarball/master',
-    keywords = ['aws', 'infrastructure'],
+    keywords=['aws', 'infrastructure'],
     classifiers=['Development Status :: 3 - Alpha',
                  'License :: OSI Approved :: MIT License',
                  'Programming Language :: Python :: 2.7',
@@ -37,7 +37,7 @@ setup(
     scripts=[],
 
     provides=[],
-    install_requires=['cliff','boto3','urllib3'],
+    install_requires=['cliff', 'boto3', 'urllib3'],
 
     namespace_packages=[],
     packages=find_packages(),
