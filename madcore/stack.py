@@ -66,7 +66,7 @@ class StackCreate(CloudFormationBase, Lister):
         else:
             self.log.info("\nNo input parameters for stack '{}'.".format(stack_name))
 
-    def create_stack(self, stack_short_name, input_parameters, show_progress=True):
+    def create_stack(self, stack_short_name, input_parameters, capabilities=None, show_progress=True):
         stack_name = self.stack_name(stack_short_name)
         template_file = '%s.json' % stack_short_name.lower()
 
@@ -76,7 +76,8 @@ class StackCreate(CloudFormationBase, Lister):
         response = self.client.create_stack(
             StackName=stack_name,
             TemplateBody=self.get_template_local(template_file),
-            Parameters=input_parameters
+            Parameters=input_parameters,
+            Capabilities=capabilities
         )
 
         if show_progress:
@@ -84,7 +85,7 @@ class StackCreate(CloudFormationBase, Lister):
 
         return response
 
-    def create_stack_if_not_exists(self, stack_short_name, input_parameters, parsed_args):
+    def create_stack_if_not_exists(self, stack_short_name, input_parameters, parsed_args, capabilities=None):
         stack_name = self.stack_name(stack_short_name)
 
         self.stack_show_input_parameter(stack_short_name, input_parameters, parsed_args)
@@ -93,13 +94,12 @@ class StackCreate(CloudFormationBase, Lister):
 
         if stack_details is None:
             self.log.info("Stack '%s' does not exists, creating it..." % stack_name)
-            self.create_stack(stack_short_name, input_parameters)
+            self.create_stack(stack_short_name, input_parameters, capabilities=capabilities)
             stack_details = self.get_stack(stack_name)
             self.log.info("Stack '%s' created." % stack_name)
         else:
             self.log.info("Stack '%s' already exists, skip." % stack_name)
 
-        pprint(stack_details)
         self.stack_show_output_parameters(stack_details, parsed_args)
 
         return stack_details
@@ -140,7 +140,8 @@ class StackCreate(CloudFormationBase, Lister):
             'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
         }
         core_params = self.create_stack_parameters('core', core_override_parameters)
-        core_stack = self.create_stack_if_not_exists('core', core_params, parsed_args)
+        core_capabilities = ["CAPABILITY_IAM"]
+        core_stack = self.create_stack_if_not_exists('core', core_params, parsed_args, capabilities=core_capabilities)
 
         # create DNS
         dns_override_parameters = {
@@ -157,7 +158,9 @@ class StackCreate(CloudFormationBase, Lister):
             'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
         }
         cluster_params = self.create_stack_parameters('cluster', cluster_override_parameters)
-        cluster_stack = self.create_stack_if_not_exists('cluster', cluster_params, parsed_args)
+        cluster_capabilities = ["CAPABILITY_IAM"]
+        cluster_stack = self.create_stack_if_not_exists('cluster', cluster_params, parsed_args,
+                                                        capabilities=cluster_capabilities)
 
         return []
 
