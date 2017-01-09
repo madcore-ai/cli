@@ -11,7 +11,7 @@ from cliff.show import ShowOne
 from cliff.lister import Lister
 
 
-class StackDescribe(Lister):
+class StackList(Lister):
     _description = "TODO@geo add doc here"
 
     log = logging.getLogger(__name__)

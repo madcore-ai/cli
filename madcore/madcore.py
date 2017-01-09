@@ -19,7 +19,7 @@ class MadcoreCli(App):
         )
         commands = {
             'complete': complete.CompleteCommand,
-            'stack describe': stack.StackDescribe,
+            'stack list': stack.StackList,
             'core followme': core.CoreFollowme,
         }
 
