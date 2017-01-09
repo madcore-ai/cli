@@ -1,13 +1,11 @@
-import os
 import sys
-import logging
+
+from cliff import complete
 from cliff.app import App
 from cliff.commandmanager import CommandManager
-from cliff.command import Command
-from cliff.show import ShowOne
-from cliff.lister import Lister
-import stack
+
 import core
+import stack
 
 
 class MadcoreCli(App):
@@ -20,6 +18,7 @@ class MadcoreCli(App):
                 command_manager=command,
         )
         commands = {
+            'complete': complete.CompleteCommand,
             'stack describe': stack.StackDescribe,
             'core followme': core.CoreFollowme,
         }

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+from setuptools import setup, find_packages
+import os
 
 PROJECT = 'madcore'
 
 # Change docs/sphinx/conf.py too!
 VERSION = '0.1'
-
-from setuptools import setup, find_packages
 
 try:
     long_description = open('README.md', 'rt').read()
@@ -52,6 +52,9 @@ setup(
             'core followme = madcore.core:CoreFollowme',
         ],
     },
+    data_files=[
+        (os.path.join(os.path.expanduser("~"), '.madcore'), [])
+    ],
 
     zip_safe=False,
 )
