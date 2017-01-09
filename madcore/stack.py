@@ -2,7 +2,6 @@ from __future__ import print_function, unicode_literals
 
 import json
 import logging
-from pprint import pprint
 
 import boto3
 from cliff.command import Command
@@ -77,7 +76,7 @@ class StackCreate(CloudFormationBase, Lister):
             StackName=stack_name,
             TemplateBody=self.get_template_local(template_file),
             Parameters=input_parameters,
-            Capabilities=capabilities
+            Capabilities=capabilities or []
         )
 
         if show_progress:
