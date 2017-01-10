@@ -38,7 +38,6 @@ class MadcoreCli(App):
         print()
         print()
         print("Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller")
-        print()
         print("Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai")
         print()
         self.LOG.debug('initialize_app')
