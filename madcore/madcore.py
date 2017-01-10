@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, print_function
 
+import os
 import sys
 
 from cliff import complete
@@ -9,6 +10,7 @@ from cliff.commandmanager import CommandManager
 import configure
 import core
 import stack
+import utils
 
 
 class MadcoreCli(App):
@@ -43,6 +45,11 @@ class MadcoreCli(App):
 
     def prepare_to_run_command(self, cmd):
         self.LOG.debug('prepare_to_run_command %s', cmd.__class__.__name__)
+
+        # TODO@geo we need to find a better way for this
+        # Trigger configure if not yet setup
+        if not os.path.exists(os.path.join(utils.config_path(), 'cloudformation')):
+            os.system('madcore configure')
 
     def clean_up(self, cmd, result, err):
         self.LOG.debug('clean_up %s', cmd.__class__.__name__)

@@ -8,14 +8,13 @@ import urllib3
 from botocore.exceptions import ClientError
 
 import stack_names
+import utils
 
 
 class MadcoreBase(object):
     @property
     def config_path(self):
-        cfg_path = os.path.join(os.path.expanduser("~"), '.madcore')
-
-        return cfg_path
+        return utils.config_path()
 
     def get_template_local(self, template_file):
         with open(os.path.join(self.config_path, 'cloudformation', template_file)) as content_file:
