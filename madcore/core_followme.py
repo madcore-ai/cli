@@ -2,7 +2,6 @@ from __future__ import print_function, unicode_literals
 
 import logging
 
-from cliff.command import Command
 from cliff.show import ShowOne
 
 from base import CloudFormationBase
@@ -52,13 +51,3 @@ class CoreFollowme(CloudFormationBase, ShowOne):
                 ipv4_previous
                 )
         return columns, data
-
-
-class Error(Command):
-    """Always raises an error"""
-
-    log = logging.getLogger(__name__)
-
-    def take_action(self, parsed_args):
-        self.log.info('causing error')
-        raise RuntimeError('this is the expected exception')

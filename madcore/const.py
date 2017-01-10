@@ -16,3 +16,14 @@ STACK_SHORT_NAMES = {
     'dns': STACK_DNS,
     'cluster': STACK_CLUSTER
 }
+
+# define all static endpoints
+ENDPOINTS = {
+    'influxdb': {},
+    'jenkins': {},
+    'kubeapi': {},
+    'kubedash': {},
+    'grafana': {},
+    'spark': {},
+    'zeppelin': {}
+}

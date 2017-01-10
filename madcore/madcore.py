@@ -8,8 +8,11 @@ from cliff.app import App
 from cliff.commandmanager import CommandManager
 
 import configure
-import core
-import stack
+import core_followme
+import core_endpoints
+import stack_list
+import stack_create
+import stack_delete
 import utils
 
 
@@ -19,16 +22,17 @@ class MadcoreCli(App):
         super(MadcoreCli, self).__init__(
             description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller'
                         'Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai',
-            version='0.2',
+            version='0.3',
             command_manager=command,
         )
         commands = {
             'complete': complete.CompleteCommand,
             'configure': configure.Configure,
-            'stack list': stack.StackList,
-            'stack create': stack.StackCreate,
-            'stack delete': stack.StackDelete,
-            'core followme': core.CoreFollowme
+            'stack list': stack_list.StackList,
+            'stack create': stack_create.StackCreate,
+            'stack delete': stack_delete.StackDelete,
+            'core followme': core_followme.CoreFollowme,
+            'core endpoints': core_endpoints.CoreEndpoints
         }
 
         for k, v in commands.iteritems():
