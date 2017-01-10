@@ -130,3 +130,15 @@ class CloudFormationBase(MadcoreBase):
 
     def show_stack_delete_events_progress(self, stack_name, **kwargs):
         self.show_stack_events_progress(stack_name, 'delete', **kwargs)
+
+    def get_dns_domains(self):
+        dns_stack = self.get_stack(const.STACK_DNS)
+        domain_name = self.get_param_from_dict(dns_stack['Parameters'], 'DomainName')
+        sub_domain_name = self.get_param_from_dict(dns_stack['Parameters'], 'SubDomainName')
+
+        return domain_name, sub_domain_name
+
+
+class JenkinsBase(MadcoreBase):
+    def __init__(self, *args, **kwargs):
+        super(JenkinsBase, self).__init__(*args, **kwargs)

@@ -55,6 +55,7 @@ setup(
             'stack delete = madcore.stack_delete:StackDelete',
             'core followme = madcore.core_followme:CoreFollowme',
             'core endpoints = madcore.core_endpoints:CoreEndpoints',
+            'core selftest = madcore.core_selftest:CoreSelfTest',
         ],
     },
     data_files=[

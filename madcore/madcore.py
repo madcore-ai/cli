@@ -10,6 +10,7 @@ from cliff.commandmanager import CommandManager
 import configure
 import core_followme
 import core_endpoints
+import core_selftest
 import stack_list
 import stack_create
 import stack_delete
@@ -32,7 +33,8 @@ class MadcoreCli(App):
             'stack create': stack_create.StackCreate,
             'stack delete': stack_delete.StackDelete,
             'core followme': core_followme.CoreFollowme,
-            'core endpoints': core_endpoints.CoreEndpoints
+            'core endpoints': core_endpoints.CoreEndpoints,
+            'core selftest': core_selftest.CoreSelfTest
         }
 
         for k, v in commands.iteritems():
@@ -49,6 +51,9 @@ class MadcoreCli(App):
     def prepare_to_run_command(self, cmd):
         self.LOG.debug('prepare_to_run_command %s', cmd.__class__.__name__)
 
+        if isinstance(cmd, configure.Configure):
+            # no need to run configure when we configure
+            return
         # TODO@geo we need to find a better way for this
         # Trigger configure if not yet setup
         if not os.path.exists(os.path.join(utils.config_path(), 'cloudformation')):
