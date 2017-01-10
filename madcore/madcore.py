@@ -22,6 +22,7 @@ class MadcoreCli(App):
             'complete': complete.CompleteCommand,
             'stack list': stack.StackList,
             'stack create': stack.StackCreate,
+            'stack delete': stack.StackDelete,
             'core followme': core.CoreFollowme,
         }
 

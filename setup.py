@@ -51,6 +51,7 @@ setup(
             'complete = cliff.complete:CompleteCommand',
             'stack list = madcore.stack:StackList',
             'stack create = madcore.stack:StackCreate',
+            'stack delete = madcore.stack:StackDelete',
             'core followme = madcore.core:CoreFollowme',
         ],
     },

@@ -83,9 +83,13 @@ class CloudFormationBase(MadcoreBase):
         return True
 
     def show_stack_events_progress(self, stack_name, event_type, wait_seconds=3):
-        response_events = self.client.describe_stack_events(
-            StackName=stack_name
-        )
+        try:
+            response_events = self.client.describe_stack_events(
+                StackName=stack_name
+            )
+        except ClientError as e:
+            self.log.error(e)
+            return
 
         shown_events = []
 
@@ -98,7 +102,7 @@ class CloudFormationBase(MadcoreBase):
 
         # TODO@geo Maybe we should investigate and see if we can create this table using PrettyTable?
         # Print top of updates stream
-        print("{: <30} {: <40} {: <}".format("Resource", "Status", "Details"))
+        print("{: <45} {: <23} {: <}".format("Resource", "Status", "Details"))
 
         # Steam updates until we hit a closing case
         while self.maintain_loop(response_events, last_event_id, event_type):
@@ -115,12 +119,15 @@ class CloudFormationBase(MadcoreBase):
                     if 'ResourceStatusReason' not in event:
                         event['ResourceStatusReason'] = ""
 
-                    print("{: <30} {: <30} {: <}".format(event['ResourceType'], event['ResourceStatus'],
+                    print("{: <40} {: <30} {: <}".format(event['ResourceType'], event['ResourceStatus'],
                                                          event['ResourceStatusReason']))
                     shown_events.append(event['EventId'])
+
+    def show_stack_create_events_progress(self, stack_name, **kwargs):
+        self.show_stack_events_progress(stack_name, 'create', **kwargs)
 
     def show_stack_update_events_progress(self, stack_name, **kwargs):
         self.show_stack_events_progress(stack_name, 'update', **kwargs)
 
-    def show_stack_create_events_progress(self, stack_name, **kwargs):
-        self.show_stack_events_progress(stack_name, 'create', **kwargs)
+    def show_stack_delete_events_progress(self, stack_name, **kwargs):
+        self.show_stack_events_progress(stack_name, 'delete', **kwargs)
