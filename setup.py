@@ -49,6 +49,7 @@ setup(
         ],
         'madcore': [
             'complete = cliff.complete:CompleteCommand',
+            'configure = madcore.configure:Configure',
             'stack list = madcore.stack:StackList',
             'stack create = madcore.stack:StackCreate',
             'stack delete = madcore.stack:StackDelete',
