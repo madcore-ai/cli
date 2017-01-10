@@ -167,14 +167,15 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
     def __init__(self, *args, **kwargs):
         super(JenkinsBase, self).__init__(*args, **kwargs)
 
-    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=3):
+    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1):
         self.log.info("Get console output for job: '%s'\n" % job_name)
         output_lines = []
 
-        # wait until job is processed
+        # wait until job is is started to get the output
         while True:
-            job_info = jenkins_server.get_job_info(job_name)
-            if not job_info['inQueue'] and ('_anime' in job_info['color'] or job_info['color'] in ['blue', 'red']):
+            job_info = jenkins_server.get_job_info(job_name, depth=1)
+
+            if job_info['builds'] and job_info['builds'][0]['building']:
                 self.log.debug("Job removed from queue")
                 break
             time.sleep(1)
@@ -185,8 +186,8 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
 
             output_diff = self.list_diff(new_output, output_lines)
 
-            job_info = jenkins_server.get_job_info(job_name)
-            if not output_diff and '_anime' not in job_info['color']:
+            job_info = jenkins_server.get_job_info(job_name, depth=1)
+            if not output_diff and not job_info['builds'][0]['building']:
                 break
 
             output_lines = new_output
@@ -199,8 +200,19 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
     def create_jenkins_server(self):
         return Jenkins('https://%s' % self.get_core_public_ip())
 
-    def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=3):
+    def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=1):
         jenkins_server = self.create_jenkins_server()
-        job_info = jenkins_server.get_job_info(job_name)
-        jenkins_server.build_job(job_name, parameters=parameters)
-        self.show_job_console_output(jenkins_server, job_name, job_info['nextBuildNumber'], sleep_time=sleep_time)
+        job_info = jenkins_server.get_job_info(job_name, depth=1)
+
+        build_number = job_info['nextBuildNumber']
+
+        if job_info['builds'] and job_info['builds'][0]['building']:
+            # current job is already building, get it's number
+            build_number = job_info['builds'][0]['number']
+            self.log.info("Job '%s' already running." % job_name)
+        else:
+            # start the job
+            jenkins_server.build_job(job_name, parameters=parameters)
+            self.log.info("Build job '%s'." % job_name)
+
+        self.show_job_console_output(jenkins_server, job_name, build_number, sleep_time=sleep_time)
