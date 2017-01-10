@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 
+import json
 import os
 import time
 
@@ -13,6 +14,11 @@ import utils
 
 
 class MadcoreBase(object):
+    def __init__(self, *args, **kwargs):
+        super(MadcoreBase, self).__init__(*args, **kwargs)
+
+        self.settings = self.get_settings()
+
     @property
     def config_path(self):
         return utils.config_path()
@@ -35,11 +41,16 @@ class MadcoreBase(object):
     def list_diff(cls, l1, l2):
         return [x for x in l1 if x not in l2]
 
+    @classmethod
+    def get_settings(cls):
+        with open(utils.setting_file_path(), 'r') as f:
+            return json.load(f)
+
 
 class CloudFormationBase(MadcoreBase):
     def __init__(self, *args, **kwargs):
         super(CloudFormationBase, self).__init__(*args, **kwargs)
-        self.session = boto3.Session()
+        self.session = boto3.Session(region_name=self.settings['aws']['Region'])
         self.client = self.session.client('cloudformation')
 
     @classmethod

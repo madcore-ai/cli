@@ -5,8 +5,10 @@ import logging
 import boto3
 from cliff.lister import Lister
 
+from base import CloudFormationBase
 
-class StackList(Lister):
+
+class StackList(CloudFormationBase, Lister):
     _description = "List stacks"
 
     log = logging.getLogger(__name__)

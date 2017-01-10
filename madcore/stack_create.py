@@ -124,8 +124,8 @@ class StackCreate(CloudFormationBase, Lister):
             'FollowmeSecurityGroup': self.get_output_from_dict(sgfm_stack['Outputs'], 'FollowmeSgId'),
             'PublicNetZoneA': self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA'),
             'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName'),
-            'KeyName': '',
-            'InstanceType': const.DEFAULT_INSTANCE_TYPE
+            'KeyName': self.settings['aws']['KeyName'],
+            'InstanceType': self.settings['aws']['InstanceType']
         }
         core_params = self.create_stack_parameters('core', core_override_parameters)
         core_capabilities = ["CAPABILITY_IAM"]
