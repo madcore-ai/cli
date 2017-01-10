@@ -111,9 +111,13 @@ class CloudFormationBase(MadcoreBase):
         # Steam updates until we hit a closing case
         while self.maintain_loop(response_events, last_event_id, event_type):
             time.sleep(wait_seconds)
-            response_events = self.client.describe_stack_events(
-                StackName=stack_name,
-            )
+            try:
+                response_events = self.client.describe_stack_events(
+                    StackName=stack_name,
+                )
+            except ClientError:
+                # we reach a point when we try to describe the stack events but is already deleted
+                break
 
             events = sorted(response_events['StackEvents'], key=lambda x: x['Timestamp'])
 
