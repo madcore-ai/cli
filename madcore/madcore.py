@@ -8,8 +8,12 @@ from cliff.app import App
 from cliff.commandmanager import CommandManager
 
 import configure
-import core
-import stack
+import core_followme
+import core_endpoints
+import core_selftest
+import stack_list
+import stack_create
+import stack_delete
 import utils
 
 
@@ -19,16 +23,18 @@ class MadcoreCli(App):
         super(MadcoreCli, self).__init__(
             description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller'
                         'Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai',
-            version='0.2',
+            version='0.3',
             command_manager=command,
         )
         commands = {
             'complete': complete.CompleteCommand,
             'configure': configure.Configure,
-            'stack list': stack.StackList,
-            'stack create': stack.StackCreate,
-            'stack delete': stack.StackDelete,
-            'core followme': core.CoreFollowme,
+            'stack list': stack_list.StackList,
+            'stack create': stack_create.StackCreate,
+            'stack delete': stack_delete.StackDelete,
+            'core followme': core_followme.CoreFollowme,
+            'core endpoints': core_endpoints.CoreEndpoints,
+            'core selftest': core_selftest.CoreSelfTest
         }
 
         for k, v in commands.iteritems():
@@ -38,7 +44,6 @@ class MadcoreCli(App):
         print()
         print()
         print("Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller")
-        print()
         print("Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai")
         print()
         self.LOG.debug('initialize_app')
@@ -46,6 +51,9 @@ class MadcoreCli(App):
     def prepare_to_run_command(self, cmd):
         self.LOG.debug('prepare_to_run_command %s', cmd.__class__.__name__)
 
+        if isinstance(cmd, configure.Configure):
+            # no need to run configure when we configure
+            return
         # TODO@geo we need to find a better way for this
         # Trigger configure if not yet setup
         if not os.path.exists(os.path.join(utils.config_path(), 'cloudformation')):

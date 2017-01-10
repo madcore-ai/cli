@@ -3,26 +3,10 @@ from __future__ import print_function, unicode_literals
 import json
 import logging
 
-import boto3
-from cliff.command import Command
 from cliff.lister import Lister
 
-import stack_names
+import const
 from base import CloudFormationBase
-
-
-class StackList(Lister):
-    _description = "List stacks"
-
-    log = logging.getLogger(__name__)
-
-    def take_action(self, parsed_args):
-        self.log.info('STACK LIST')
-        cf = boto3.resource('cloudformation')
-        return (('Name', 'Status', 'Creation Time', 'Last Updated Time'),
-                ([(stack.name, stack.stack_status, stack.creation_time, stack.last_updated_time) for stack in
-                  cf.stacks.all()])
-                )
 
 
 class StackCreate(CloudFormationBase, Lister):
@@ -169,75 +153,11 @@ class StackCreate(CloudFormationBase, Lister):
         return (
             ('StackName', 'Created'),
             (
-                (stack_names.S3_STACK_NAME, not s3_exists),
-                (stack_names.NETWORK_STACK_NAME, not network_exists),
-                (stack_names.FOLLOWME_STACK_NAME, not sgfm_exists),
-                (stack_names.CORE_STACK_NAME, not core_exists),
-                (stack_names.DNS_STACK_NAME, not dns_exists),
-                (stack_names.CLUSTER_STACK_NAME, not cluster_exists)
+                (const.STACK_S3, not s3_exists),
+                (const.STACK_NETWORK, not network_exists),
+                (const.STACK_FOLLOWME, not sgfm_exists),
+                (const.STACK_CORE, not core_exists),
+                (const.STACK_DNS, not dns_exists),
+                (const.STACK_CLUSTER, not cluster_exists)
             )
         )
-
-
-class StackDelete(CloudFormationBase, Lister):
-    log = logging.getLogger(__name__)
-    _description = "Delete stacks"
-
-    def delete_stack(self, stack_short_name, show_progress=True):
-        stack_name = self.stack_name(stack_short_name)
-
-        response = self.client.delete_stack(
-            StackName=stack_name
-        )
-
-        if show_progress:
-            self.show_stack_delete_events_progress(stack_name)
-
-        return response
-
-    def delete_stack_if_exists(self, stack_short_name):
-        stack_deleted = False
-        stack_name = self.stack_name(stack_short_name)
-
-        stack_details = self.get_stack(stack_name)
-
-        if stack_details is not None:
-            self.log.info("Stack '%s' exists, delete..." % stack_name)
-            self.delete_stack(stack_short_name)
-            self.log.info("Stack '%s' deleted." % stack_name)
-            stack_deleted = True
-        else:
-            self.log.info("Stack '%s' does not exists, skip." % stack_name)
-
-        return stack_deleted
-
-    def take_action(self, parsed_args):
-        cluster_deleted = self.delete_stack_if_exists('cluster')
-        core_deleted = self.delete_stack_if_exists('core')
-        sfgm_deleted = self.delete_stack_if_exists('sgfm')
-        network_deleted = self.delete_stack_if_exists('network')
-        dns_deleted = self.delete_stack_if_exists('dns')
-        # for now we do not delete S3 because it may contain critical information like backups and other
-        # s3_deleted = self.delete_stack_if_exists('s3')
-
-        return (
-            ('StackName', 'Deleted'),
-            (
-                (stack_names.CLUSTER_STACK_NAME, cluster_deleted),
-                (stack_names.CORE_STACK_NAME, core_deleted),
-                (stack_names.FOLLOWME_STACK_NAME, sfgm_deleted),
-                (stack_names.NETWORK_STACK_NAME, network_deleted),
-                (stack_names.DNS_STACK_NAME, dns_deleted),
-                (stack_names.S3_STACK_NAME, False),
-            )
-        )
-
-
-class Error(Command):
-    """Always raises an error"""
-
-    log = logging.getLogger(__name__)
-
-    def take_action(self, parsed_args):
-        self.log.info('causing error')
-        raise RuntimeError('this is the expected exception')
