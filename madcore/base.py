@@ -159,7 +159,7 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
         # wait until job is processed
         while True:
             job_info = jenkins_server.get_job_info(job_name)
-            if not job_info['inQueue'] and '_anime' in job_info['color']:
+            if not job_info['inQueue'] and ('_anime' in job_info['color'] or job_info['color'] in ['blue', 'red']):
                 self.log.debug("Job removed from queue")
                 break
             time.sleep(1)
@@ -171,7 +171,6 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
             output_diff = self.list_diff(new_output, output_lines)
 
             job_info = jenkins_server.get_job_info(job_name)
-
             if not output_diff and '_anime' not in job_info['color']:
                 break
 

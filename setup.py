@@ -56,6 +56,7 @@ setup(
             'core followme = madcore.core_followme:CoreFollowme',
             'core endpoints = madcore.core_endpoints:CoreEndpoints',
             'core selftest = madcore.core_selftest:CoreSelfTest',
+            'core registration = madcore.core_registration:CoreRegistration',
         ],
     },
     data_files=[

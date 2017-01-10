@@ -27,3 +27,12 @@ ENDPOINTS = {
     'spark': {},
     'zeppelin': {}
 }
+
+DOMAIN_REGISTRATION = {
+    'Hostname': '',  # to be set dynamically
+    'Email': 'polfilm@gmail.com',
+    'OrganizationName': 'Madcore Ltd',
+    'OrganizationalUnitName': 'Development',
+    'LocalityName': 'London',
+    'Country': 'GB'
+}
