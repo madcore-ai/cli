@@ -5,7 +5,7 @@ import os
 PROJECT = 'madcore'
 
 # Change docs/sphinx/conf.py too!
-VERSION = '0.0.2'
+VERSION = '0.2'
 
 try:
     long_description = open('README.md', 'rt').read()
@@ -47,7 +47,7 @@ setup(
         'console_scripts': [
             'madcore = madcore.madcore:main'
         ],
-        'madcore': [
+        'madcorecli.app': [
             'complete = cliff.complete:CompleteCommand',
             'configure = madcore.configure:Configure',
             'stack list = madcore.stack:StackList',

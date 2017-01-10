@@ -15,8 +15,9 @@ class MadcoreCli(App):
     def __init__(self):
         command = CommandManager('madcorecli.app')
         super(MadcoreCli, self).__init__(
-            description='sample app',
-            version='0.1',
+            description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller'
+                        'Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai',
+            version='0.2',
             command_manager=command,
         )
         commands = {
@@ -34,9 +35,9 @@ class MadcoreCli(App):
     def initialize_app(self, argv):
         print()
         print()
-        "Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller"
+        print("Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller")
         print()
-        "Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai"
+        print("Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai")
         print()
         self.LOG.debug('initialize_app')
 
