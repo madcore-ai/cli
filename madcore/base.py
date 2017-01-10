@@ -6,6 +6,7 @@ import time
 import boto3
 import urllib3
 from botocore.exceptions import ClientError
+from jenkins import Jenkins
 
 import const
 import utils
@@ -29,6 +30,10 @@ class MadcoreBase(object):
             raise RuntimeError('No Internet')
         return r.data.strip()
         # return '8.8.8.8'
+
+    @classmethod
+    def list_diff(cls, l1, l2):
+        return [x for x in l1 if x not in l2]
 
 
 class CloudFormationBase(MadcoreBase):
@@ -138,7 +143,50 @@ class CloudFormationBase(MadcoreBase):
 
         return domain_name, sub_domain_name
 
+    def get_core_public_ip(self):
+        dns_stack = self.get_stack(const.STACK_CORE)
+        return self.get_output_from_dict(dns_stack['Outputs'], 'MadCorePublicIp')
 
-class JenkinsBase(MadcoreBase):
+
+class JenkinsBase(CloudFormationBase, MadcoreBase):
     def __init__(self, *args, **kwargs):
         super(JenkinsBase, self).__init__(*args, **kwargs)
+
+    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=3):
+        self.log.info("Get console output for job: '%s'\n" % job_name)
+        output_lines = []
+
+        # wait until job is processed
+        while True:
+            job_info = jenkins_server.get_job_info(job_name)
+            if not job_info['inQueue'] and '_anime' in job_info['color']:
+                self.log.debug("Job removed from queue")
+                break
+            time.sleep(1)
+
+        while True:
+            output = jenkins_server.get_build_console_output(job_name, build_number)
+            new_output = output.split(os.linesep)
+
+            output_diff = self.list_diff(new_output, output_lines)
+
+            job_info = jenkins_server.get_job_info(job_name)
+
+            if not output_diff and '_anime' not in job_info['color']:
+                break
+
+            output_lines = new_output
+            # only print if there are new lines
+            if output_diff:
+                print(os.linesep.join(output_diff).strip())
+
+            time.sleep(sleep_time)
+
+    def create_jenkins_server(self):
+        return Jenkins('https://%s' % self.get_core_public_ip())
+
+    def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=3):
+        jenkins_server = self.create_jenkins_server()
+        job_info = jenkins_server.get_job_info(job_name)
+        jenkins_server.build_job(job_name, parameters=parameters)
+        self.show_job_console_output(jenkins_server, job_name, job_info['nextBuildNumber'], sleep_time=sleep_time)
