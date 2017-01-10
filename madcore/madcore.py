@@ -1,26 +1,28 @@
-import os
+from __future__ import unicode_literals, print_function
+
 import sys
-import logging
+
+from cliff import complete
 from cliff.app import App
 from cliff.commandmanager import CommandManager
-from cliff.command import Command
-from cliff.show import ShowOne
-from cliff.lister import Lister
-import stack
+
 import core
+import stack
 
 
 class MadcoreCli(App):
-
     def __init__(self):
         command = CommandManager('madcorecli.app')
         super(MadcoreCli, self).__init__(
-                description='sample app',
-                version='0.1',
-                command_manager=command,
+            description='sample app',
+            version='0.1',
+            command_manager=command,
         )
         commands = {
-            'stack describe': stack.StackDescribe,
+            'complete': complete.CompleteCommand,
+            'stack list': stack.StackList,
+            'stack create': stack.StackCreate,
+            'stack delete': stack.StackDelete,
             'core followme': core.CoreFollowme,
         }
 
@@ -28,10 +30,12 @@ class MadcoreCli(App):
             command.add_command(k, v)
 
     def initialize_app(self, argv):
-        print
-        print "Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller"
-        print "Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai"
-        print
+        print()
+        print()
+        "Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller"
+        print()
+        "Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai"
+        print()
         self.LOG.debug('initialize_app')
 
     def prepare_to_run_command(self, cmd):
