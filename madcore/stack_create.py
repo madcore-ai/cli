@@ -123,7 +123,9 @@ class StackCreate(CloudFormationBase, Lister):
         core_override_parameters = {
             'FollowmeSecurityGroup': self.get_output_from_dict(sgfm_stack['Outputs'], 'FollowmeSgId'),
             'PublicNetZoneA': self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA'),
-            'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
+            'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName'),
+            'KeyName': '',
+            'InstanceType': const.DEFAULT_INSTANCE_TYPE
         }
         core_params = self.create_stack_parameters('core', core_override_parameters)
         core_capabilities = ["CAPABILITY_IAM"]
@@ -138,16 +140,16 @@ class StackCreate(CloudFormationBase, Lister):
         dns_stack, dns_exists = self.create_stack_if_not_exists('dns', dns_params, parsed_args)
 
         # create Cluster
-        cluster_override_parameters = {
-            'VpcId': self.get_output_from_dict(network_stack['Outputs'], 'VpcId'),
-            'PublicNetZoneA': self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA'),
-            'MasterIP': self.get_output_from_dict(core_stack['Outputs'], 'MadCorePrivateIp'),
-            'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
-        }
-        cluster_params = self.create_stack_parameters('cluster', cluster_override_parameters)
-        cluster_capabilities = ["CAPABILITY_IAM"]
-        _, cluster_exists = self.create_stack_if_not_exists('cluster', cluster_params, parsed_args,
-                                                            capabilities=cluster_capabilities)
+        # cluster_override_parameters = {
+        #     'VpcId': self.get_output_from_dict(network_stack['Outputs'], 'VpcId'),
+        #     'PublicNetZoneA': self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA'),
+        #     'MasterIP': self.get_output_from_dict(core_stack['Outputs'], 'MadCorePrivateIp'),
+        #     'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
+        # }
+        # cluster_params = self.create_stack_parameters('cluster', cluster_override_parameters)
+        # cluster_capabilities = ["CAPABILITY_IAM"]
+        # _, cluster_exists = self.create_stack_if_not_exists('cluster', cluster_params, parsed_args,
+        #                                                     capabilities=cluster_capabilities)
         self.log.info("\nStack Create status:")
 
         return (
@@ -157,7 +159,7 @@ class StackCreate(CloudFormationBase, Lister):
                 (const.STACK_NETWORK, not network_exists),
                 (const.STACK_FOLLOWME, not sgfm_exists),
                 (const.STACK_CORE, not core_exists),
-                (const.STACK_DNS, not dns_exists),
-                (const.STACK_CLUSTER, not cluster_exists)
+                (const.STACK_DNS, not dns_exists)
+                # (const.STACK_CLUSTER, not cluster_exists)
             )
         )

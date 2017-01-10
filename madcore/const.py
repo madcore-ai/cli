@@ -36,3 +36,5 @@ DOMAIN_REGISTRATION = {
     'LocalityName': 'London',
     'Country': 'GB'
 }
+
+DEFAULT_INSTANCE_TYPE = 't2.small'
