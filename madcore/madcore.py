@@ -11,6 +11,7 @@ import configure
 import core_followme
 import core_endpoints
 import core_selftest
+import core_registration
 import stack_list
 import stack_create
 import stack_delete
@@ -34,7 +35,8 @@ class MadcoreCli(App):
             'stack delete': stack_delete.StackDelete,
             'core followme': core_followme.CoreFollowme,
             'core endpoints': core_endpoints.CoreEndpoints,
-            'core selftest': core_selftest.CoreSelfTest
+            'core selftest': core_selftest.CoreSelfTest,
+            'core registration': core_registration.CoreRegistration
         }
 
         for k, v in commands.iteritems():

@@ -1,17 +1,24 @@
 from __future__ import print_function, unicode_literals
 
+import json
 import os
 import time
 
 import boto3
 import urllib3
 from botocore.exceptions import ClientError
+from jenkins import Jenkins
 
 import const
 import utils
 
 
 class MadcoreBase(object):
+    def __init__(self, *args, **kwargs):
+        super(MadcoreBase, self).__init__(*args, **kwargs)
+
+        self.settings = self.get_settings()
+
     @property
     def config_path(self):
         return utils.config_path()
@@ -30,11 +37,20 @@ class MadcoreBase(object):
         return r.data.strip()
         # return '8.8.8.8'
 
+    @classmethod
+    def list_diff(cls, l1, l2):
+        return [x for x in l1 if x not in l2]
+
+    @classmethod
+    def get_settings(cls):
+        with open(utils.setting_file_path(), 'r') as f:
+            return json.load(f)
+
 
 class CloudFormationBase(MadcoreBase):
     def __init__(self, *args, **kwargs):
         super(CloudFormationBase, self).__init__(*args, **kwargs)
-        self.session = boto3.Session()
+        self.session = boto3.Session(region_name=self.settings['aws']['Region'])
         self.client = self.session.client('cloudformation')
 
     @classmethod
@@ -106,9 +122,13 @@ class CloudFormationBase(MadcoreBase):
         # Steam updates until we hit a closing case
         while self.maintain_loop(response_events, last_event_id, event_type):
             time.sleep(wait_seconds)
-            response_events = self.client.describe_stack_events(
-                StackName=stack_name,
-            )
+            try:
+                response_events = self.client.describe_stack_events(
+                    StackName=stack_name,
+                )
+            except ClientError:
+                # we reach a point when we try to describe the stack events but is already deleted
+                break
 
             events = sorted(response_events['StackEvents'], key=lambda x: x['Timestamp'])
 
@@ -138,7 +158,61 @@ class CloudFormationBase(MadcoreBase):
 
         return domain_name, sub_domain_name
 
+    def get_core_public_ip(self):
+        dns_stack = self.get_stack(const.STACK_CORE)
+        return self.get_output_from_dict(dns_stack['Outputs'], 'MadCorePublicIp')
 
-class JenkinsBase(MadcoreBase):
+
+class JenkinsBase(CloudFormationBase, MadcoreBase):
     def __init__(self, *args, **kwargs):
         super(JenkinsBase, self).__init__(*args, **kwargs)
+
+    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1):
+        self.log.info("Get console output for job: '%s'\n" % job_name)
+        output_lines = []
+
+        # wait until job is is started to get the output
+        while True:
+            job_info = jenkins_server.get_job_info(job_name, depth=1)
+
+            if job_info['builds'] and job_info['builds'][0]['building']:
+                self.log.debug("Job removed from queue")
+                break
+            time.sleep(1)
+
+        while True:
+            output = jenkins_server.get_build_console_output(job_name, build_number)
+            new_output = output.split(os.linesep)
+
+            output_diff = self.list_diff(new_output, output_lines)
+
+            job_info = jenkins_server.get_job_info(job_name, depth=1)
+            if not output_diff and not job_info['builds'][0]['building']:
+                break
+
+            output_lines = new_output
+            # only print if there are new lines
+            if output_diff:
+                print(os.linesep.join(output_diff).strip())
+
+            time.sleep(sleep_time)
+
+    def create_jenkins_server(self):
+        return Jenkins('https://%s' % self.get_core_public_ip())
+
+    def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=1):
+        jenkins_server = self.create_jenkins_server()
+        job_info = jenkins_server.get_job_info(job_name, depth=1)
+
+        build_number = job_info['nextBuildNumber']
+
+        if job_info['builds'] and job_info['builds'][0]['building']:
+            # current job is already building, get it's number
+            build_number = job_info['builds'][0]['number']
+            self.log.info("Job '%s' already running." % job_name)
+        else:
+            # start the job
+            jenkins_server.build_job(job_name, parameters=parameters)
+            self.log.info("Build job '%s'." % job_name)
+
+        self.show_job_console_output(jenkins_server, job_name, build_number, sleep_time=sleep_time)

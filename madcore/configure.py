@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 
+import json
 import logging
 import os
 import subprocess
@@ -8,6 +9,8 @@ import sys
 import boto3
 from cliff.lister import Lister
 
+import const
+import utils
 from base import MadcoreBase
 
 
@@ -60,11 +63,37 @@ class Configure(Lister, MadcoreBase):
                 self.log.warn("You need to configure aws!")
                 os.system('aws configure')
 
+    def configure_user_input(self):
+        settings_file_path = utils.setting_file_path()
+
+        if os.path.exists(settings_file_path):
+            # already set, skip
+            return
+
+        instance_type = raw_input("InstanceType:[%s]" % const.DEFAULT_INSTANCE_TYPE)
+        key_name = raw_input("KeyName:[]")
+        region = raw_input("Region:[%s]" % const.DEFAULT_REGION)
+
+        instance_type = instance_type or const.DEFAULT_INSTANCE_TYPE
+        region = region or const.DEFAULT_REGION
+
+        cfg = {
+            "aws": {
+                "InstanceType": instance_type,
+                "KeyName": key_name,
+                "Region": region
+            }
+        }
+
+        with open(settings_file_path, 'w') as f:
+            f.write(json.dumps(cfg, indent=4, ensure_ascii=False))
+
     def take_action(self, parsed_args):
         if not os.path.exists(self.config_path):
             os.makedirs(self.config_path)
 
         self.configure_aws()
+        self.configure_user_input()
 
         cf_version = self.clone_repo('https://github.com/madcore-ai/cloudformation.git')
         plugins_version = self.clone_repo('https://github.com/madcore-ai/plugins.git')

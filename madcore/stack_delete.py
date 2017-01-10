@@ -41,7 +41,7 @@ class StackDelete(CloudFormationBase, Lister):
         return stack_deleted
 
     def take_action(self, parsed_args):
-        cluster_deleted = self.delete_stack_if_exists('cluster')
+        # cluster_deleted = self.delete_stack_if_exists('cluster')
         core_deleted = self.delete_stack_if_exists('core')
         sfgm_deleted = self.delete_stack_if_exists('sgfm')
         network_deleted = self.delete_stack_if_exists('network')
@@ -52,7 +52,7 @@ class StackDelete(CloudFormationBase, Lister):
         return (
             ('StackName', 'Deleted'),
             (
-                (const.STACK_CLUSTER, cluster_deleted),
+                # (const.STACK_CLUSTER, cluster_deleted),
                 (const.STACK_CORE, core_deleted),
                 (const.STACK_FOLLOWME, sfgm_deleted),
                 (const.STACK_NETWORK, network_deleted),
