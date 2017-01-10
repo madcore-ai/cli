@@ -28,7 +28,7 @@ class MadcoreCli(App):
             'stack list': stack.StackList,
             'stack create': stack.StackCreate,
             'stack delete': stack.StackDelete,
-            'core followme': core.CoreFollowme,
+            'core followme': core.CoreFollowme
         }
 
         for k, v in commands.iteritems():

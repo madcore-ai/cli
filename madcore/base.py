@@ -7,7 +7,7 @@ import boto3
 import urllib3
 from botocore.exceptions import ClientError
 
-import stack_names
+import const
 import utils
 
 
@@ -41,7 +41,7 @@ class CloudFormationBase(MadcoreBase):
     def stack_name(cls, stack_short_name):
         """Given the short stack name, like s3, network, core, output the proper name"""
 
-        return stack_names.STACK_SHORT_NAMES[stack_short_name]
+        return const.STACK_SHORT_NAMES[stack_short_name]
 
     def get_stack(self, stack_name):
         try:

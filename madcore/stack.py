@@ -4,10 +4,9 @@ import json
 import logging
 
 import boto3
-from cliff.command import Command
 from cliff.lister import Lister
 
-import stack_names
+import const
 from base import CloudFormationBase
 
 
@@ -169,12 +168,12 @@ class StackCreate(CloudFormationBase, Lister):
         return (
             ('StackName', 'Created'),
             (
-                (stack_names.S3_STACK_NAME, not s3_exists),
-                (stack_names.NETWORK_STACK_NAME, not network_exists),
-                (stack_names.FOLLOWME_STACK_NAME, not sgfm_exists),
-                (stack_names.CORE_STACK_NAME, not core_exists),
-                (stack_names.DNS_STACK_NAME, not dns_exists),
-                (stack_names.CLUSTER_STACK_NAME, not cluster_exists)
+                (const.STACK_S3, not s3_exists),
+                (const.STACK_NETWORK, not network_exists),
+                (const.STACK_FOLLOWME, not sgfm_exists),
+                (const.STACK_CORE, not core_exists),
+                (const.STACK_DNS, not dns_exists),
+                (const.STACK_CLUSTER, not cluster_exists)
             )
         )
 
@@ -223,21 +222,11 @@ class StackDelete(CloudFormationBase, Lister):
         return (
             ('StackName', 'Deleted'),
             (
-                (stack_names.CLUSTER_STACK_NAME, cluster_deleted),
-                (stack_names.CORE_STACK_NAME, core_deleted),
-                (stack_names.FOLLOWME_STACK_NAME, sfgm_deleted),
-                (stack_names.NETWORK_STACK_NAME, network_deleted),
-                (stack_names.DNS_STACK_NAME, dns_deleted),
-                (stack_names.S3_STACK_NAME, False),
+                (const.STACK_CLUSTER, cluster_deleted),
+                (const.STACK_CORE, core_deleted),
+                (const.STACK_FOLLOWME, sfgm_deleted),
+                (const.STACK_NETWORK, network_deleted),
+                (const.STACK_DNS, dns_deleted),
+                (const.STACK_S3, False),
             )
         )
-
-
-class Error(Command):
-    """Always raises an error"""
-
-    log = logging.getLogger(__name__)
-
-    def take_action(self, parsed_args):
-        self.log.info('causing error')
-        raise RuntimeError('this is the expected exception')
