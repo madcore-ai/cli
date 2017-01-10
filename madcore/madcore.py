@@ -6,6 +6,7 @@ from cliff import complete
 from cliff.app import App
 from cliff.commandmanager import CommandManager
 
+import configure
 import core
 import stack
 
@@ -20,6 +21,7 @@ class MadcoreCli(App):
         )
         commands = {
             'complete': complete.CompleteCommand,
+            'configure': configure.Configure,
             'stack list': stack.StackList,
             'stack create': stack.StackCreate,
             'stack delete': stack.StackDelete,
