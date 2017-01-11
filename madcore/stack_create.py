@@ -57,7 +57,7 @@ class StackCreate(CloudFormationBase, Lister):
         if not input_parameters:
             input_parameters = [{}]
 
-        response = self.client.create_stack(
+        response = self.cf_client.create_stack(
             StackName=stack_name,
             TemplateBody=self.get_template_local(template_file),
             Parameters=input_parameters,
@@ -78,12 +78,12 @@ class StackCreate(CloudFormationBase, Lister):
         stack_details = self.get_stack(stack_name)
 
         if stack_details is None:
-            self.log.info("Stack '%s' does not exists, creating it..." % stack_name)
+            self.log.info("\nStack '%s' does not exists, creating it..." % stack_name)
             self.create_stack(stack_short_name, input_parameters, capabilities=capabilities)
             stack_details = self.get_stack(stack_name)
-            self.log.info("Stack '%s' created." % stack_name)
+            self.log.info("Stack '%s' created.\n" % stack_name)
         else:
-            self.log.info("Stack '%s' already exists, skip." % stack_name)
+            self.log.info("\nStack '%s' already exists, skip." % stack_name)
             exists = True
 
         self.stack_show_output_parameters(stack_details, parsed_args)

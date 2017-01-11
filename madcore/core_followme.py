@@ -14,7 +14,7 @@ class CoreFollowme(CloudFormationBase, ShowOne):
     log = logging.getLogger(__name__)
 
     def stack_update(self, ipv4):
-        update_response = self.client.update_stack(
+        update_response = self.cf_client.update_stack(
             StackName=STACK_FOLLOWME,
             TemplateBody=self.get_template_local('sgfm.json'),
             Parameters=[

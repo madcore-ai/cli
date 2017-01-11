@@ -37,7 +37,7 @@ setup(
     scripts=[],
 
     provides=[],
-    install_requires=['cliff', 'boto3', 'urllib3'],
+    install_requires=['cliff', 'boto3', 'urllib3', 'python-jenkins'],
 
     namespace_packages=[],
     packages=find_packages(),
@@ -50,13 +50,13 @@ setup(
         'madcorecli.app': [
             'complete = cliff.complete:CompleteCommand',
             'configure = madcore.configure:Configure',
-            'stack list = madcore.stack_list:StackList',
-            'stack create = madcore.stack_create:StackCreate',
-            'stack delete = madcore.stack_delete:StackDelete',
-            'core followme = madcore.core_followme:CoreFollowme',
-            'core endpoints = madcore.core_endpoints:CoreEndpoints',
-            'core selftest = madcore.core_selftest:CoreSelfTest',
-            'core registration = madcore.core_registration:CoreRegistration',
+            'list = madcore.stack_list:StackList',
+            'create = madcore.stack_create:StackCreate',
+            'delete = madcore.stack_delete:StackDelete',
+            'followme = madcore.core_followme:CoreFollowme',
+            'endpoints = madcore.core_endpoints:CoreEndpoints',
+            'selftest = madcore.core_selftest:CoreSelfTest',
+            'registration = madcore.core_registration:CoreRegistration',
         ],
     },
     data_files=[

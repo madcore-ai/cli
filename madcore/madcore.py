@@ -30,13 +30,13 @@ class MadcoreCli(App):
         commands = {
             'complete': complete.CompleteCommand,
             'configure': configure.Configure,
-            'stack list': stack_list.StackList,
-            'stack create': stack_create.StackCreate,
-            'stack delete': stack_delete.StackDelete,
-            'core followme': core_followme.CoreFollowme,
-            'core endpoints': core_endpoints.CoreEndpoints,
-            'core selftest': core_selftest.CoreSelfTest,
-            'core registration': core_registration.CoreRegistration
+            'list': stack_list.StackList,
+            'create': stack_create.StackCreate,
+            'delete': stack_delete.StackDelete,
+            'followme': core_followme.CoreFollowme,
+            'endpoints': core_endpoints.CoreEndpoints,
+            'selftest': core_selftest.CoreSelfTest,
+            'registration': core_registration.CoreRegistration
         }
 
         for k, v in commands.iteritems():
