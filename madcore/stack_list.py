@@ -15,7 +15,7 @@ class StackList(CloudFormationBase, Lister):
 
     def take_action(self, parsed_args):
         self.log.info('STACK LIST')
-        cf = boto3.resource('cloudformation')
+        cf = boto3.resource('cloudformation', region_name=self.settings['aws']['Region'])
         return (('Name', 'Status', 'Creation Time', 'Last Updated Time'),
                 ([(stack.name, stack.stack_status, stack.creation_time, stack.last_updated_time) for stack in
                   cf.stacks.all()])

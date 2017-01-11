@@ -15,7 +15,7 @@ class StackDelete(CloudFormationBase, Lister):
     def delete_stack(self, stack_short_name, show_progress=True):
         stack_name = self.stack_name(stack_short_name)
 
-        response = self.client.delete_stack(
+        response = self.cf_client.delete_stack(
             StackName=stack_name
         )
 
@@ -31,12 +31,12 @@ class StackDelete(CloudFormationBase, Lister):
         stack_details = self.get_stack(stack_name)
 
         if stack_details is not None:
-            self.log.info("Stack '%s' exists, delete..." % stack_name)
+            self.log.info("\nStack '%s' exists, delete..." % stack_name)
             self.delete_stack(stack_short_name)
-            self.log.info("Stack '%s' deleted." % stack_name)
+            self.log.info("Stack '%s' deleted.\n" % stack_name)
             stack_deleted = True
         else:
-            self.log.info("Stack '%s' does not exists, skip." % stack_name)
+            self.log.info("\nStack '%s' does not exists, skip." % stack_name)
 
         return stack_deleted
 
