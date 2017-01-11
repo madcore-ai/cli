@@ -37,7 +37,7 @@ setup(
     scripts=[],
 
     provides=[],
-    install_requires=['cliff', 'boto3', 'urllib3'],
+    install_requires=['cliff', 'boto3', 'urllib3', 'python-jenkins'],
 
     namespace_packages=[],
     packages=find_packages(),
