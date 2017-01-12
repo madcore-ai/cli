@@ -158,7 +158,7 @@ class AwsLambda(object):
         aws_data = config.get_aws_data()
 
         session = boto3.Session(region_name=aws_data['region_name'])
-        credentials = session.get_credentials()
+        account_id = session.client('sts').get_caller_identity()["Account"]
 
         payload = {
             'email': user_data['email'],
@@ -166,7 +166,7 @@ class AwsLambda(object):
             'subdomain': user_data['sub_domain'],
             'domain': user_data['domain'],
             'region': aws_data['region_name'],
-            'awsid': credentials.access_key,
+            'awsid': account_id,
         }
 
         for i, ns in enumerate(nameservers, 1):
