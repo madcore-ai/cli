@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-from setuptools import setup, find_packages
 import os
+
+from setuptools import setup, find_packages
 
 PROJECT = 'madcore'
 
@@ -11,6 +12,9 @@ try:
     long_description = open('README.md', 'rt').read()
 except IOError:
     long_description = ''
+
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
 
 setup(
     name=PROJECT,
@@ -37,7 +41,8 @@ setup(
     scripts=[],
 
     provides=[],
-    install_requires=['cliff', 'boto3', 'urllib3', 'python-jenkins'],
+    # TODO@geo get this from requirements.txt
+    install_requires=required,
 
     namespace_packages=[],
     packages=find_packages(),
@@ -49,14 +54,14 @@ setup(
         ],
         'madcorecli.app': [
             'complete = cliff.complete:CompleteCommand',
-            'configure = madcore.configure:Configure',
-            'list = madcore.stack_list:StackList',
-            'create = madcore.stack_create:StackCreate',
-            'delete = madcore.stack_delete:StackDelete',
-            'followme = madcore.core_followme:CoreFollowme',
-            'endpoints = madcore.core_endpoints:CoreEndpoints',
-            'selftest = madcore.core_selftest:CoreSelfTest',
-            'registration = madcore.core_registration:CoreRegistration',
+            'configure = madcore.cmds.configure:Configure',
+            'list = madcore.cmds.stack_list:StackList',
+            'create = madcore.cmds.stack_create:StackCreate',
+            'delete = madcore.cmds.stack_delete:StackDelete',
+            'followme = madcore.cmds.followme:Followme',
+            'endpoints = madcore.cmds.endpoints:Endpoints',
+            'selftest = madcore.cmds.selftest:SelfTest',
+            'registration = madcore.cmds.registration:Registration',
         ],
     },
     data_files=[

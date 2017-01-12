@@ -1,11 +1,10 @@
 from __future__ import print_function, unicode_literals
 
-import logging
-
 from cliff.lister import Lister
 
-import const
-from base import CloudFormationBase
+from madcore import const
+from madcore.base import CloudFormationBase
+from madcore.logs import logging
 
 
 class StackDelete(CloudFormationBase, Lister):

@@ -7,15 +7,17 @@ from cliff import complete
 from cliff.app import App
 from cliff.commandmanager import CommandManager
 
-import configure
-import core_followme
-import core_endpoints
-import core_selftest
-import core_registration
-import stack_list
-import stack_create
-import stack_delete
 import utils
+from cmds import configure
+from cmds import endpoints
+from cmds import followme
+from cmds import registration
+from cmds import selftest
+from cmds import stack_create
+from cmds import stack_delete
+from cmds import stack_list
+from logs import logging
+from configs import config
 
 
 class MadcoreCli(App):
@@ -33,14 +35,26 @@ class MadcoreCli(App):
             'list': stack_list.StackList,
             'create': stack_create.StackCreate,
             'delete': stack_delete.StackDelete,
-            'followme': core_followme.CoreFollowme,
-            'endpoints': core_endpoints.CoreEndpoints,
-            'selftest': core_selftest.CoreSelfTest,
-            'registration': core_registration.CoreRegistration
+            'followme': followme.Followme,
+            'endpoints': endpoints.Endpoints,
+            'selftest': selftest.SelfTest,
+            'registration': registration.Registration
         }
 
         for k, v in commands.iteritems():
             command.add_command(k, v)
+
+    def configure_logging(self):
+        self.LOG = logging.getLogger('madcore')
+
+    def trigger_configuration(self):
+        # TODO@geo we need to find a better way for this then calling cmd line
+        # Trigger configure if not yet setup
+        if not config.get_user_data():
+            self.LOG.info("Start configuration.")
+            os.system('madcore configure')
+        else:
+            self.LOG.info("Already configured.")
 
     def initialize_app(self, argv):
         print()
@@ -49,20 +63,18 @@ class MadcoreCli(App):
         print("Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai")
         print()
         self.LOG.debug('initialize_app')
+        # here we need to trigger
+        if not argv:
+            self.trigger_configuration()
 
     def prepare_to_run_command(self, cmd):
         self.LOG.debug('prepare_to_run_command %s', cmd.__class__.__name__)
 
-        if isinstance(cmd, configure.Configure):
-            # no need to run configure when we configure
-            return
-        # TODO@geo we need to find a better way for this
-        # Trigger configure if not yet setup
-        if not os.path.exists(os.path.join(utils.config_path(), 'cloudformation')):
-            os.system('madcore configure')
+        if not isinstance(cmd, configure.Configure):
+            self.trigger_configuration()
 
     def clean_up(self, cmd, result, err):
-        self.LOG.debug('clean_up %s', cmd.__class__.__name__)
+        # self.LOG.debug('clean_up %s', cmd.__class__.__name__)
         if err:
             self.LOG.debug('got an error: %s', err)
 
