@@ -1,21 +1,20 @@
 from __future__ import print_function, unicode_literals
 
-import logging
-
 from cliff.lister import Lister
 
-import const
-from base import CloudFormationBase
+from madcore import const
+from madcore.base import CloudFormationBase
+from madcore.logs import logging
 
 
-class StackDelete(CloudFormationBase, Lister):
+class Delete(CloudFormationBase, Lister):
     log = logging.getLogger(__name__)
     _description = "Delete stacks"
 
     def delete_stack(self, stack_short_name, show_progress=True):
         stack_name = self.stack_name(stack_short_name)
 
-        response = self.client.delete_stack(
+        response = self.cf_client.delete_stack(
             StackName=stack_name
         )
 
@@ -31,12 +30,12 @@ class StackDelete(CloudFormationBase, Lister):
         stack_details = self.get_stack(stack_name)
 
         if stack_details is not None:
-            self.log.info("Stack '%s' exists, delete..." % stack_name)
+            self.log.info("\nStack '%s' exists, delete..." % stack_name)
             self.delete_stack(stack_short_name)
-            self.log.info("Stack '%s' deleted." % stack_name)
+            self.log.info("Stack '%s' deleted.\n" % stack_name)
             stack_deleted = True
         else:
-            self.log.info("Stack '%s' does not exists, skip." % stack_name)
+            self.log.info("\nStack '%s' does not exists, skip." % stack_name)
 
         return stack_deleted
 

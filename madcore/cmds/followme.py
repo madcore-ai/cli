@@ -1,20 +1,19 @@
 from __future__ import print_function, unicode_literals
 
-import logging
-
 from cliff.show import ShowOne
 
-from base import CloudFormationBase
-from const import STACK_FOLLOWME
+from madcore.base import CloudFormationBase
+from madcore.const import STACK_FOLLOWME
+from madcore.logs import logging
 
 
-class CoreFollowme(CloudFormationBase, ShowOne):
+class Followme(CloudFormationBase, ShowOne):
     _description = "Update Followme stack with current IP"
 
     log = logging.getLogger(__name__)
 
     def stack_update(self, ipv4):
-        update_response = self.client.update_stack(
+        update_response = self.cf_client.update_stack(
             StackName=STACK_FOLLOWME,
             TemplateBody=self.get_template_local('sgfm.json'),
             Parameters=[

@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+AWS_IDENTITY_POOL_ID = 'eu-west-1:964ea940-a8e6-44a5-a88b-c510cfe487d7'
+
 STACK_FOLLOWME = 'MADCORE-FollowMe'
 STACK_S3 = 'MADCORE-S3'
 STACK_NETWORK = 'MADCORE-Net'
@@ -30,12 +32,16 @@ ENDPOINTS = {
 
 DOMAIN_REGISTRATION = {
     'Hostname': '',  # to be set dynamically
-    'Email': 'polfilm@gmail.com',
+    'Email': '',  # user email
     'OrganizationName': 'Madcore Ltd',
     'OrganizationalUnitName': 'Development',
     'LocalityName': 'London',
     'Country': 'GB'
 }
 
-DEFAULT_INSTANCE_TYPE = 't2.small'
-DEFAULT_REGION = 'eu-west-1'
+ALLOWED_INSTANCE_TYPES = [
+    't2.small',
+    'm3.medium',
+    'm4.large',
+    'r3.large'
+]

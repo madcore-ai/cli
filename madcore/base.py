@@ -11,13 +11,13 @@ from jenkins import Jenkins
 
 import const
 import utils
+from configs import config
+from logs import logging
 
 
 class MadcoreBase(object):
     def __init__(self, *args, **kwargs):
         super(MadcoreBase, self).__init__(*args, **kwargs)
-
-        self.settings = self.get_settings()
 
     @property
     def config_path(self):
@@ -41,17 +41,32 @@ class MadcoreBase(object):
     def list_diff(cls, l1, l2):
         return [x for x in l1 if x not in l2]
 
-    @classmethod
-    def get_settings(cls):
-        with open(utils.setting_file_path(), 'r') as f:
-            return json.load(f)
+    def get_allowed_domains(self):
+        with open(os.path.join(self.config_path, 'plugins/domain-index.json')) as content_file:
+            return json.load(content_file)
 
 
 class CloudFormationBase(MadcoreBase):
     def __init__(self, *args, **kwargs):
         super(CloudFormationBase, self).__init__(*args, **kwargs)
-        self.session = boto3.Session(region_name=self.settings['aws']['Region'])
-        self.client = self.session.client('cloudformation')
+        self.session = None
+        self.cf_client = None
+
+        self.create_aws_objects()
+
+    @property
+    def get_aws_connection_params(self):
+        region_name = config.get_aws_data('region_name')
+
+        params = {}
+        if region_name:
+            params['region_name'] = region_name
+
+        return params
+
+    def create_aws_objects(self):
+        self.session = boto3.Session(**self.get_aws_connection_params)
+        self.cf_client = self.session.client('cloudformation')
 
     @classmethod
     def stack_name(cls, stack_short_name):
@@ -61,7 +76,7 @@ class CloudFormationBase(MadcoreBase):
 
     def get_stack(self, stack_name):
         try:
-            r = self.client.describe_stacks(
+            r = self.cf_client.describe_stacks(
                 StackName=stack_name
             )
             return r['Stacks'][0]
@@ -99,7 +114,7 @@ class CloudFormationBase(MadcoreBase):
 
     def show_stack_events_progress(self, stack_name, event_type, wait_seconds=3):
         try:
-            response_events = self.client.describe_stack_events(
+            response_events = self.cf_client.describe_stack_events(
                 StackName=stack_name
             )
         except ClientError as e:
@@ -116,14 +131,14 @@ class CloudFormationBase(MadcoreBase):
         last_event_id = response_events['StackEvents'][0]['EventId']
 
         # TODO@geo Maybe we should investigate and see if we can create this table using PrettyTable?
-        # Print top of updates stream
-        print("{: <45} {: <23} {: <}".format("Resource", "Status", "Details"))
+        # Display top of updates stream
+        self.app.stdout.write("{: <45} {: <23} {: <}\n".format("Resource", "Status", "Details"))
 
         # Steam updates until we hit a closing case
         while self.maintain_loop(response_events, last_event_id, event_type):
             time.sleep(wait_seconds)
             try:
-                response_events = self.client.describe_stack_events(
+                response_events = self.cf_client.describe_stack_events(
                     StackName=stack_name,
                 )
             except ClientError:
@@ -138,8 +153,9 @@ class CloudFormationBase(MadcoreBase):
                     if 'ResourceStatusReason' not in event:
                         event['ResourceStatusReason'] = ""
 
-                    print("{: <40} {: <30} {: <}".format(event['ResourceType'], event['ResourceStatus'],
-                                                         event['ResourceStatusReason']))
+                    self.app.stdout.write("{: <40} {: <30} {: <}\n".format(event['ResourceType'],
+                                                                           event['ResourceStatus'],
+                                                                           event['ResourceStatusReason']))
                     shown_events.append(event['EventId'])
 
     def show_stack_create_events_progress(self, stack_name, **kwargs):
@@ -150,13 +166,6 @@ class CloudFormationBase(MadcoreBase):
 
     def show_stack_delete_events_progress(self, stack_name, **kwargs):
         self.show_stack_events_progress(stack_name, 'delete', **kwargs)
-
-    def get_dns_domains(self):
-        dns_stack = self.get_stack(const.STACK_DNS)
-        domain_name = self.get_param_from_dict(dns_stack['Parameters'], 'DomainName')
-        sub_domain_name = self.get_param_from_dict(dns_stack['Parameters'], 'SubDomainName')
-
-        return domain_name, sub_domain_name
 
     def get_core_public_ip(self):
         dns_stack = self.get_stack(const.STACK_CORE)
@@ -176,7 +185,7 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
             job_info = jenkins_server.get_job_info(job_name, depth=1)
 
             if job_info['builds'] and job_info['builds'][0]['building']:
-                self.log.debug("Job removed from queue")
+                self.log.debug("Job removed from queue, start processing")
                 break
             time.sleep(1)
 
@@ -191,14 +200,17 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
                 break
 
             output_lines = new_output
-            # only print if there are new lines
+            # only display if there are new lines
             if output_diff:
-                print(os.linesep.join(output_diff).strip())
+                for line in output_diff:
+                    self.log.info(line.strip())
 
             time.sleep(sleep_time)
 
-    def create_jenkins_server(self):
-        return Jenkins('https://%s' % self.get_core_public_ip())
+    @classmethod
+    def create_jenkins_server(cls):
+        url = 'https://jenkins.%s' % config.get_full_domain()
+        return Jenkins(url)
 
     def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=1):
         jenkins_server = self.create_jenkins_server()
@@ -216,3 +228,15 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
             self.log.info("Build job '%s'." % job_name)
 
         self.show_job_console_output(jenkins_server, job_name, build_number, sleep_time=sleep_time)
+
+        # get the job SUCCESS status
+        job_info = jenkins_server.get_job_info(job_name, depth=1)
+
+        return job_info['lastBuild']['result'] in ['SUCCESS']
+
+
+class Stdout(object):
+    log = logging.getLogger('no_formatter')
+
+    def write(self, msg):
+        self.log.info(msg)
