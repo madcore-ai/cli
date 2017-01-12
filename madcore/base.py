@@ -12,6 +12,7 @@ from jenkins import Jenkins
 import const
 import utils
 from configs import config
+from logs import logging
 
 
 class MadcoreBase(object):
@@ -208,7 +209,7 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
 
     @classmethod
     def create_jenkins_server(cls):
-        url = 'https://jenkins.%s' % config.get_user_data('user_domain')
+        url = 'https://jenkins.%s' % config.get_full_domain()
         return Jenkins(url)
 
     def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=1):
@@ -232,3 +233,10 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
         job_info = jenkins_server.get_job_info(job_name, depth=1)
 
         return job_info['lastBuild']['result'] in ['SUCCESS']
+
+
+class Stdout(object):
+    log = logging.getLogger('no_formatter')
+
+    def write(self, msg):
+        self.log.info(msg)

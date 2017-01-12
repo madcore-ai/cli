@@ -32,7 +32,7 @@ class Configure(JenkinsBase, Lister):
 
             job_name = 'madcore.registration'
             parameters = DOMAIN_REGISTRATION.copy()
-            parameters['Hostname'] = config.get_user_data('user_domain')
+            parameters['Hostname'] = config.get_full_domain()
             parameters['Email'] = config.get_user_data('email')
 
             success = self.jenkins_run_job_show_output(job_name, parameters=parameters)

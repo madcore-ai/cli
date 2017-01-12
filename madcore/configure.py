@@ -129,7 +129,7 @@ class MadcoreConfigure(CloudFormationBase):
 
             user_sub_domain = '{team}.{domain}'.format(team=selected_team['team'], domain=selected_domain['domain'])
 
-            self.log.info("Create user: %s" % user_email)
+            self.log.info("Create user: '%s'" % user_email)
             user_password = getpass.getpass('Set madcore password: ')
 
             user_create_response = aws_lambda.create_user(user_email, user_password, user_sub_domain)
@@ -139,9 +139,10 @@ class MadcoreConfigure(CloudFormationBase):
                 'password': user_password,
                 'created': False,
                 'verified': False,
+                'registration': False,
+                'dns_delegation': False,
                 'domain': selected_domain['domain'],
-                'sub_domain': selected_team['team'],
-                'user_domain': '%s.%s' % (selected_team['team'], selected_domain['domain'])
+                'sub_domain': selected_team['team']
             }
             config.set_user_data(user_data)
 
@@ -176,10 +177,14 @@ class MadcoreConfigure(CloudFormationBase):
                 # TODO@geo fix this
                 # in case that user exists we need a way to check it,
                 # at the moment I login and if success user is created
-                config.set_user_data({'created': True, 'verified': True})
+                # get domain from login
+                sub_domain, domain = login_response['domain'].split('.', 1)
+                config.set_user_data({'created': True, 'verified': True, 'sub_domain': sub_domain,
+                                      'domain': domain})
             else:
                 self.log.error("Error while logging in.")
-                self.log.info("login_response %s" % login_response)
+                self.log.info('EXIT.')
+                sys.exit(1)
         else:
             self.log.debug("Already logged in.")
 

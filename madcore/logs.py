@@ -14,7 +14,7 @@ LOGGING = {
         'standard': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
-        'output_tables': {
+        'simple': {
             'format': '%(message)s'
         }
     },
@@ -36,22 +36,22 @@ LOGGING = {
             'level': 'DEBUG',
             'formatter': 'standard'
         },
-        'console_table': {
+        'console_simple': {
             'class': 'logging.StreamHandler',
             'level': 'DEBUG',
-            'formatter': 'output_tables'
+            'formatter': 'simple'
         }
     },
     'loggers': {
-        'output_table': {
-            'handlers': ['console_table'],
+        'no_formatter': {
+            'handlers': ['console_simple'],
             'level': 'DEBUG',
             'propagate': False,
         },
         '': {
             'handlers': ['console', 'file', 'file_error'],
             'level': 'DEBUG',
-            'propagate': False,
+            'propagate': True,
         },
         # disable this logs for now
         'boto3': {

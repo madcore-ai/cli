@@ -7,6 +7,7 @@ from cliff import complete
 from cliff.app import App
 from cliff.commandmanager import CommandManager
 
+from base import Stdout
 from cmds import configure
 from cmds import create
 from cmds import delete
@@ -27,6 +28,7 @@ class MadcoreCli(App):
                         'Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai',
             version='0.3',
             command_manager=command,
+            stdout=Stdout()
         )
         commands = {
             'complete': complete.CompleteCommand,

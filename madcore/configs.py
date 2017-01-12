@@ -78,6 +78,9 @@ class MadcoreConfig(object):
     def get_user_data(self, key=None, section='user'):
         return self.get_data(section, key)
 
+    def get_full_domain(self):
+        return '{sub_domain}.{domain}'.format(**self.get_user_data())
+
     def is_key_true(self, section, key):
         try:
             return self.config.getboolean(key, section)

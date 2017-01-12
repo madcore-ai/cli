@@ -8,16 +8,10 @@ from cliff.formatters.table import TableFormatter
 from madcore import const
 from madcore import utils
 from madcore.base import CloudFormationBase
+from madcore.base import Stdout
 from madcore.configs import config
 from madcore.libs.aws import AwsLambda
 from madcore.logs import logging
-
-
-class Stdout(object):
-    log = logging.getLogger('output_table')
-
-    def write(self, msg):
-        self.log.info(msg)
 
 
 class StackCreate(CloudFormationBase):
@@ -178,17 +172,21 @@ class StackCreate(CloudFormationBase):
 
             if delegation_response.get('verified', False):
                 self.log.info("DNS delegation verified.")
+                dns_delegation = True
                 config.set_user_data({'dns_delegation': True})
             else:
-                self.log.error("DNS delegation error.")
-                self.log.error(delegation_response)
+                self.log.error("DNS delegation error: %s" % delegation_response)
+                dns_delegation = False
 
-                config.set_user_data({'dns_delegation': False})
-
+            config.set_user_data({'dns_delegation': dns_delegation})
             self.log.info("DNS delegation end.")
 
-            self.log.info("Wait until DNS for domain '%s' is updated..." % user_config['user_domain'])
-            if utils.hostname_resolves(user_config['user_domain']):
+            if not dns_delegation:
+                self.log.error("EXIT.")
+                sys.exit(1)
+
+            self.log.info("Wait until DNS for domain '%s' is updated..." % config.get_full_domain())
+            if utils.hostname_resolves(config.get_full_domain()):
                 self.log.info("DNS updated.")
             else:
                 self.log.error("Error while updating DNS.")
