@@ -13,7 +13,7 @@ class Stacks(CloudFormationBase, Lister):
     log = logging.getLogger(__name__)
 
     def take_action(self, parsed_args):
-        self.log.info('STACK LIST')
+        self.log.info('stack list')
         cf = boto3.resource('cloudformation', **self.get_aws_connection_params)
         return (('Name', 'Status', 'Creation Time', 'Last Updated Time'),
                 ([(stack.name, stack.stack_status, stack.creation_time, stack.last_updated_time) for stack in
