@@ -7,7 +7,7 @@ from madcore.base import CloudFormationBase
 from madcore.logs import logging
 
 
-class StackList(CloudFormationBase, Lister):
+class Stacks(CloudFormationBase, Lister):
     _description = "List stacks"
 
     log = logging.getLogger(__name__)

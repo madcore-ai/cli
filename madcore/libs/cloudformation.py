@@ -1,7 +1,9 @@
 from __future__ import print_function, unicode_literals
 
+import sys
+
 import boto3
-from cliff.lister import Lister
+from cliff.formatters.table import TableFormatter
 
 from madcore import const
 from madcore import utils
@@ -11,10 +13,23 @@ from madcore.libs.aws import AwsLambda
 from madcore.logs import logging
 
 
-class StackCreate(CloudFormationBase, Lister):
-    _description = "Create stacks"
+class Stdout(object):
+    log = logging.getLogger('output_table')
 
+    def write(self, msg):
+        self.log.info(msg)
+
+
+class StackCreate(CloudFormationBase):
     log = logging.getLogger(__name__)
+
+    def __init__(self, app, *args, **kwargs):
+        super(StackCreate, self).__init__(*args, **kwargs)
+        self.app = app
+        self.formatter = TableFormatter()
+
+    def produce_output(self, parsed_args, column_names, data):
+        self.formatter.emit_list(column_names, data, Stdout(), parsed_args)
 
     def stack_show_output_parameters(self, stack_details, parsed_args):
         def show_output(results_key, column_names):
@@ -153,27 +168,32 @@ class StackCreate(CloudFormationBase, Lister):
         dns_stack, dns_exists = self.create_stack_if_not_exists('dns', dns_params, parsed_args)
 
         # do DNS delegation
-        self.log.info("DNS delegation start")
-        aws_lambda = AwsLambda()
-        name_servers = self.get_hosted_zone_name_servers(
-            self.get_output_from_dict(dns_stack['Outputs'], 'HostedZoneID'))
+        if not config.is_dns_delegated:
+            self.log.info("DNS delegation start")
+            aws_lambda = AwsLambda()
+            name_servers = self.get_hosted_zone_name_servers(
+                self.get_output_from_dict(dns_stack['Outputs'], 'HostedZoneID'))
 
-        delegation_response = aws_lambda.dns_delegation(name_servers)
+            delegation_response = aws_lambda.dns_delegation(name_servers)
 
-        if delegation_response['verified']:
-            self.log.info("DNS delegation verified.")
-            config.set_user_data({'dns_delegation': True})
+            if delegation_response.get('verified', False):
+                self.log.info("DNS delegation verified.")
+                config.set_user_data({'dns_delegation': True})
+            else:
+                self.log.error("DNS delegation error.")
+                self.log.error(delegation_response)
+
+                config.set_user_data({'dns_delegation': False})
+
+            self.log.info("DNS delegation end.")
+
+            self.log.info("Wait until DNS for domain '%s' is updated..." % user_config['user_domain'])
+            if utils.hostname_resolves(user_config['user_domain']):
+                self.log.info("DNS updated.")
+            else:
+                self.log.error("Error while updating DNS.")
         else:
-            self.log.error("DNS delegation error.")
-            config.set_user_data({'dns_delegation': False})
-
-        self.log.info("DNS delegation end.")
-
-        self.log.info("Wait until DNS for domain '%s' is updated..." % user_config['user_domain'])
-        if utils.hostname_resolves(user_config['user_domain']):
-            self.log.info("DNS updated.")
-        else:
-            self.log.error("Error while updating DNS.")
+            self.log.info("DNS delegation already setup.")
 
         # create Cluster
         # cluster_parameters = {
@@ -187,15 +207,14 @@ class StackCreate(CloudFormationBase, Lister):
         # _, cluster_exists = self.create_stack_if_not_exists('cluster', cluster_params, parsed_args,
         #                                                     capabilities=cluster_capabilities)
         self.log.info("Stack Create status:")
-
-        return (
-            ('StackName', 'Created'),
-            (
-                (const.STACK_S3, not s3_exists),
-                (const.STACK_NETWORK, not network_exists),
-                (const.STACK_FOLLOWME, not sgfm_exists),
-                (const.STACK_CORE, not core_exists),
-                (const.STACK_DNS, not dns_exists)
-                # (const.STACK_CLUSTER, not cluster_exists)
-            )
-        )
+        self.produce_output(parsed_args,
+                            ('StackName', 'Created'),
+                            (
+                                (const.STACK_S3, not s3_exists),
+                                (const.STACK_NETWORK, not network_exists),
+                                (const.STACK_FOLLOWME, not sgfm_exists),
+                                (const.STACK_CORE, not core_exists),
+                                (const.STACK_DNS, not dns_exists)
+                                # (const.STACK_CLUSTER, not cluster_exists)
+                            )
+                            )

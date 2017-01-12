@@ -55,9 +55,9 @@ setup(
         'madcorecli.app': [
             'complete = cliff.complete:CompleteCommand',
             'configure = madcore.cmds.configure:Configure',
-            'list = madcore.cmds.stack_list:StackList',
-            'create = madcore.cmds.stack_create:StackCreate',
-            'delete = madcore.cmds.stack_delete:StackDelete',
+            'stacks = madcore.cmds.stacks:Stacks',
+            'create = madcore.cmds.create:Create',
+            'delete = madcore.cmds.delete:Delete',
             'followme = madcore.cmds.followme:Followme',
             'endpoints = madcore.cmds.endpoints:Endpoints',
             'selftest = madcore.cmds.selftest:SelfTest',

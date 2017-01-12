@@ -4,6 +4,6 @@ from madcore.cmds.configure import Configure
 from madcore.logs import logging
 
 
-class Registration(Configure):
-    _description = "Register madcore"
+class Create(Configure):
+    _description = "Create madcore"
     log = logging.getLogger(__name__)

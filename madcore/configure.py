@@ -109,9 +109,11 @@ class MadcoreConfigure(CloudFormationBase):
         config.set_aws_data(aws_data)
 
     def configure_user_registration(self):
+        self.log.info("Start user registration")
+
         aws_lambda = AwsLambda()
 
-        if not config.is_user_created():
+        if not config.is_user_created:
             bitbucket_auth = self.raw_prompt('username', 'Input bitbucket username:')
             bitbucket_auth['password'] = getpass.getpass('Input bitbucket password: ')
 
@@ -128,10 +130,9 @@ class MadcoreConfigure(CloudFormationBase):
             user_sub_domain = '{team}.{domain}'.format(team=selected_team['team'], domain=selected_domain['domain'])
 
             self.log.info("Create user: %s" % user_email)
-            user_password = getpass.getpass('Input password: ')
+            user_password = getpass.getpass('Set madcore password: ')
 
             user_create_response = aws_lambda.create_user(user_email, user_password, user_sub_domain)
-            self.log.info("user_create_response %s" % user_create_response)
 
             user_data = {
                 'email': user_email,
@@ -155,23 +156,27 @@ class MadcoreConfigure(CloudFormationBase):
                 verify_response = aws_lambda.verify_user(user_email, verify_code['verify_code'])
 
                 if verify_response['verified']:
-                    self.log.info("User verified")
+                    self.log.info("User verified.")
                     config.set_user_data({'verified': True})
                 else:
                     self.log.error("User not verified")
                     self.log.info("verify_response %s" % verify_response)
             else:
-                self.log.info("Already exists.")
+                self.log.info("User '%s' already exists." % user_email)
         else:
             user_data = config.get_user_data()
 
-        if not config.is_logged_in():
+        if not config.is_logged_in or not config.is_user_created:
             self.log.info("Login user(automatically)")
             login_response = aws_lambda.auth_login(user_data['email'], user_data['password'])
 
             if login_response['login']:
                 self.log.info("User successfully logged in.")
                 config.set_login_data(login_response)
+                # TODO@geo fix this
+                # in case that user exists we need a way to check it,
+                # at the moment I login and if success user is created
+                config.set_user_data({'created': True, 'verified': True})
             else:
                 self.log.error("Error while logging in.")
                 self.log.info("login_response %s" % login_response)
@@ -198,9 +203,9 @@ class MadcoreConfigure(CloudFormationBase):
     def start_configuration(self):
         utils.create_project_config_dir()
 
+        columns, data = self.configure_repos()
+
         self.configure_aws()
         self.configure_user_registration()
-
-        columns, data = self.configure_repos()
 
         return columns, data

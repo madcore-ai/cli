@@ -201,7 +201,8 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
             output_lines = new_output
             # only display if there are new lines
             if output_diff:
-                self.app.stdout.write("%s\n" % os.linesep.join(output_diff).strip())
+                for line in output_diff:
+                    self.log.info(line.strip())
 
             time.sleep(sleep_time)
 
@@ -226,3 +227,8 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
             self.log.info("Build job '%s'." % job_name)
 
         self.show_job_console_output(jenkins_server, job_name, build_number, sleep_time=sleep_time)
+
+        # get the job SUCCESS status
+        job_info = jenkins_server.get_job_info(job_name, depth=1)
+
+        return job_info['lastBuild']['result'] in ['SUCCESS']

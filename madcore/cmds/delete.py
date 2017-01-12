@@ -7,7 +7,7 @@ from madcore.base import CloudFormationBase
 from madcore.logs import logging
 
 
-class StackDelete(CloudFormationBase, Lister):
+class Delete(CloudFormationBase, Lister):
     log = logging.getLogger(__name__)
     _description = "Delete stacks"
 

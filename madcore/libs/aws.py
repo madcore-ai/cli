@@ -39,7 +39,6 @@ class AwsLambda(object):
         self.identity_pool_id = identity_pool_id or const.AWS_IDENTITY_POOL_ID
         self.client = boto3.client('cognito-identity', config=Config(signature_version=UNSIGNED))
         self.lambda_client_no_auth = self.create_aws_lambda_client()
-        self.lambda_client_auth = self.create_aws_lambda_client_auth()
 
     def get_identity_id(self):
         identity_id = config.get_aws_identity_id()
@@ -153,6 +152,8 @@ class AwsLambda(object):
         return json.loads(response['Payload'].read())
 
     def dns_delegation(self, nameservers):
+        lambda_client_auth = self.create_aws_lambda_client_auth()
+
         user_data = config.get_user_data()
         aws_data = config.get_aws_data()
 
@@ -171,7 +172,7 @@ class AwsLambda(object):
         for i, ns in enumerate(nameservers, 1):
             payload['dns%s' % i] = ns
 
-        response = self.lambda_client_auth.invoke(
+        response = lambda_client_auth.invoke(
             FunctionName='LambdSendDNSValues',
             InvocationType='RequestResponse',
             LogType='Tail',

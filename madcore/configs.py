@@ -55,8 +55,8 @@ class MadcoreConfig(object):
     def set_login_data(self, login_data, section='login'):
         self.set_data(login_data, section)
 
-    def set_aws_data(self, login_data, section='aws'):
-        self.set_data(login_data, section)
+    def set_aws_data(self, aws_data, section='aws'):
+        self.set_data(aws_data, section)
 
     def get_aws_data(self, key=None, section='aws'):
         return self.get_data(section, key)
@@ -78,10 +78,27 @@ class MadcoreConfig(object):
     def get_user_data(self, key=None, section='user'):
         return self.get_data(section, key)
 
-    def is_user_created(self, section='user'):
+    def is_key_true(self, section, key):
         try:
-            created = self.config.getboolean(section, 'created')
-            verified = self.config.getboolean(section, 'verified')
+            return self.config.getboolean(key, section)
+        except:
+            pass
+
+        return False
+
+    @property
+    def is_dns_delegated(self):
+        return self.is_key_true('dns_delegation', 'user')
+
+    @property
+    def is_domain_registered(self):
+        return self.is_key_true('registration', 'user')
+
+    @property
+    def is_user_created(self):
+        try:
+            created = self.config.getboolean('user', 'created')
+            verified = self.config.getboolean('user', 'verified')
 
             return all((created, verified))
         except:
@@ -89,13 +106,9 @@ class MadcoreConfig(object):
 
         return False
 
-    def is_logged_in(self, section='login'):
-        try:
-            return self.config.getboolean(section, 'login')
-        except:
-            pass
-
-        return False
+    @property
+    def is_logged_in(self):
+        return self.is_key_true('login', 'login')
 
 
 config = MadcoreConfig()

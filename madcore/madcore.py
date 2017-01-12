@@ -7,17 +7,16 @@ from cliff import complete
 from cliff.app import App
 from cliff.commandmanager import CommandManager
 
-import utils
 from cmds import configure
+from cmds import create
+from cmds import delete
 from cmds import endpoints
 from cmds import followme
 from cmds import registration
 from cmds import selftest
-from cmds import stack_create
-from cmds import stack_delete
-from cmds import stack_list
-from logs import logging
+from cmds import stacks
 from configs import config
+from logs import logging
 
 
 class MadcoreCli(App):
@@ -32,9 +31,9 @@ class MadcoreCli(App):
         commands = {
             'complete': complete.CompleteCommand,
             'configure': configure.Configure,
-            'list': stack_list.StackList,
-            'create': stack_create.StackCreate,
-            'delete': stack_delete.StackDelete,
+            'stacks': stacks.Stacks,
+            'create': create.Create,
+            'delete': delete.Delete,
             'followme': followme.Followme,
             'endpoints': endpoints.Endpoints,
             'selftest': selftest.SelfTest,

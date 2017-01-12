@@ -13,6 +13,9 @@ LOGGING = {
     'formatters': {
         'standard': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+        'output_tables': {
+            'format': '%(message)s'
         }
     },
     'handlers': {
@@ -32,18 +35,23 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'level': 'DEBUG',
             'formatter': 'standard'
+        },
+        'console_table': {
+            'class': 'logging.StreamHandler',
+            'level': 'DEBUG',
+            'formatter': 'output_tables'
         }
     },
     'loggers': {
-        # 'madcore': {
-        #     'handlers': ['console', 'file', 'file_error'],
-        #     'level': 'DEBUG',
-        #     'propagate': True,
-        # },
+        'output_table': {
+            'handlers': ['console_table'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
         '': {
             'handlers': ['console', 'file', 'file_error'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
         # disable this logs for now
         'boto3': {
