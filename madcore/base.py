@@ -110,8 +110,8 @@ class CloudFormationBase(MadcoreBase):
 
         return None
 
-    def get_stack_by_short_name(self, stack_short_name):
-        return self.get_stack(self.stack_name(stack_short_name))
+    def get_stack_by_short_name(self, stack_short_name, **kwargs):
+        return self.get_stack(self.stack_name(stack_short_name), **kwargs)
 
     @classmethod
     def get_param_from_dict(cls, dic, param):
