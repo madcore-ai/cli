@@ -18,6 +18,8 @@ from cmds import selftest
 from cmds import stacks
 from configs import config
 from logs import logging
+import traceback
+import utils
 
 
 class MadcoreCli(App):
@@ -61,6 +63,7 @@ class MadcoreCli(App):
         print()
         print()
         print("Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller")
+        print("Build version: %s" % utils.get_version())
         print("Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai")
         print()
         self.LOG.debug('initialize_app')
@@ -78,6 +81,7 @@ class MadcoreCli(App):
         # self.LOG.debug('clean_up %s', cmd.__class__.__name__)
         if err:
             self.LOG.debug('got an error: %s', err)
+            self.LOG.debug(traceback.format_exc())
 
 
 def main(argv=sys.argv[1:]):

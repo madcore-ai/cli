@@ -30,12 +30,12 @@ class Delete(CloudFormationBase, Lister):
         stack_details = self.get_stack(stack_name)
 
         if stack_details is not None:
-            self.log.info("\nStack '%s' exists, delete..." % stack_name)
+            self.log.info("\nStack '%s' exists, delete...", stack_name)
             self.delete_stack(stack_short_name)
-            self.log.info("Stack '%s' deleted.\n" % stack_name)
+            self.log.info("Stack '%s' deleted.\n", stack_name)
             stack_deleted = True
         else:
-            self.log.info("\nStack '%s' does not exists, skip." % stack_name)
+            self.log.info("\nStack '%s' does not exists, skip.", stack_name)
 
         return stack_deleted
 
