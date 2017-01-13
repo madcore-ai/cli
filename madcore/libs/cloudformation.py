@@ -2,7 +2,6 @@ from __future__ import print_function, unicode_literals
 
 import sys
 
-import boto3
 from cliff.formatters.table import TableFormatter
 
 from madcore import const
@@ -38,7 +37,7 @@ class StackCreate(CloudFormationBase):
         self.log.info("Output parameters for stack '{StackName}':".format(**stack_details))
         show_output('Outputs', ['OutputKey', 'OutputValue', 'Description'])
 
-    def stack_show_input_parameter(self, stack_short_name, input_params, parsed_args):
+    def stack_show_input_parameter(self, stack_short_name, input_params, parsed_args, debug=True):
         stack_name = self.stack_name(stack_short_name)
 
         def show_output(column_names):
@@ -50,10 +49,12 @@ class StackCreate(CloudFormationBase):
             self.produce_output(parsed_args, column_names, data)
 
         if input_params != [{}]:
-            self.log.info("Input parameters for stack '{}':".format(stack_name))
+            if debug:
+                self.log.info("Input parameters for stack '{}':".format(stack_name))
             show_output(['ParameterKey', 'ParameterValue'])
         else:
-            self.log.info("No input parameters for stack '{}'.".format(stack_name))
+            if debug:
+                self.log.info("No input parameters for stack '{}'.".format(stack_name))
 
     @classmethod
     def is_stack_create_failed(cls, stack_details):
@@ -82,19 +83,22 @@ class StackCreate(CloudFormationBase):
 
         return response
 
-    def create_stack_if_not_exists(self, stack_short_name, input_parameters, parsed_args, capabilities=None):
+    def create_stack_if_not_exists(self, stack_short_name, dict_params, parsed_args, capabilities=None):
         exists = False
         error = False
 
+        # construct the parameters for the stack from the dict
+        stack_params = self.create_stack_parameters(dict_params=dict_params)
+
         stack_name = self.stack_name(stack_short_name)
 
-        self.stack_show_input_parameter(stack_short_name, input_parameters, parsed_args)
+        self.stack_show_input_parameter(stack_short_name, stack_params, parsed_args)
 
         stack_details = self.get_stack(stack_name, debug=False)
 
         if stack_details is None:
             self.log.info("Stack '%s' does not exists, creating it...", stack_name)
-            self.create_stack(stack_short_name, input_parameters, capabilities=capabilities)
+            self.create_stack(stack_short_name, stack_params, capabilities=capabilities)
             stack_details = self.get_stack(stack_name)
             if stack_details and not self.is_stack_create_failed(stack_details):
                 self.log.info("Stack '{StackName}' created with status '{StackStatus}'.\n".format(**stack_details))
@@ -105,7 +109,7 @@ class StackCreate(CloudFormationBase):
             self.log.info(
                 "Stack {StackName}' is created but failed with status '{StackStatus}'".format(**stack_details))
             self.log.info("Try to create again")
-            self.create_stack(stack_short_name, input_parameters, capabilities=capabilities)
+            self.create_stack(stack_short_name, stack_params, capabilities=capabilities)
             stack_details = self.get_stack(stack_name)
             if stack_details and not self.is_stack_create_failed(stack_details):
                 self.log.info("Stack '{StackName}' recreated with status '{StackStatus}'.\n".format(**stack_details))
@@ -114,6 +118,9 @@ class StackCreate(CloudFormationBase):
                 error = True
         else:
             self.log.info("Stack '%s' already exists, skip.", stack_name)
+            updated = self.update_stack_if_changed(stack_short_name, stack_details, dict_params, parsed_args,
+                                                   capabilities)
+            stack_details = self.get_stack(stack_name, debug=False)
             exists = True
 
         if not error:
@@ -124,6 +131,62 @@ class StackCreate(CloudFormationBase):
 
         return stack_details, exists
 
+    def update_stack(self, stack_short_name, input_parameters, capabilities=None, show_progress=True):
+        stack_name = self.stack_name(stack_short_name)
+        template_file = '%s.json' % stack_short_name.lower()
+
+        if not input_parameters:
+            input_parameters = [{}]
+
+        response = self.cf_client.update_stack(
+            StackName=stack_name,
+            TemplateBody=self.get_template_local(template_file),
+            Parameters=input_parameters,
+            Capabilities=capabilities or []
+        )
+
+        if show_progress:
+            self.show_stack_update_events_progress(stack_name)
+
+        return response
+
+    def update_stack_if_changed(self, stack_short_name, stack_details, stack_create_parameters, parsed_args,
+                                capabilities=None, show_progress=True):
+        updated = False
+        stack_name = self.stack_name(stack_short_name)
+
+        self.log.info("Try to update stack '%s' if needed.", stack_name)
+
+        stack_update_params = []
+        updated_params = []
+
+        # check if there are diff between stack params and new stack params
+        for stack_param in stack_details.get('Parameters', []):
+            if stack_param['ParameterKey'] in stack_create_parameters:
+                param = {
+                    'ParameterKey': stack_param['ParameterKey'],
+                }
+                if stack_param['ParameterValue'] != stack_create_parameters[stack_param['ParameterKey']]:
+                    param['ParameterValue'] = stack_create_parameters[stack_param['ParameterKey']]
+                    updated_params.append(param)
+                    param['UsePreviousValue'] = False
+                else:
+                    # we don't need ParameterValue here when  we specify UsePreviousValue
+                    param['UsePreviousValue'] = True
+
+                stack_update_params.append(param)
+
+        if updated_params:
+            self.log.info("Stack params changed, parameters that require update.")
+            self.stack_show_input_parameter(stack_short_name, updated_params, parsed_args, debug=False)
+            self.log.info("Start updating stack '%s'", stack_name)
+            self.update_stack(stack_short_name, stack_update_params, capabilities, show_progress)
+            updated = True
+        else:
+            self.log.info("There are no params to update, skip.")
+
+        return updated
+
     @classmethod
     def create_stack_parameters(cls, dict_params={}):
         cf_params = []
@@ -132,10 +195,11 @@ class StackCreate(CloudFormationBase):
             cf_params.append({})
         else:
             for param_key, param_value in dict_params.iteritems():
-                cf_params.append({
+                cf_param = {
                     'ParameterKey': param_key,
                     'ParameterValue': param_value
-                })
+                }
+                cf_params.append(cf_param)
 
         return cf_params
 
@@ -145,10 +209,44 @@ class StackCreate(CloudFormationBase):
 
         return zone['DelegationSet']['NameServers']
 
+    def describe_instance(self, instance_id):
+        ec2_cli = self.get_aws_client('ec2')
+        instance_details = ec2_cli.describe_instances(
+            InstanceIds=[instance_id]
+        )
+
+        return instance_details['Reservations'][0]['Instances'][0]
+
+    def start_instance_if_not_running(self, instance_id):
+        self.log.info("Check if madcore instance is running.")
+        try:
+            instance_details = self.describe_instance(instance_id)
+
+            instance_status = instance_details['State']['Name']
+            if instance_status in ['stopped', 'terminated', 'shutting-down', 'stopping']:
+                self.log.info("Madcore instance is not running, current status is: '%s'.", instance_status)
+                self.log.info("Start madcore instance...")
+                ec2_cli = self.get_aws_client('ec2')
+                ec2_cli.start_instances(
+                    InstanceIds=[instance_id]
+                )
+                # wait until instance is running
+                ec2_cli.get_waiter('instance_running').wait(
+                    InstanceIds=[instance_id]
+                )
+                self.log.info("Madcore instance is running.")
+                return True
+            else:
+                self.log.info("Madcore instance is already running.")
+        except Exception as e:
+            self.log.error("Error while starting instance '%s'.", instance_id)
+            self.log.error(e)
+
+        return False
+
     def take_action(self, parsed_args):
         # create S3
-        s3_params = self.create_stack_parameters(dict_params={})
-        s3_stack, s3_exists = self.create_stack_if_not_exists('s3', s3_params, parsed_args)
+        s3_stack, s3_exists = self.create_stack_if_not_exists('s3', {}, parsed_args)
 
         # create Network
         network_parameters = {
@@ -156,16 +254,14 @@ class StackCreate(CloudFormationBase):
             'Env': 'madcore',
             'VPCCIDRBlock': '10.99.0.0/16'
         }
-        network_params = self.create_stack_parameters(dict_params=network_parameters)
-        network_stack, network_exists = self.create_stack_if_not_exists('network', network_params, parsed_args)
+        network_stack, network_exists = self.create_stack_if_not_exists('network', network_parameters, parsed_args)
 
         # create SGFM
         sgfm_parameters = {
             'FollowMeIpAddress': self.get_ipv4(),
             'VpcId': self.get_output_from_dict(network_stack['Outputs'], 'VpcId')
         }
-        sgfm_params = self.create_stack_parameters(dict_params=sgfm_parameters)
-        sgfm_stack, sgfm_exists = self.create_stack_if_not_exists('sgfm', sgfm_params, parsed_args)
+        sgfm_stack, sgfm_exists = self.create_stack_if_not_exists('sgfm', sgfm_parameters, parsed_args)
 
         # create Core
         aws_config = config.get_aws_data()
@@ -177,19 +273,29 @@ class StackCreate(CloudFormationBase):
             'KeyName': aws_config['key_name']
         }
 
-        core_params = self.create_stack_parameters(dict_params=core_parameters)
         core_capabilities = ["CAPABILITY_IAM"]
-        core_stack, core_exists = self.create_stack_if_not_exists('core', core_params, parsed_args,
+        core_stack, core_exists = self.create_stack_if_not_exists('core', core_parameters, parsed_args,
                                                                   capabilities=core_capabilities)
+
+        core_instance_pub_ip = self.get_output_from_dict(core_stack['Outputs'], 'MadCorePublicIp')
+
+        core_instance_id = self.get_output_from_dict(core_stack['Outputs'], 'MadCoreInstanceId')
+        if self.start_instance_if_not_running(core_instance_id):
+            # get new instance IP
+            instance_details = self.describe_instance(core_instance_id)
+            core_instance_pub_ip = instance_details['PublicIpAddress']
+
+        # TODO@geo get here the KeyPair, InstanceType to be set into config if user is registered
+        # and not yet sync locally but stack is created and running
+
         # create DNS
         user_config = config.get_user_data()
         dns_parameters = {
             'DomainName': user_config['domain'],
             'SubDomainName': user_config['sub_domain'],
-            'EC2PublicIP': self.get_output_from_dict(core_stack['Outputs'], 'MadCorePublicIp'),
+            'EC2PublicIP': core_instance_pub_ip,
         }
-        dns_params = self.create_stack_parameters(dict_params=dns_parameters)
-        dns_stack, dns_exists = self.create_stack_if_not_exists('dns', dns_params, parsed_args)
+        dns_stack, dns_exists = self.create_stack_if_not_exists('dns', dns_parameters, parsed_args)
 
         self.log_piglet("DNS delegation start")
         # do DNS delegation
