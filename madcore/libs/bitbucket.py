@@ -58,9 +58,6 @@ class Teams(BaseAPI):
 
         return [team['username'] for team in teams['values']]
 
-    def get_team_username(self, username):
-        return self.get('user/emails')
-
 
 class User(BaseAPI):
     def user_emails(self):

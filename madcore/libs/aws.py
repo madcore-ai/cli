@@ -36,16 +36,27 @@ class AwsConfig(object):
 
 class AwsLambda(object):
     def __init__(self, identity_pool_id=None):
+        # region name for the base account
+        self.region_name = 'eu-west-1'
+
         self.identity_pool_id = identity_pool_id or const.AWS_IDENTITY_POOL_ID
-        self.client = boto3.client('cognito-identity', config=Config(signature_version=UNSIGNED))
+        self.cognito_client = boto3.client('cognito-identity', region_name=self.region_name,
+                                           config=Config(signature_version=UNSIGNED))
         self.lambda_client_no_auth = self.create_aws_lambda_client()
+
+    @classmethod
+    def get_account_id(cls):
+        return boto3.client('sts').get_caller_identity()["Account"]
 
     def get_identity_id(self):
         identity_id = config.get_aws_identity_id()
 
+        account_id = self.get_account_id()
+
         if identity_id is None:
-            response = self.client.get_id(
-                IdentityPoolId=self.identity_pool_id
+            response = self.cognito_client.get_id(
+                AccountId=account_id,
+                IdentityPoolId=self.identity_pool_id,
             )
             identity_id = response['IdentityId']
             config.set_aws_identity_id(identity_id)
@@ -55,7 +66,7 @@ class AwsLambda(object):
     def create_aws_lambda_client(self):
         identity_id = self.get_identity_id()
 
-        response = self.client.get_credentials_for_identity(
+        response = self.cognito_client.get_credentials_for_identity(
             IdentityId=identity_id
         )
 
@@ -65,6 +76,7 @@ class AwsLambda(object):
             'aws_access_key_id': credentials['AccessKeyId'],
             'aws_secret_access_key': credentials['SecretKey'],
             'aws_session_token': credentials['SessionToken'],
+            'region_name': self.region_name
         }
         client = boto3.client('lambda', **credentials)
 
@@ -78,7 +90,7 @@ class AwsLambda(object):
 
         while True:
             try:
-                response = self.client.get_credentials_for_identity(
+                response = self.cognito_client.get_credentials_for_identity(
                     IdentityId=identity_id,
                     Logins={'cognito-identity.amazonaws.com': login_data['token']}
                 )
@@ -90,6 +102,7 @@ class AwsLambda(object):
                     'aws_access_key_id': credentials['AccessKeyId'],
                     'aws_secret_access_key': credentials['SecretKey'],
                     'aws_session_token': credentials['SessionToken'],
+                    'region_name': self.region_name
                 }
                 client = boto3.client('lambda', **credentials)
 
@@ -102,7 +115,7 @@ class AwsLambda(object):
                     if login_response['login']:
                         log.info("Successfully logged in.")
                         config.set_login_data(login_response)
-                        time.sleep(1)
+                        time.sleep(5)
                     else:
                         log.error("Invalid login, try again")
                         time.sleep(5)

@@ -55,6 +55,13 @@ class StackCreate(CloudFormationBase):
         else:
             self.log.info("No input parameters for stack '{}'.".format(stack_name))
 
+    @classmethod
+    def is_stack_create_failed(cls, stack_details):
+        if stack_details['StackStatus'] in ['ROLLBACK_COMPLETE']:
+            return True
+
+        return False
+
     def create_stack(self, stack_short_name, input_parameters, capabilities=None, show_progress=True):
         stack_name = self.stack_name(stack_short_name)
         template_file = '%s.json' % stack_short_name.lower()
@@ -66,7 +73,8 @@ class StackCreate(CloudFormationBase):
             StackName=stack_name,
             TemplateBody=self.get_template_local(template_file),
             Parameters=input_parameters,
-            Capabilities=capabilities or []
+            Capabilities=capabilities or [],
+            OnFailure='DELETE'
         )
 
         if show_progress:
@@ -76,22 +84,43 @@ class StackCreate(CloudFormationBase):
 
     def create_stack_if_not_exists(self, stack_short_name, input_parameters, parsed_args, capabilities=None):
         exists = False
+        error = False
+
         stack_name = self.stack_name(stack_short_name)
 
         self.stack_show_input_parameter(stack_short_name, input_parameters, parsed_args)
 
-        stack_details = self.get_stack(stack_name)
+        stack_details = self.get_stack(stack_name, debug=False)
 
         if stack_details is None:
-            self.log.info("Stack '%s' does not exists, creating it..." % stack_name)
+            self.log.info("Stack '%s' does not exists, creating it...", stack_name)
             self.create_stack(stack_short_name, input_parameters, capabilities=capabilities)
             stack_details = self.get_stack(stack_name)
-            self.log.info("Stack '%s' created.\n" % stack_name)
+            if stack_details and not self.is_stack_create_failed(stack_details):
+                self.log.info("Stack '{StackName}' created with status '{StackStatus}'.\n".format(**stack_details))
+            else:
+                self.log.error("Error while creating stack '%s'. Check logs for details.", stack_name)
+                error = True
+        elif self.is_stack_create_failed(stack_details):
+            self.log.info(
+                "Stack {StackName}' is created but failed with status '{StackStatus}'".format(**stack_details))
+            self.log.info("Try to create again")
+            self.create_stack(stack_short_name, input_parameters, capabilities=capabilities)
+            stack_details = self.get_stack(stack_name)
+            if stack_details and not self.is_stack_create_failed(stack_details):
+                self.log.info("Stack '{StackName}' recreated with status '{StackStatus}'.\n".format(**stack_details))
+            else:
+                self.log.error("Error while creating stack '%s'. Check logs for details.", stack_name)
+                error = True
         else:
-            self.log.info("Stack '%s' already exists, skip." % stack_name)
+            self.log.info("Stack '%s' already exists, skip.", stack_name)
             exists = True
 
-        self.stack_show_output_parameters(stack_details, parsed_args)
+        if not error:
+            self.stack_show_output_parameters(stack_details, parsed_args)
+        else:
+            self.log.info('EXIT.')
+            sys.exit(1)
 
         return stack_details, exists
 
@@ -111,7 +140,7 @@ class StackCreate(CloudFormationBase):
         return cf_params
 
     def get_hosted_zone_name_servers(self, zone_id):
-        client = boto3.client('route53', **self.get_aws_connection_params)
+        client = self.get_aws_client('route53')
         zone = client.get_hosted_zone(Id=zone_id)
 
         return zone['DelegationSet']['NameServers']
@@ -144,9 +173,10 @@ class StackCreate(CloudFormationBase):
             'FollowmeSecurityGroup': self.get_output_from_dict(sgfm_stack['Outputs'], 'FollowmeSgId'),
             'PublicNetZoneA': self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA'),
             'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName'),
-            'KeyName': aws_config['key_name'],
-            'InstanceType': aws_config['instance_type']
+            'InstanceType': aws_config['instance_type'],
+            'KeyName': aws_config['key_name']
         }
+
         core_params = self.create_stack_parameters(dict_params=core_parameters)
         core_capabilities = ["CAPABILITY_IAM"]
         core_stack, core_exists = self.create_stack_if_not_exists('core', core_params, parsed_args,
@@ -161,6 +191,7 @@ class StackCreate(CloudFormationBase):
         dns_params = self.create_stack_parameters(dict_params=dns_parameters)
         dns_stack, dns_exists = self.create_stack_if_not_exists('dns', dns_params, parsed_args)
 
+        self.log_piglet("DNS delegation start")
         # do DNS delegation
         if not config.is_dns_delegated:
             self.log.info("DNS delegation start")
@@ -175,7 +206,7 @@ class StackCreate(CloudFormationBase):
                 dns_delegation = True
                 config.set_user_data({'dns_delegation': True})
             else:
-                self.log.error("DNS delegation error: %s" % delegation_response)
+                self.log.error("DNS delegation error: %s", delegation_response)
                 dns_delegation = False
 
             config.set_user_data({'dns_delegation': dns_delegation})
@@ -185,13 +216,15 @@ class StackCreate(CloudFormationBase):
                 self.log.error("EXIT.")
                 sys.exit(1)
 
-            self.log.info("Wait until DNS for domain '%s' is updated..." % config.get_full_domain())
+            self.log.info("Wait until DNS for domain '%s' is updated...", config.get_full_domain())
             if utils.hostname_resolves(config.get_full_domain()):
                 self.log.info("DNS updated.")
             else:
                 self.log.error("Error while updating DNS.")
         else:
             self.log.info("DNS delegation already setup.")
+
+        self.log_piglet("Done")
 
         # create Cluster
         # cluster_parameters = {

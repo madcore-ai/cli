@@ -2,6 +2,8 @@ import os
 import socket
 import time
 
+import pkg_resources
+
 
 def config_path():
     return os.path.join(os.path.expanduser("~"), '.madcore')
@@ -31,3 +33,8 @@ def hostname_resolves(hostname):
             count += sleep_time
             if count > max_time:
                 break
+
+
+def get_version():
+    dist = pkg_resources.get_distribution("madcore")
+    return dist.version

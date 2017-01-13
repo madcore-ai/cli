@@ -38,7 +38,7 @@ class Followme(CloudFormationBase, ShowOne):
         stack = self.get_stack(STACK_FOLLOWME)
         previous_parameters = stack['Parameters']
         ipv4_previous = self.get_param_from_dict(previous_parameters, 'FollowMeIpAddress')
-        self.log.info("Updating '%s' Stack..." % STACK_FOLLOWME)
+        self.log.info("Updating '%s' Stack...", STACK_FOLLOWME)
         self.stack_update(ipv4)
 
         columns = ('New IPv4',
