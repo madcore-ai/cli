@@ -253,11 +253,13 @@ class MadcoreConfigure(CloudFormationBase):
 
                 teams = bitbucket.teams.get_teams_username()
 
+                selected_team = self.single_prompt('team', options=teams, prompt='Select bitbucket team')
                 selected_domain = self.single_prompt('domain', options=self.get_allowed_domains(),
-                                                     prompt='Select bitbucket team')
-                selected_team = self.single_prompt('team', options=teams, prompt='Select base domain')
+                                                     prompt='Select madcore domain')
 
                 user_sub_domain = '{team}.{domain}'.format(team=selected_team['team'], domain=selected_domain['domain'])
+
+                self.log.info("The following domain will be configured: '%s'" % user_sub_domain)
 
                 user_create_response = aws_lambda.create_user(user_email, user_password, user_sub_domain)
 
