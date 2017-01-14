@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import getpass
+import logging
 import os
 import subprocess
 import sys
@@ -9,12 +10,10 @@ import boto3
 from questionnaire import Questionnaire
 
 import const
-import utils
 from base import CloudFormationBase
 from configs import config
 from libs.aws import AwsLambda, AwsConfig
 from libs.bitbucket import Bitbucket
-from logs import logging
 
 
 class MadcoreConfigure(CloudFormationBase):
@@ -125,29 +124,16 @@ class MadcoreConfigure(CloudFormationBase):
         """Ask user for the private key that will be used to ssh"""
 
         self.log.info("Map local private key file")
-        ssh_path = os.path.join(os.path.expanduser("~"), '.ssh')
 
-        default_ssh_key_path = os.path.join(ssh_path, 'id_rsa')
-
-        if not os.path.exists(default_ssh_key_path):
-            self.log.error("No private ssh key found at: '%s'", default_ssh_key_path)
-            self.log.info("Can't continue configuration. EXIT.")
-            sys.exit(1)
-        else:
-            while True:
-                selected_file = self.raw_prompt('ssh_priv_file',
-                                                'Input ssh private key path to use [%s]: ' % default_ssh_key_path)
-                if not selected_file['ssh_priv_file'].strip():
-                    self.log.debug("Using default private key: '%s'", default_ssh_key_path)
-                    selected_file['ssh_priv_file'] = default_ssh_key_path
-                    break
-                else:
-                    ssh_file = os.path.expanduser(selected_file['ssh_priv_file'])
-                    if not os.path.exists(ssh_file):
-                        self.log.error("Key does not exists at: '%s', try again.", ssh_file)
-                    else:
-                        self.log.debug("OK, using ssh private key from: '%s'", ssh_file)
-                        break
+        while True:
+            selected_file = self.raw_prompt('ssh_priv_file',
+                                            'Input ssh private key path to use: ')
+            ssh_file = os.path.expanduser(selected_file['ssh_priv_file'])
+            if not os.path.exists(ssh_file):
+                self.log.error("Key does not exists at: '%s', try again.", ssh_file)
+            else:
+                self.log.debug("OK, using ssh private key from: '%s'", ssh_file)
+                break
 
         return selected_file
 
@@ -170,7 +156,7 @@ class MadcoreConfigure(CloudFormationBase):
         aws_config = AwsConfig()
         aws_data = config.get_aws_data()
 
-        if aws_data.get('region_name', None) is None:
+        if not aws_data.get('region_name', None):
             selected_region = self.single_prompt('region_name', options=aws_config.get_regions(),
                                                  prompt='Select AWS Region')
             aws_data.update(selected_region)
@@ -188,7 +174,7 @@ class MadcoreConfigure(CloudFormationBase):
 
             aws_data.update(selected_key_name)
 
-        if aws_data.get('instance_type', None) is None:
+        if not aws_data.get('instance_type', None):
             selected_instance_type = self.single_prompt('instance_type', options=const.ALLOWED_INSTANCE_TYPES,
                                                         prompt='Select AWS InstanceType')
             aws_data.update(selected_instance_type)
@@ -292,6 +278,7 @@ class MadcoreConfigure(CloudFormationBase):
                     else:
                         self.log.error("User was not verified.")
                         self.log.error("verify_response %s", verify_response)
+                        self.exit()
                 else:
                     self.log.error("User was not created.")
         else:
@@ -329,27 +316,18 @@ class MadcoreConfigure(CloudFormationBase):
         return columns, data
 
     def start_configuration(self):
-        self.log_piglet("Start Configuration")
+        self.log_piglet("Configuration")
 
-        if not self.is_config_folder_created:
-            raw_input(
-                "Madcore will now create ~/.madcore folder to store configuration settings. Press enter to begin configuration ")
-        else:
-            self.log.info("Config folder ~/.madcore already created.")
+        raw_input(
+            "Madcore will now create ~/.madcore folder to store configuration settings. Press enter to begin configuration ")
 
-        utils.create_project_config_dir()
-        self.log.info("folder created.")
-
-        self.log_piglet("Start User Registration")
+        self.log_piglet("User Registration")
         self.configure_user_registration()
-        self.log_piglet("Done")
 
-        self.log_piglet("Start AWS Configuration")
+        self.log_piglet("AWS Configuration")
         self.configure_aws()
-        self.log_piglet("Done")
 
         self.log_piglet("Clone repos")
         columns, data = self.configure_repos()
-        self.log_piglet("Done")
 
         return columns, data

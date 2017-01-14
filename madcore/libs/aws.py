@@ -1,5 +1,6 @@
 import ConfigParser
 import json
+import logging
 import os
 import time
 
@@ -9,7 +10,6 @@ from botocore.client import Config
 
 from madcore import const
 from madcore.configs import config
-from madcore.logs import logging
 
 log = logging.getLogger(__name__)
 

@@ -1,5 +1,10 @@
 from __future__ import unicode_literals, print_function
 
+import logging.config
+
+from logs import LOGGING
+logging.config.dictConfig(LOGGING)
+
 import sys
 import traceback
 
@@ -17,7 +22,6 @@ from cmds import registration
 from cmds import selftest
 from cmds import stacks
 from configs import config
-from logs import logging
 
 
 class MadcoreCli(App):

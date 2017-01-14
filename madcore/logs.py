@@ -1,11 +1,8 @@
-import logging.config
 import os
 
 import utils
 
-logs_path = os.path.join(utils.project_config_dir(), 'logs')
-if not os.path.exists(logs_path):
-    os.makedirs(logs_path)
+utils.create_project_config_dir()
 
 LOGGING = {
     'version': 1,
@@ -22,13 +19,13 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(logs_path, 'madcore.log'),
+            'filename': os.path.join(utils.project_logs_path(), 'madcore.log'),
             'formatter': 'standard'
         },
         'file_error': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(logs_path, 'madcore_error.log'),
+            'filename': os.path.join(utils.project_logs_path(), 'madcore_error.log'),
             'formatter': 'standard'
         },
         'console': {
@@ -77,5 +74,3 @@ LOGGING = {
         }
     }
 }
-
-logging.config.dictConfig(LOGGING)

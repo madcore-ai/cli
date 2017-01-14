@@ -1,7 +1,7 @@
 from __future__ import print_function, unicode_literals
 
 from madcore.cmds.configure import Configure
-from madcore.logs import logging
+import logging
 
 
 class Registration(Configure):

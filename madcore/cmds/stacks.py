@@ -3,7 +3,7 @@ from __future__ import print_function, unicode_literals
 from cliff.lister import Lister
 
 from madcore.base import CloudFormationBase
-from madcore.logs import logging
+import logging
 
 
 class Stacks(CloudFormationBase, Lister):

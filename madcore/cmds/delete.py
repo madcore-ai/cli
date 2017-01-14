@@ -1,48 +1,20 @@
 from __future__ import print_function, unicode_literals
 
+import logging
+
 from cliff.lister import Lister
 
 from madcore import const
-from madcore.base import CloudFormationBase
-from madcore.logs import logging
+from madcore.libs.cloudformation import StackManagement
 
 
-class Delete(CloudFormationBase, Lister):
+class Delete(StackManagement, Lister):
     log = logging.getLogger(__name__)
     _description = "Delete stacks"
 
-    def delete_stack(self, stack_short_name, show_progress=True):
-        stack_name = self.stack_name(stack_short_name)
-
-        response = self.cf_client.delete_stack(
-            StackName=stack_name
-        )
-
-        if show_progress:
-            self.show_stack_delete_events_progress(stack_name)
-
-        return response
-
-    def delete_stack_if_exists(self, stack_short_name):
-        stack_deleted = False
-        stack_name = self.stack_name(stack_short_name)
-
-        stack_details = self.get_stack(stack_name)
-
-        if stack_details is not None:
-            self.log.info("\nStack '%s' exists, delete...", stack_name)
-            self.delete_stack(stack_short_name)
-            self.log.info("Stack '%s' deleted.\n", stack_name)
-            stack_deleted = True
-        else:
-            self.log.info("\nStack '%s' does not exists, skip.", stack_name)
-
-        return stack_deleted
-
     def take_action(self, parsed_args):
-        # cluster_deleted = self.delete_stack_if_exists('cluster')
         core_deleted = self.delete_stack_if_exists('core')
-        sfgm_deleted = self.delete_stack_if_exists('sgfm')
+        sgfm_deleted = self.delete_stack_if_exists('sgfm')
         network_deleted = self.delete_stack_if_exists('network')
         dns_deleted = self.delete_stack_if_exists('dns')
         # for now we do not delete S3 because it may contain critical information like backups and other
@@ -51,9 +23,8 @@ class Delete(CloudFormationBase, Lister):
         return (
             ('StackName', 'Deleted'),
             (
-                # (const.STACK_CLUSTER, cluster_deleted),
                 (const.STACK_CORE, core_deleted),
-                (const.STACK_FOLLOWME, sfgm_deleted),
+                (const.STACK_FOLLOWME, sgfm_deleted),
                 (const.STACK_NETWORK, network_deleted),
                 (const.STACK_DNS, dns_deleted),
                 (const.STACK_S3, False),

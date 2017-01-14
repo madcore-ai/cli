@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 
+import logging
 import os
 import sys
 import time
@@ -15,7 +16,6 @@ import const
 import utils
 from configs import config
 from libs.figlet import figlet
-from logs import logging
 
 
 class MadcoreBase(object):
@@ -30,8 +30,8 @@ class MadcoreBase(object):
         return utils.project_config_dir()
 
     @property
-    def is_config_folder_created(self):
-        return os.path.exists(self.config_path)
+    def is_config_file_created(self):
+        return os.path.exists(utils.config_file_path())
 
     def get_template_local(self, template_file):
         with open(os.path.join(self.config_path, 'cloudformation', template_file)) as content_file:
@@ -58,7 +58,9 @@ class MadcoreBase(object):
         except Exception:
             self.log.error("Error downloading domain from: '%s'" % url)
 
-    def log_piglet(self, msg):
+    def log_piglet(self, msg, *args):
+        if args:
+            msg %= tuple(args)
         self.log_simple.info(figlet.renderText(msg))
 
     def exit(self):
@@ -83,14 +85,7 @@ class MadcoreBase(object):
         return False
 
 
-class CloudFormationBase(MadcoreBase):
-    def __init__(self, *args, **kwargs):
-        super(CloudFormationBase, self).__init__(*args, **kwargs)
-        self.session = None
-        self.cf_client = None
-
-        self.create_aws_objects()
-
+class AwsBase(object):
     def get_aws_client(self, name, **kwargs):
         params = self.get_aws_connection_params.copy()
         params.update(kwargs)
@@ -110,6 +105,42 @@ class CloudFormationBase(MadcoreBase):
             params['region_name'] = region_name
 
         return params
+
+    def get_hosted_zone_name_servers(self, zone_id):
+        client = self.get_aws_client('route53')
+        zone = client.get_hosted_zone(Id=zone_id)
+
+        return zone['DelegationSet']['NameServers']
+
+    def describe_instance(self, instance_id):
+        ec2_cli = self.get_aws_client('ec2')
+        instance_details = ec2_cli.describe_instances(
+            InstanceIds=[instance_id]
+        )
+
+        return instance_details['Reservations'][0]['Instances'][0]
+
+    def is_instance_terminated(self, instance_id):
+        instance_details = self.describe_instance(instance_id)
+        instance_status = instance_details['State']['Name']
+
+        if instance_status in ['terminated', 'shutting-down']:
+            ec2_cli = self.get_aws_client('ec2')
+            ec2_cli.get_waiter('instance_terminated').wait(
+                InstanceIds=[instance_id]
+            )
+            return True
+
+        return False
+
+
+class CloudFormationBase(MadcoreBase, AwsBase):
+    def __init__(self, *args, **kwargs):
+        super(CloudFormationBase, self).__init__(*args, **kwargs)
+        self.session = None
+        self.cf_client = None
+
+        self.create_aws_objects()
 
     def create_aws_objects(self):
         self.session = boto3.Session(**self.get_aws_connection_params)

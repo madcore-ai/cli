@@ -13,15 +13,23 @@ def config_file_path():
     return os.path.join(project_config_dir(), 'config')
 
 
+def project_logs_path():
+    return os.path.join(project_config_dir(), 'logs')
+
+
 def create_project_config_dir():
     cfg_path = project_config_dir()
+
     if not os.path.exists(cfg_path):
         os.makedirs(cfg_path)
 
+    logs_path = project_logs_path()
+    if not os.path.exists(logs_path):
+        os.makedirs(logs_path)
 
-def hostname_resolves(hostname):
+
+def hostname_resolves(hostname, max_time=700):
     sleep_time = 3
-    max_time = 600
     count = 0
 
     while True:
