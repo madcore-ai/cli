@@ -331,8 +331,9 @@ class MadcoreConfigure(CloudFormationBase):
     def start_configuration(self):
         self.log_piglet("Configuration")
 
-        raw_input(
-            "Madcore will now create ~/.madcore folder to store configuration settings. Press enter to begin configuration ")
+        if not os.path.exists(self.config_path):
+            raw_input(
+                "Madcore will now create ~/.madcore folder to store configuration settings. Press enter to begin configuration ")
 
         self.log_piglet("User Registration")
         self.configure_user_registration()

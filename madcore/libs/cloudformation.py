@@ -16,7 +16,7 @@ class StackManagement(CloudFormationBase):
     log = logging.getLogger(__name__)
 
     def __init__(self, app, *args, **kwargs):
-        super(StackManagement, self).__init__(*args, **kwargs)
+        super(StackManagement, self).__init__(app, *args, **kwargs)
         self.app = app
         self.formatter = TableFormatter()
 
@@ -78,7 +78,7 @@ class StackManagement(CloudFormationBase):
         stack_deleted = False
         stack_name = self.stack_name(stack_short_name)
 
-        stack_details = self.get_stack(stack_name)
+        stack_details = self.get_stack(stack_name, debug=False)
 
         if stack_details is not None:
             self.log.info("[%s] Stack exists, delete...", stack_name)
