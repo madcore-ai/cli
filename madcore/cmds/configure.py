@@ -39,7 +39,9 @@ class Configure(JenkinsBase, Lister):
         is_domain_certified = self.wait_until_domain_is_certified()
         self.log.info("Domain certificate found: %s", is_domain_certified)
 
-        if not is_domain_certified or not config.is_domain_registered:
+        if is_domain_certified:
+            config.set_user_data({"registration": True})
+        elif not config.is_domain_registered:
             self.log.info("Start domain registration.")
 
             job_name = 'madcore.registration'
