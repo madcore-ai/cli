@@ -137,14 +137,22 @@ class AwsBase(object):
 class CloudFormationBase(MadcoreBase, AwsBase):
     def __init__(self, *args, **kwargs):
         super(CloudFormationBase, self).__init__(*args, **kwargs)
-        self.session = None
-        self.cf_client = None
+        self._session = None
+        self._cf_client = None
 
-        self.create_aws_objects()
+    @property
+    def session(self):
+        if self._session is None:
+            self._session = boto3.Session(**self.get_aws_connection_params)
 
-    def create_aws_objects(self):
-        self.session = boto3.Session(**self.get_aws_connection_params)
-        self.cf_client = self.session.client('cloudformation')
+        return self._session
+
+    @property
+    def cf_client(self):
+        if self._cf_client is None:
+            self._cf_client = self.session.client('cloudformation')
+
+        return self._cf_client
 
     @classmethod
     def stack_name(cls, stack_short_name):
@@ -255,6 +263,15 @@ class CloudFormationBase(MadcoreBase, AwsBase):
     def wait_until_domain_is_certified(self, timeout=30):
         url = 'https://%s' % config.get_full_domain()
         return self.wait_until_url_is_up(url, verify=True, max_sleep=timeout)
+
+    def get_core_instance_data(self):
+        core_stack_details = self.get_stack(const.STACK_CORE)
+
+        if core_stack_details is not None:
+            instance_id = self.get_output_from_dict(core_stack_details['Outputs'], 'MadCoreInstanceId')
+            return self.describe_instance(instance_id)
+
+        return {}
 
 
 class JenkinsBase(CloudFormationBase, MadcoreBase):

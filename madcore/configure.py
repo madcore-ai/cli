@@ -160,8 +160,16 @@ class MadcoreConfigure(CloudFormationBase):
             selected_region = self.single_prompt('region_name', options=aws_config.get_regions(),
                                                  prompt='Select AWS Region')
             aws_data.update(selected_region)
+            # push changes to config so that other components know the region
+            config.set_aws_data(aws_data)
 
-        if not aws_data.get('key_name', None):
+        # get instance data from the core and fill the data if needed
+        core_instance = self.get_core_instance_data()
+
+        if core_instance.get('KeyName', None):
+            self.log.info("Using KeyName: '%s' form the already created instance.", core_instance['KeyName'])
+            aws_data['key_name'] = core_instance['KeyName']
+        elif not aws_data.get('key_name', None):
             keys_name = self.get_ec2_key_pairs(aws_data['region_name'])
 
             if keys_name:
@@ -174,7 +182,10 @@ class MadcoreConfigure(CloudFormationBase):
 
             aws_data.update(selected_key_name)
 
-        if not aws_data.get('instance_type', None):
+        if core_instance.get('InstanceType', None):
+            self.log.info("Using InstanceType: '%s' form the already created instance.", core_instance['InstanceType'])
+            aws_data['instance_type'] = core_instance['InstanceType']
+        elif not aws_data.get('instance_type', None):
             selected_instance_type = self.single_prompt('instance_type', options=const.ALLOWED_INSTANCE_TYPES,
                                                         prompt='Select AWS InstanceType')
             aws_data.update(selected_instance_type)
@@ -237,6 +248,8 @@ class MadcoreConfigure(CloudFormationBase):
                 'registration': False,
                 'dns_delegation': False,
             }
+            # set user data here so that we have the info in login
+            config.set_user_data(user_data)
 
             # check if user already exists on madcore
             if self.user_login(aws_lambda, user_data):
