@@ -1,6 +1,7 @@
 from __future__ import print_function, unicode_literals
 
 import os
+import sys
 import time
 
 import boto3
@@ -8,13 +9,13 @@ import requests
 import urllib3
 from botocore.exceptions import ClientError
 from jenkins import Jenkins
+from jenkins import JenkinsException
 
 import const
 import utils
 from configs import config
 from libs.figlet import figlet
 from logs import logging
-from jenkins import JenkinsException
 
 
 class MadcoreBase(object):
@@ -26,7 +27,7 @@ class MadcoreBase(object):
 
     @property
     def config_path(self):
-        return utils.config_path()
+        return utils.project_config_dir()
 
     def get_template_local(self, template_file):
         with open(os.path.join(self.config_path, 'cloudformation', template_file)) as content_file:
@@ -55,6 +56,10 @@ class MadcoreBase(object):
 
     def log_piglet(self, msg):
         self.log_simple.info(figlet.renderText(msg))
+
+    def exit(self):
+        self.log.info("EXIT")
+        sys.exit(1)
 
 
 class CloudFormationBase(MadcoreBase):

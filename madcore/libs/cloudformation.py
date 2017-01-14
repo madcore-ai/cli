@@ -34,7 +34,7 @@ class StackCreate(CloudFormationBase):
 
                 self.produce_output(parsed_args, column_names, data)
 
-        self.log.info("Output parameters for stack '{StackName}':".format(**stack_details))
+        self.log.info("[{StackName}] Output parameters for stack:".format(**stack_details))
         show_output('Outputs', ['OutputKey', 'OutputValue', 'Description'])
 
     def stack_show_input_parameter(self, stack_short_name, input_params, parsed_args, debug=True):
@@ -50,11 +50,11 @@ class StackCreate(CloudFormationBase):
 
         if input_params != [{}]:
             if debug:
-                self.log.info("Input parameters for stack '{}':".format(stack_name))
+                self.log.info("[%s] Input parameters for stack:", stack_name)
             show_output(['ParameterKey', 'ParameterValue'])
         else:
             if debug:
-                self.log.info("No input parameters for stack '{}'.".format(stack_name))
+                self.log.info("[%s] No input parameters for stack.", stack_name)
 
     @classmethod
     def is_stack_create_failed(cls, stack_details):
@@ -111,27 +111,27 @@ class StackCreate(CloudFormationBase):
         stack_details = self.get_stack(stack_name, debug=False)
 
         if stack_details is None:
-            self.log.info("Stack '%s' does not exists, creating it...", stack_name)
+            self.log.info("[%s] Stack does not exists, creating it...", stack_name)
             self.create_stack(stack_short_name, stack_params, capabilities=capabilities)
             stack_details = self.get_stack(stack_name)
             if stack_details and not self.is_stack_create_failed(stack_details):
-                self.log.info("Stack '{StackName}' created with status '{StackStatus}'.\n".format(**stack_details))
+                self.log.info("[{StackName}] Stack created with status '{StackStatus}'.\n".format(**stack_details))
             else:
-                self.log.error("Error while creating stack '%s'. Check logs for details.", stack_name)
+                self.log.error("[%s] Error while creating stack. Check logs for details.", stack_name)
                 error = True
         elif self.is_stack_create_failed(stack_details):
             self.log.info(
-                "Stack {StackName}' is created but failed with status '{StackStatus}'".format(**stack_details))
-            self.log.info("Try to create again")
+                "[{StackName}] Stack is created but failed with status '{StackStatus}'".format(**stack_details))
+            self.log.info("[%s] Try to create again", stack_name)
             self.create_stack(stack_short_name, stack_params, capabilities=capabilities)
             stack_details = self.get_stack(stack_name)
             if stack_details and not self.is_stack_create_failed(stack_details):
-                self.log.info("Stack '{StackName}' recreated with status '{StackStatus}'.\n".format(**stack_details))
+                self.log.info("[{StackName}] Stack recreated with status '{StackStatus}'.\n".format(**stack_details))
             else:
-                self.log.error("Error while creating stack '%s'. Check logs for details.", stack_name)
+                self.log.error("[%s] Error while creating stack. Check logs for details.", stack_name)
                 error = True
         else:
-            self.log.info("Stack '%s' already exists, skip.", stack_name)
+            self.log.info("[%s] Stack already exists, skip.", stack_name)
             updated = self.update_stack_if_changed(stack_short_name, stack_details, dict_params, parsed_args,
                                                    capabilities)
             stack_details = self.get_stack(stack_name, debug=False)
@@ -140,8 +140,7 @@ class StackCreate(CloudFormationBase):
         if not error:
             self.stack_show_output_parameters(stack_details, parsed_args)
         else:
-            self.log.info('EXIT.')
-            sys.exit(1)
+            self.exit()
 
         return stack_details, exists, updated
 
@@ -169,7 +168,7 @@ class StackCreate(CloudFormationBase):
         updated = False
         stack_name = self.stack_name(stack_short_name)
 
-        self.log.info("Try to update stack '%s' if needed.", stack_name)
+        self.log.info("[%s] Try to update stack if needed.", stack_name)
 
         stack_update_params = []
         updated_params = []
@@ -191,13 +190,13 @@ class StackCreate(CloudFormationBase):
                 stack_update_params.append(param)
 
         if updated_params:
-            self.log.info("Stack params changed, parameters that require update.")
+            self.log.info("[%s] Stack params changed, show params that require update.", stack_name)
             self.stack_show_input_parameter(stack_short_name, updated_params, parsed_args, debug=False)
-            self.log.info("Start updating stack '%s'", stack_name)
+            self.log.info("[%s] Start updating stack.", stack_name)
             self.update_stack(stack_short_name, stack_update_params, capabilities, show_progress)
             updated = True
         else:
-            self.log.info("There are no params to update, skip.")
+            self.log.info("[%s] There are no params to update, skip.", stack_name)
 
         return updated
 
@@ -302,18 +301,19 @@ class StackCreate(CloudFormationBase):
         core_capabilities = ["CAPABILITY_IAM"]
 
         core_stack = self.get_stack_by_short_name('core', debug=False)
-        core_instance_id = self.get_output_from_dict(core_stack['Outputs'], 'MadCoreInstanceId')
 
-        self.log.debug("Check if madcore instance is terminated...")
-        if self.is_instance_terminated(core_instance_id):
-            self.log.info("Madcore instance is terminated, recreate stack '%s'.", const.STACK_CORE)
-            if core_stack is not None:
-                self.log.info("Delete stack '%s'.", core_stack['StackName'])
-                self.delete_stack('core')
-        else:
-            self.log.debug("Instance not terminated.")
+        if core_stack is not None:
+            core_instance_id = self.get_output_from_dict(core_stack['Outputs'], 'MadCoreInstanceId')
+            self.log.debug("[%s] Check if madcore instance is terminated...", const.STACK_CORE)
+            if self.is_instance_terminated(core_instance_id):
+                self.log.info("[%s] Madcore instance is terminated, recreate stack.", const.STACK_CORE)
+                if core_stack is not None:
+                    self.log.info("[%s] Delete stack.", core_stack['StackName'])
+                    self.delete_stack('core')
+            else:
+                self.log.debug("[%s] Instance not terminated.", const.STACK_CORE)
 
-        self.start_instance_if_not_running(core_instance_id)
+            self.start_instance_if_not_running(core_instance_id)
 
         core_stack, core_exists, _ = self.create_stack_if_not_exists('core', core_parameters, parsed_args,
                                                                      capabilities=core_capabilities)
@@ -352,8 +352,7 @@ class StackCreate(CloudFormationBase):
             self.log.info("DNS delegation end.")
 
             if not dns_delegation:
-                self.log.error("EXIT.")
-                sys.exit(1)
+                self.exit()
 
             self.log.info("Wait until DNS for domain '%s' is updated...", config.get_full_domain())
             if utils.hostname_resolves(config.get_full_domain()):

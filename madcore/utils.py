@@ -5,16 +5,16 @@ import time
 import pkg_resources
 
 
-def config_path():
+def project_config_dir():
     return os.path.join(os.path.expanduser("~"), '.madcore')
 
 
 def config_file_path():
-    return os.path.join(config_path(), 'config')
+    return os.path.join(project_config_dir(), 'config')
 
 
 def create_project_config_dir():
-    cfg_path = config_path()
+    cfg_path = project_config_dir()
     if not os.path.exists(cfg_path):
         os.makedirs(cfg_path)
 

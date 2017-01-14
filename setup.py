@@ -77,7 +77,6 @@ setup(
             'madcore = madcore.madcore:main'
         ],
         'madcorecli.app': [
-            'complete = cliff.complete:CompleteCommand',
             'configure = madcore.cmds.configure:Configure',
             'stacks = madcore.cmds.stacks:Stacks',
             'create = madcore.cmds.create:Create',
@@ -88,9 +87,5 @@ setup(
             'registration = madcore.cmds.registration:Registration',
         ],
     },
-    data_files=[
-        (os.path.join(os.path.expanduser("~"), '.madcore'), [])
-    ],
-
     zip_safe=False,
 )

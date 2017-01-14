@@ -5,22 +5,23 @@ import utils
 
 
 class MadcoreConfig(object):
-    def __init__(self, config_path=None):
-        self.config_path = config_path or utils.config_file_path()
-        self.config = self._load_config()
+    def __init__(self):
+        self.config_file_path = utils.config_file_path()
+        self.config = ConfigParser.SafeConfigParser()
+
+        self._load_config()
 
     def _load_config(self):
-        cfg = ConfigParser.SafeConfigParser()
-        if os.path.exists(self.config_path):
-            cfg.read(self.config_path)
-        else:
-            with open(self.config_path, 'wb') as configfile:
-                configfile.write('')
-
-        return cfg
+        # only load config if project config path is present
+        if os.path.exists(utils.project_config_dir()):
+            if os.path.exists(self.config_file_path):
+                self.config.read(self.config_file_path)
+            else:
+                with open(self.config_file_path, 'wb') as configfile:
+                    configfile.write('')
 
     def save_config(self):
-        with open(self.config_path, 'wb') as configfile:
+        with open(self.config_file_path, 'wb') as configfile:
             self.config.write(configfile)
 
     def add_section_if_not_exists(self, section):

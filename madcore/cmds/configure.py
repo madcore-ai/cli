@@ -34,8 +34,8 @@ class Configure(JenkinsBase, Lister):
         if self.wait_until_jenkins_is_up():
             self.log.info("Jenkins is up, continue.")
         else:
-            self.log.error("Error while waiting for jenkins. EXIT.")
-            sys.exit(1)
+            self.log.error("Error while waiting for jenkins.")
+            self.exit()
         self.log_piglet("Done")
 
         self.log_piglet("Start domain registration")

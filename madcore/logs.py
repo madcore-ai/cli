@@ -3,7 +3,7 @@ import os
 
 import utils
 
-logs_path = os.path.join(utils.config_path(), 'logs')
+logs_path = os.path.join(utils.project_config_dir(), 'logs')
 if not os.path.exists(logs_path):
     os.makedirs(logs_path)
 

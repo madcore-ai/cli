@@ -228,7 +228,14 @@ class MadcoreConfigure(CloudFormationBase):
             bitbucket_auth['password'] = getpass.getpass('Input bitbucket password: ')
 
             self.log.debug("Connect to bitbucket and get information...")
+
             bitbucket = Bitbucket(bitbucket_auth['username'], bitbucket_auth['password'])
+
+            try:
+                bitbucket.auth.check_auth()
+            except Exception:
+                self.log.error("Invalid bitbucket auth.")
+                self.exit()
 
             # get bitbucket user email which will be used to register user to madcore
             user_email = bitbucket.user.get_primary_email()
@@ -294,8 +301,7 @@ class MadcoreConfigure(CloudFormationBase):
             user_logged_in = self.user_login(aws_lambda, user_data)
 
             if not user_logged_in:
-                self.log.info('EXIT.')
-                sys.exit(1)
+                self.exit()
         else:
             self.log.debug("User already created and logged in.")
 
