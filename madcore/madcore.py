@@ -1,12 +1,12 @@
 from __future__ import unicode_literals, print_function
 
-import os
 import sys
+import traceback
 
-from cliff import complete
 from cliff.app import App
 from cliff.commandmanager import CommandManager
 
+import utils
 from base import Stdout
 from cmds import configure
 from cmds import create
@@ -18,8 +18,6 @@ from cmds import selftest
 from cmds import stacks
 from configs import config
 from logs import logging
-import traceback
-import utils
 
 
 class MadcoreCli(App):
@@ -33,7 +31,6 @@ class MadcoreCli(App):
             stdout=Stdout()
         )
         commands = {
-            'complete': complete.CompleteCommand,
             'configure': configure.Configure,
             'stacks': stacks.Stacks,
             'create': create.Create,
@@ -51,11 +48,9 @@ class MadcoreCli(App):
         self.LOG = logging.getLogger('madcore')
 
     def trigger_configuration(self):
-        # TODO@geo we need to find a better way for this then calling cmd line
         # Trigger configure if not yet setup
         if not config.get_user_data():
-            self.LOG.info("Start configuration.")
-            os.system('madcore configure')
+            self.run_subcommand(['configure'])
         else:
             self.LOG.info("Already configured.")
 
@@ -63,7 +58,7 @@ class MadcoreCli(App):
         print()
         print()
         print("Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller")
-        print("Build version: %s" % utils.get_version())
+        print(utils.get_version())
         print("Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai")
         print()
         self.LOG.debug('initialize_app')
@@ -80,7 +75,7 @@ class MadcoreCli(App):
     def clean_up(self, cmd, result, err):
         # self.LOG.debug('clean_up %s', cmd.__class__.__name__)
         if err:
-            self.LOG.debug('got an error: %s', err)
+            self.LOG.debug('Got an error: %s', err)
             self.LOG.debug(traceback.format_exc())
 
 

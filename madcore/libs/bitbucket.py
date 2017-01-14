@@ -49,6 +49,11 @@ class BaseAPI(object):
         return self._request(requests.post, api, **kwargs)
 
 
+class Auth(BaseAPI):
+    def check_auth(self):
+        return self.get('user')
+
+
 class Teams(BaseAPI):
     def get_teams(self, role='member'):
         return self.get('teams', params={'role': role})
@@ -71,5 +76,6 @@ class User(BaseAPI):
 
 class Bitbucket(object):
     def __init__(self, username, password, timeout=DEFAULT_TIMEOUT):
+        self.auth = Auth(username, password, timeout=timeout)
         self.teams = Teams(username, password, timeout=timeout)
         self.user = User(username, password, timeout=timeout)
