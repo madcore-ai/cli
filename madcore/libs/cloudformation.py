@@ -1,6 +1,6 @@
 from __future__ import print_function, unicode_literals
 
-import sys
+import logging
 
 from cliff.formatters.table import TableFormatter
 
@@ -10,14 +10,13 @@ from madcore.base import CloudFormationBase
 from madcore.base import Stdout
 from madcore.configs import config
 from madcore.libs.aws import AwsLambda
-from madcore.logs import logging
 
 
-class StackCreate(CloudFormationBase):
+class StackManagement(CloudFormationBase):
     log = logging.getLogger(__name__)
 
     def __init__(self, app, *args, **kwargs):
-        super(StackCreate, self).__init__(*args, **kwargs)
+        super(StackManagement, self).__init__(*args, **kwargs)
         self.app = app
         self.formatter = TableFormatter()
 
@@ -64,7 +63,6 @@ class StackCreate(CloudFormationBase):
         return False
 
     def delete_stack(self, stack_short_name, show_progress=True):
-        # TODO#geo get this method from delete command
         stack_name = self.stack_name(stack_short_name)
 
         response = self.cf_client.delete_stack(
@@ -75,6 +73,22 @@ class StackCreate(CloudFormationBase):
             self.show_stack_delete_events_progress(stack_name)
 
         return response
+
+    def delete_stack_if_exists(self, stack_short_name):
+        stack_deleted = False
+        stack_name = self.stack_name(stack_short_name)
+
+        stack_details = self.get_stack(stack_name)
+
+        if stack_details is not None:
+            self.log.info("[%s] Stack exists, delete...", stack_name)
+            self.delete_stack(stack_short_name)
+            self.log.info("[%s] Stack deleted.", stack_name)
+            stack_deleted = True
+        else:
+            self.log.info("[%s] Stack does not exists, skip.", stack_name)
+
+        return stack_deleted
 
     def create_stack(self, stack_short_name, input_parameters, capabilities=None, show_progress=True):
         stack_name = self.stack_name(stack_short_name)
@@ -87,8 +101,7 @@ class StackCreate(CloudFormationBase):
             StackName=stack_name,
             TemplateBody=self.get_template_local(template_file),
             Parameters=input_parameters,
-            Capabilities=capabilities or [],
-            OnFailure='DELETE'
+            Capabilities=capabilities or []
         )
 
         if show_progress:
@@ -122,7 +135,8 @@ class StackCreate(CloudFormationBase):
         elif self.is_stack_create_failed(stack_details):
             self.log.info(
                 "[{StackName}] Stack is created but failed with status '{StackStatus}'".format(**stack_details))
-            self.log.info("[%s] Try to create again", stack_name)
+            self.log.info("[%s] Try to create again.", stack_name)
+            self.delete_stack(stack_short_name)
             self.create_stack(stack_short_name, stack_params, capabilities=capabilities)
             stack_details = self.get_stack(stack_name)
             if stack_details and not self.is_stack_create_failed(stack_details):
@@ -216,33 +230,6 @@ class StackCreate(CloudFormationBase):
 
         return cf_params
 
-    def get_hosted_zone_name_servers(self, zone_id):
-        client = self.get_aws_client('route53')
-        zone = client.get_hosted_zone(Id=zone_id)
-
-        return zone['DelegationSet']['NameServers']
-
-    def describe_instance(self, instance_id):
-        ec2_cli = self.get_aws_client('ec2')
-        instance_details = ec2_cli.describe_instances(
-            InstanceIds=[instance_id]
-        )
-
-        return instance_details['Reservations'][0]['Instances'][0]
-
-    def is_instance_terminated(self, instance_id):
-        instance_details = self.describe_instance(instance_id)
-        instance_status = instance_details['State']['Name']
-
-        if instance_status in ['terminated', 'shutting-down']:
-            ec2_cli = self.get_aws_client('ec2')
-            ec2_cli.get_waiter('instance_terminated').wait(
-                InstanceIds=[instance_id]
-            )
-            return True
-
-        return False
-
     def start_instance_if_not_running(self, instance_id):
         self.log.info("Check if madcore instance is running.")
         try:
@@ -270,10 +257,14 @@ class StackCreate(CloudFormationBase):
 
         return False
 
+
+class StackCreate(StackManagement):
     def take_action(self, parsed_args):
         # create S3
+        self.log_piglet("STACK %s", const.STACK_S3)
         s3_stack, s3_exists, _ = self.create_stack_if_not_exists('s3', {}, parsed_args)
 
+        self.log_piglet("STACK %s", const.STACK_NETWORK)
         # create Network
         network_parameters = {
             'Type': 'Production',
@@ -282,6 +273,7 @@ class StackCreate(CloudFormationBase):
         }
         network_stack, network_exists, _ = self.create_stack_if_not_exists('network', network_parameters, parsed_args)
 
+        self.log_piglet("STACK %s", const.STACK_FOLLOWME)
         # create SGFM
         sgfm_parameters = {
             'FollowMeIpAddress': self.get_ipv4(),
@@ -289,6 +281,7 @@ class StackCreate(CloudFormationBase):
         }
         sgfm_stack, sgfm_exists, _ = self.create_stack_if_not_exists('sgfm', sgfm_parameters, parsed_args)
 
+        self.log_piglet("STACK %s", const.STACK_CORE)
         # create Core
         aws_config = config.get_aws_data()
         core_parameters = {
@@ -302,14 +295,13 @@ class StackCreate(CloudFormationBase):
 
         core_stack = self.get_stack_by_short_name('core', debug=False)
 
-        if core_stack is not None:
+        if core_stack is not None and not self.is_stack_create_failed(core_stack):
             core_instance_id = self.get_output_from_dict(core_stack['Outputs'], 'MadCoreInstanceId')
             self.log.debug("[%s] Check if madcore instance is terminated...", const.STACK_CORE)
             if self.is_instance_terminated(core_instance_id):
                 self.log.info("[%s] Madcore instance is terminated, recreate stack.", const.STACK_CORE)
-                if core_stack is not None:
-                    self.log.info("[%s] Delete stack.", core_stack['StackName'])
-                    self.delete_stack('core')
+                self.log.info("[%s] Delete stack.", core_stack['StackName'])
+                self.delete_stack('core')
             else:
                 self.log.debug("[%s] Instance not terminated.", const.STACK_CORE)
 
@@ -321,6 +313,7 @@ class StackCreate(CloudFormationBase):
         # TODO@geo get here the KeyPair, InstanceType to be set into config if user is registered
         # and not yet sync locally but stack is created and running
 
+        self.log_piglet("STACK %s", const.STACK_DNS)
         # create DNS
         user_config = config.get_user_data()
         dns_parameters = {
@@ -330,7 +323,7 @@ class StackCreate(CloudFormationBase):
         }
         dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists('dns', dns_parameters, parsed_args)
 
-        self.log_piglet("DNS delegation start")
+        self.log_piglet("DNS delegation")
         # do DNS delegation
         if not config.is_dns_delegated or dns_updated:
             self.log.info("DNS delegation start")
@@ -343,7 +336,6 @@ class StackCreate(CloudFormationBase):
             if delegation_response.get('verified', False):
                 self.log.info("DNS delegation verified.")
                 dns_delegation = True
-                config.set_user_data({'dns_delegation': True})
             else:
                 self.log.error("DNS delegation error: %s", delegation_response)
                 dns_delegation = False
@@ -354,27 +346,14 @@ class StackCreate(CloudFormationBase):
             if not dns_delegation:
                 self.exit()
 
-            self.log.info("Wait until DNS for domain '%s' is updated...", config.get_full_domain())
+            self.log.info("Wait until DNS for domain '%s' is resolved...", config.get_full_domain())
             if utils.hostname_resolves(config.get_full_domain()):
                 self.log.info("DNS updated.")
             else:
-                self.log.error("Error while updating DNS.")
+                self.log.error("DNS not resolvable.")
         else:
             self.log.info("DNS delegation already setup.")
 
-        self.log_piglet("Done")
-
-        # create Cluster
-        # cluster_parameters = {
-        #     'VpcId': self.get_output_from_dict(network_stack['Outputs'], 'VpcId'),
-        #     'PublicNetZoneA': self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA'),
-        #     'MasterIP': self.get_output_from_dict(core_stack['Outputs'], 'MadCorePrivateIp'),
-        #     'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
-        # }
-        # cluster_params = self.create_stack_parameters(dict_params=cluster_parameters)
-        # cluster_capabilities = ["CAPABILITY_IAM"]
-        # _, cluster_exists = self.create_stack_if_not_exists('cluster', cluster_params, parsed_args,
-        #                                                     capabilities=cluster_capabilities)
         self.log.info("Stack Create status:")
         self.produce_output(parsed_args,
                             ('StackName', 'Created'),

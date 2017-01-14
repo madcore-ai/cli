@@ -1,17 +1,15 @@
 from __future__ import print_function, unicode_literals
 
+import logging
 import ssl
-import sys
 
 from cliff.lister import Lister
 
 from madcore.base import JenkinsBase
-from madcore.cmds.selftest import SelfTest
 from madcore.configs import config
 from madcore.configure import MadcoreConfigure
 from madcore.const import DOMAIN_REGISTRATION
 from madcore.libs.cloudformation import StackCreate
-from madcore.logs import logging
 
 
 class Configure(JenkinsBase, Lister):
@@ -25,10 +23,9 @@ class Configure(JenkinsBase, Lister):
         configure = MadcoreConfigure()
         config_results = configure.start_configuration()
 
-        self.log_piglet("Create Stacks")
+        self.log_piglet("Cloudformation")
         stack_create = StackCreate(self.app)
         stack_create.take_action(parsed_args)
-        self.log_piglet("Done")
 
         self.log_piglet("Wait until Jenkins is up")
         if self.wait_until_jenkins_is_up():
@@ -36,10 +33,13 @@ class Configure(JenkinsBase, Lister):
         else:
             self.log.error("Error while waiting for jenkins.")
             self.exit()
-        self.log_piglet("Done")
 
         self.log_piglet("Start domain registration")
-        if not config.is_domain_registered:
+        self.log.info("Check if domain is certificated...")
+        is_domain_certified = self.wait_until_domain_is_certified()
+        self.log.info("Domain certificate found: %s", is_domain_certified)
+
+        if not is_domain_certified or not config.is_domain_registered:
             self.log.info("Start domain registration.")
 
             job_name = 'madcore.registration'
@@ -57,11 +57,8 @@ class Configure(JenkinsBase, Lister):
                 config.set_user_data({"registration": False})
         else:
             self.log.info("Domain already registered.")
-        self.log_piglet("Done")
 
         self.log_piglet("Run selftests")
-        selftest = SelfTest(self.app, self.app_args)
-        selftest.take_action(parsed_args)
-        self.log_piglet("Done")
+        self.app.run_subcommand(['selftest'])
 
         return config_results

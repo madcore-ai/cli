@@ -1,10 +1,11 @@
 from __future__ import print_function, unicode_literals
 
+import logging
+
 from cliff.show import ShowOne
 
 from madcore.base import CloudFormationBase
 from madcore.const import STACK_FOLLOWME
-from madcore.logs import logging
 
 
 class Followme(CloudFormationBase, ShowOne):

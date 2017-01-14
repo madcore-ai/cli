@@ -3,7 +3,7 @@ from __future__ import print_function, unicode_literals
 from cliff.command import Command
 
 from madcore.base import JenkinsBase
-from madcore.logs import logging
+import logging
 
 
 class SelfTest(JenkinsBase, Command):
