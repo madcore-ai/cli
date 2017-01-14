@@ -331,8 +331,12 @@ class MadcoreConfigure(CloudFormationBase):
     def start_configuration(self):
         self.log_piglet("Start Configuration")
 
-        raw_input(
-            "Madcore will now create ~/.madcore folder to store configuration settings. Press enter to begin configuration ")
+        if not self.is_config_folder_created:
+            raw_input(
+                "Madcore will now create ~/.madcore folder to store configuration settings. Press enter to begin configuration ")
+        else:
+            self.log.info("Config folder ~/.madcore already created.")
+
         utils.create_project_config_dir()
         self.log.info("folder created.")
 

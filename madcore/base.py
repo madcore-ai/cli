@@ -29,6 +29,10 @@ class MadcoreBase(object):
     def config_path(self):
         return utils.project_config_dir()
 
+    @property
+    def is_config_folder_created(self):
+        return os.path.exists(self.config_path)
+
     def get_template_local(self, template_file):
         with open(os.path.join(self.config_path, 'cloudformation', template_file)) as content_file:
             content = content_file.read()
@@ -60,6 +64,23 @@ class MadcoreBase(object):
     def exit(self):
         self.log.info("EXIT")
         sys.exit(1)
+
+    def wait_until_url_is_up(self, url, verify=False, max_sleep=600):
+        elapsed_sec = 0
+        sleep_time = 10
+
+        while True:
+            try:
+                response = requests.get(url, verify=verify)
+                response.raise_for_status()
+                return True
+            except:
+                elapsed_sec += sleep_time
+                if elapsed_sec > max_sleep:
+                    break
+                time.sleep(sleep_time)
+
+        return False
 
 
 class CloudFormationBase(MadcoreBase):
@@ -200,6 +221,10 @@ class CloudFormationBase(MadcoreBase):
         dns_stack = self.get_stack(const.STACK_CORE)
         return self.get_output_from_dict(dns_stack['Outputs'], 'MadCorePublicIp')
 
+    def wait_until_domain_is_certified(self, timeout=30):
+        url = 'https://%s' % config.get_full_domain()
+        return self.wait_until_url_is_up(url, verify=True, max_sleep=timeout)
+
 
 class JenkinsBase(CloudFormationBase, MadcoreBase):
     def __init__(self, *args, **kwargs):
@@ -277,23 +302,8 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
                 self.log.error(e)
                 self.log.info("Retry: %s", retry_time)
 
-    def wait_until_jenkins_is_up(self, verify=False):
-        max_sleep = 60 * 10
-        elapsed_sec = 0
-        sleep_time = 10
-
-        while True:
-            try:
-                response = requests.get(self.jenkins_endpoint, verify=verify)
-                response.raise_for_status()
-                return True
-            except:
-                elapsed_sec += sleep_time
-                if elapsed_sec > max_sleep:
-                    break
-                time.sleep(sleep_time)
-
-        return False
+    def wait_until_jenkins_is_up(self):
+        return self.wait_until_url_is_up(self.jenkins_endpoint, verify=False)
 
 
 class Stdout(object):

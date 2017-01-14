@@ -1,7 +1,5 @@
 from __future__ import print_function, unicode_literals
 
-import sys
-
 from cliff.formatters.table import TableFormatter
 
 from madcore import const
@@ -343,7 +341,6 @@ class StackCreate(CloudFormationBase):
             if delegation_response.get('verified', False):
                 self.log.info("DNS delegation verified.")
                 dns_delegation = True
-                config.set_user_data({'dns_delegation': True})
             else:
                 self.log.error("DNS delegation error: %s", delegation_response)
                 dns_delegation = False
@@ -364,17 +361,6 @@ class StackCreate(CloudFormationBase):
 
         self.log_piglet("Done")
 
-        # create Cluster
-        # cluster_parameters = {
-        #     'VpcId': self.get_output_from_dict(network_stack['Outputs'], 'VpcId'),
-        #     'PublicNetZoneA': self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA'),
-        #     'MasterIP': self.get_output_from_dict(core_stack['Outputs'], 'MadCorePrivateIp'),
-        #     'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
-        # }
-        # cluster_params = self.create_stack_parameters(dict_params=cluster_parameters)
-        # cluster_capabilities = ["CAPABILITY_IAM"]
-        # _, cluster_exists = self.create_stack_if_not_exists('cluster', cluster_params, parsed_args,
-        #                                                     capabilities=cluster_capabilities)
         self.log.info("Stack Create status:")
         self.produce_output(parsed_args,
                             ('StackName', 'Created'),

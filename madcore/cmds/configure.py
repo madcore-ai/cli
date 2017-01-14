@@ -39,7 +39,12 @@ class Configure(JenkinsBase, Lister):
         self.log_piglet("Done")
 
         self.log_piglet("Start domain registration")
-        if not config.is_domain_registered:
+
+        self.log.info("Check if domain is certificated...")
+        is_domain_certified = self.wait_until_domain_is_certified()
+        self.log.info("Domain certificate found: %s", is_domain_certified)
+
+        if not is_domain_certified or not config.is_domain_registered:
             self.log.info("Start domain registration.")
 
             job_name = 'madcore.registration'
