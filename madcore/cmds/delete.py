@@ -6,6 +6,7 @@ from cliff.lister import Lister
 
 from madcore import const
 from madcore.libs.cloudformation import StackManagement
+from madcore.configs import config
 
 
 class Delete(StackManagement, Lister):
@@ -19,6 +20,9 @@ class Delete(StackManagement, Lister):
         dns_deleted = self.delete_stack_if_exists('dns')
         # for now we do not delete S3 because it may contain critical information like backups and other
         # s3_deleted = self.delete_stack_if_exists('s3')
+
+        # keep track that it was deleted
+        config.set_user_data({'config_deleted': True})
 
         return (
             ('StackName', 'Deleted'),

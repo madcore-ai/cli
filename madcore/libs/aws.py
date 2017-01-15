@@ -84,11 +84,11 @@ class AwsLambda(object):
 
     def create_aws_lambda_client_auth(self):
         user_data = config.get_user_data()
-        login_data = config.get_login_data()
-
-        identity_id = login_data['identityid']
 
         while True:
+            login_data = config.get_login_data()
+            identity_id = login_data['identityid']
+
             try:
                 response = self.cognito_client.get_credentials_for_identity(
                     IdentityId=identity_id,
@@ -115,7 +115,6 @@ class AwsLambda(object):
                     if login_response['login']:
                         log.info("Successfully logged in.")
                         config.set_login_data(login_response)
-                        time.sleep(5)
                     else:
                         log.error("Invalid login, try again")
                         time.sleep(5)

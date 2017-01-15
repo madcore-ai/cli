@@ -99,6 +99,10 @@ class MadcoreConfig(object):
         return self.is_key_true('registration', 'user')
 
     @property
+    def is_config_deleted(self):
+        return self.is_key_true('config_deleted', 'user')
+
+    @property
     def is_user_created(self):
         try:
             created = self.config.getboolean('user', 'created')

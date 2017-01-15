@@ -53,7 +53,7 @@ class MadcoreCli(App):
 
     def trigger_configuration(self):
         # Trigger configure if not yet setup
-        if not config.get_user_data():
+        if config.is_config_deleted or not config.get_user_data():
             self.run_subcommand(['configure'])
         else:
             self.LOG.info("Already configured.")
@@ -73,7 +73,7 @@ class MadcoreCli(App):
     def prepare_to_run_command(self, cmd):
         self.LOG.debug('prepare_to_run_command %s', cmd.__class__.__name__)
 
-        if not isinstance(cmd, configure.Configure):
+        if not isinstance(cmd, (configure.Configure, delete.Delete)):
             self.trigger_configuration()
 
     def clean_up(self, cmd, result, err):

@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 import boto3
+from cliff.command import Command
 from questionnaire import Questionnaire
 
 import const
@@ -16,7 +17,7 @@ from libs.aws import AwsLambda, AwsConfig
 from libs.bitbucket import Bitbucket
 
 
-class MadcoreConfigure(CloudFormationBase):
+class MadcoreConfigure(CloudFormationBase, Command):
     log = logging.getLogger(__name__)
 
     @classmethod
@@ -125,10 +126,17 @@ class MadcoreConfigure(CloudFormationBase):
 
         self.log.info("Map local private key file")
 
+        default_priv_key_path = '~/.ssh/id_rsa'
+
         while True:
             selected_file = self.raw_prompt('ssh_priv_file',
-                                            'Input ssh private key path to use: ')
+                                            'Input ssh private key path to use[%s]: ' % default_priv_key_path)
             ssh_file = os.path.expanduser(selected_file['ssh_priv_file'])
+            if not ssh_file:
+                ssh_file = os.path.expanduser(default_priv_key_path)
+                # we don't need to show this into prompt anymore because does not exists
+                default_priv_key_path = ''
+
             if not os.path.exists(ssh_file):
                 self.log.error("Key does not exists at: '%s', try again.", ssh_file)
             else:
@@ -247,6 +255,7 @@ class MadcoreConfigure(CloudFormationBase):
                 'verified': False,
                 'registration': False,
                 'dns_delegation': False,
+                'config_deleted': True
             }
             # set user data here so that we have the info in login
             config.set_user_data(user_data)
@@ -328,7 +337,7 @@ class MadcoreConfigure(CloudFormationBase):
 
         return columns, data
 
-    def start_configuration(self):
+    def take_action(self, parsed_args):
         self.log_piglet("Configuration")
 
         if not os.path.exists(self.config_path):

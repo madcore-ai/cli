@@ -20,11 +20,11 @@ class Configure(JenkinsBase, Lister):
         # TODO#geo this is a hack to skip ssl verification when we do jenkins registration
         ssl._create_default_https_context = ssl._create_unverified_context
 
-        configure = MadcoreConfigure()
-        config_results = configure.start_configuration()
+        configure = MadcoreConfigure(self.app, self.app_args)
+        config_results = configure.take_action(parsed_args)
 
         self.log_piglet("Cloudformation")
-        stack_create = StackCreate(self.app)
+        stack_create = StackCreate(self.app, self.app_args)
         stack_create.take_action(parsed_args)
 
         self.log_piglet("Wait until Jenkins is up")
@@ -60,6 +60,8 @@ class Configure(JenkinsBase, Lister):
         else:
             self.log.info("Domain already registered.")
 
+        # enable ssl and run the rest of jenkins jobs via ssl
+        ssl._create_default_https_context = ssl.create_default_context
         self.log_piglet("Run selftests")
         self.app.run_subcommand(['selftest'])
 

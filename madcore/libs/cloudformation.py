@@ -2,6 +2,7 @@ from __future__ import print_function, unicode_literals
 
 import logging
 
+from cliff.command import Command
 from cliff.formatters.table import TableFormatter
 
 from madcore import const
@@ -15,9 +16,8 @@ from madcore.libs.aws import AwsLambda
 class StackManagement(CloudFormationBase):
     log = logging.getLogger(__name__)
 
-    def __init__(self, app, *args, **kwargs):
-        super(StackManagement, self).__init__(app, *args, **kwargs)
-        self.app = app
+    def __init__(self, *args, **kwargs):
+        super(StackManagement, self).__init__(*args, **kwargs)
         self.formatter = TableFormatter()
 
     def produce_output(self, parsed_args, column_names, data):
@@ -258,7 +258,7 @@ class StackManagement(CloudFormationBase):
         return False
 
 
-class StackCreate(StackManagement):
+class StackCreate(StackManagement, Command):
     def take_action(self, parsed_args):
         # create S3
         self.log_piglet("STACK %s", const.STACK_S3)
@@ -323,6 +323,9 @@ class StackCreate(StackManagement):
         }
         dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists('dns', dns_parameters, parsed_args)
 
+        # at this point we have cloudformation up and running so we can
+        config.set_user_data({'config_deleted': False})
+
         self.log_piglet("DNS delegation")
         # do DNS delegation
         if not config.is_dns_delegated or dns_updated:
@@ -366,3 +369,5 @@ class StackCreate(StackManagement):
                                 # (const.STACK_CLUSTER, not cluster_exists)
                             )
                             )
+
+        return 0

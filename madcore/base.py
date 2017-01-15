@@ -22,9 +22,6 @@ class MadcoreBase(object):
     log = logging.getLogger(__name__)
     log_simple = logging.getLogger('no_formatter')
 
-    def __init__(self, *args, **kwargs):
-        super(MadcoreBase, self).__init__(*args, **kwargs)
-
     @property
     def config_path(self):
         return utils.project_config_dir()
@@ -67,16 +64,16 @@ class MadcoreBase(object):
         self.log.info("EXIT")
         sys.exit(1)
 
-    def wait_until_url_is_up(self, url, verify=False, max_sleep=600):
+    def wait_until_url_is_up(self, url, log_msg=None, verify=False, max_sleep=600, sleep_time=10):
         elapsed_sec = 0
-        sleep_time = 10
-
         while True:
             try:
                 response = requests.get(url, verify=verify)
                 response.raise_for_status()
                 return True
             except:
+                if log_msg:
+                    self.log.info(log_msg)
                 elapsed_sec += sleep_time
                 if elapsed_sec > max_sleep:
                     break
@@ -265,19 +262,17 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         return self.wait_until_url_is_up(url, verify=True, max_sleep=timeout)
 
     def get_core_instance_data(self):
-        core_stack_details = self.get_stack(const.STACK_CORE)
+        core_stack_details = self.get_stack(const.STACK_CORE, debug=False)
 
         if core_stack_details is not None:
-            instance_id = self.get_output_from_dict(core_stack_details['Outputs'], 'MadCoreInstanceId')
-            return self.describe_instance(instance_id)
+            if core_stack_details['StackStatus'] in ['CREATE_COMPLETE']:
+                instance_id = self.get_output_from_dict(core_stack_details['Outputs'], 'MadCoreInstanceId')
+                return self.describe_instance(instance_id)
 
         return {}
 
 
-class JenkinsBase(CloudFormationBase, MadcoreBase):
-    def __init__(self, *args, **kwargs):
-        super(JenkinsBase, self).__init__(*args, **kwargs)
-
+class JenkinsBase(CloudFormationBase):
     @property
     def jenkins_endpoint(self):
         return 'https://jenkins.%s' % config.get_full_domain()
@@ -350,8 +345,8 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
                 self.log.error(e)
                 self.log.info("Retry: %s", retry_time)
 
-    def wait_until_jenkins_is_up(self):
-        return self.wait_until_url_is_up(self.jenkins_endpoint, verify=False)
+    def wait_until_jenkins_is_up(self, log_msg='Waiting until Jenkins is up...'):
+        return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False)
 
 
 class Stdout(object):
