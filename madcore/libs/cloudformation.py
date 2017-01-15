@@ -254,6 +254,10 @@ class StackManagement(CloudFormationBase):
         try:
             instance_details = self.describe_instance(instance_id)
 
+            if not instance_details:
+                self.logger.info("Instance not exists.")
+                return False
+
             instance_status = instance_details['State']['Name']
             if instance_status in ['stopped', 'stopping']:
                 self.logger.info("Madcore instance is not running, current status is: '%s'.", instance_status)
@@ -280,10 +284,10 @@ class StackManagement(CloudFormationBase):
 class StackCreate(StackManagement, Command):
     def take_action(self, parsed_args):
         # create S3
-        self.log_piglet("STACK %s", const.STACK_S3)
+        self.log_figlet("STACK %s", const.STACK_S3)
         s3_stack, s3_exists, _ = self.create_stack_if_not_exists('s3', {}, parsed_args)
 
-        self.log_piglet("STACK %s", const.STACK_NETWORK)
+        self.log_figlet("STACK %s", const.STACK_NETWORK)
         # create Network
         network_parameters = {
             'Type': 'Production',
@@ -292,7 +296,7 @@ class StackCreate(StackManagement, Command):
         }
         network_stack, network_exists, _ = self.create_stack_if_not_exists('network', network_parameters, parsed_args)
 
-        self.log_piglet("STACK %s", const.STACK_FOLLOWME)
+        self.log_figlet("STACK %s", const.STACK_FOLLOWME)
         # create SGFM
         sgfm_parameters = {
             'FollowMeIpAddress': self.get_ipv4(),
@@ -300,7 +304,7 @@ class StackCreate(StackManagement, Command):
         }
         sgfm_stack, sgfm_exists, _ = self.create_stack_if_not_exists('sgfm', sgfm_parameters, parsed_args)
 
-        self.log_piglet("STACK %s", const.STACK_CORE)
+        self.log_figlet("STACK %s", const.STACK_CORE)
         # create Core
         aws_config = config.get_aws_data()
         core_parameters = {
@@ -334,7 +338,7 @@ class StackCreate(StackManagement, Command):
         core_stack, core_exists, _ = self.create_stack_if_not_exists('core', core_parameters, parsed_args,
                                                                      capabilities=core_capabilities)
 
-        self.log_piglet("STACK %s", const.STACK_DNS)
+        self.log_figlet("STACK %s", const.STACK_DNS)
         # create DNS
         user_config = config.get_user_data()
         dns_parameters = {
@@ -347,7 +351,7 @@ class StackCreate(StackManagement, Command):
         # at this point we have cloudformation up and running so we can
         config.set_user_data({'config_deleted': False})
 
-        self.log_piglet("DNS delegation")
+        self.log_figlet("DNS delegation")
         # do DNS delegation
         if not config.is_dns_delegated or dns_updated:
             self.logger.info("DNS delegation start")

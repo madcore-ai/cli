@@ -34,18 +34,18 @@ class Followme(StackManagement, ShowOne):
         stack_details = self.get_stack(STACK_FOLLOWME)
 
         if stack_details is None:
-            self.log.info("Stack not created yet, run configuration to setup.")
+            self.logger.info("Stack not created yet, run configuration to setup.")
             self.exit()
 
         ipv4 = self.get_ipv4()
-        self.log.info('Core Followme: Your public IP detected as: %s', ipv4)
+        self.logger.info('Core Followme: Your public IP detected as: %s', ipv4)
         previous_parameters = stack_details['Parameters']
         ipv4_previous = self.get_param_from_dict(previous_parameters, 'FollowMeIpAddress')
         if ipv4 == ipv4_previous:
-            self.log.info("No need to update.")
+            self.logger.info("No need to update.")
             self.exit()
 
-        self.log.info("Updating '%s' Stack...", STACK_FOLLOWME)
+        self.logger.info("Updating '%s' Stack...", STACK_FOLLOWME)
         self.followme_stack_update(ipv4)
 
         columns = (

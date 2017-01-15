@@ -192,7 +192,8 @@ class MadcoreConfigure(CloudFormationBase, Command):
             aws_data.update(selected_key_name)
 
         if core_instance.get('InstanceType', None):
-            self.logger.info("Using InstanceType: '%s' form the already created instance.", core_instance['InstanceType'])
+            self.logger.info("Using InstanceType: '%s' form the already created instance.",
+                             core_instance['InstanceType'])
             aws_data['instance_type'] = core_instance['InstanceType']
         elif not aws_data.get('instance_type', None):
             selected_instance_type = self.single_prompt('instance_type', options=const.ALLOWED_INSTANCE_TYPES,
@@ -339,20 +340,20 @@ class MadcoreConfigure(CloudFormationBase, Command):
         return columns, data
 
     def take_action(self, parsed_args):
-        self.log_piglet("Configuration")
+        self.log_figlet("Configuration")
 
         if not os.path.exists(self.config_path):
             inp = "Madcore will now create ~/.madcore folder to store configuration settings. " \
                   "Press enter to begin configuration "
             raw_input(inp)
 
-        self.log_piglet("User Registration")
+        self.log_figlet("User Registration")
         self.configure_user_registration()
 
-        self.log_piglet("AWS Configuration")
+        self.log_figlet("AWS Configuration")
         self.configure_aws()
 
-        self.log_piglet("Clone repos")
+        self.log_figlet("Clone repos")
         columns, data = self.configure_repos()
 
         return columns, data

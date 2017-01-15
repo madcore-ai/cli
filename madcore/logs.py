@@ -20,19 +20,19 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(utils.project_logs_path(), 'madcore.logger'),
+            'filename': os.path.join(utils.project_logs_path(), 'madcore.log'),
             'formatter': 'standard'
         },
         'file_no_formatter': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(utils.project_logs_path(), 'madcore.logger'),
+            'filename': os.path.join(utils.project_logs_path(), 'madcore.log'),
             'formatter': 'no_formatter'
         },
         'file_error': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(utils.project_logs_path(), 'madcore_error.logger'),
+            'filename': os.path.join(utils.project_logs_path(), 'madcore_error.log'),
             'formatter': 'standard'
         },
         'console': {

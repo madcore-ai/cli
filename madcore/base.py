@@ -6,10 +6,10 @@ import sys
 import time
 
 import boto3
+import botocore.exceptions
 import requests
 import requests.exceptions
 import urllib3
-import botocore.exceptions
 from jenkins import Jenkins
 from jenkins import JenkinsException
 
@@ -57,10 +57,11 @@ class MadcoreBase(object):
         except requests.exceptions.HTTPError:
             self.logger.error("Error downloading domain from: '%s'", url)
 
-    def log_piglet(self, msg, *args):
+    def log_figlet(self, msg, *args):
         if args:
             msg %= tuple(args)
         self.logger_simple.info(figlet.renderText(msg))
+        self.logger.info(msg)
 
     def exit(self):
         self.logger.info("EXIT")
@@ -73,7 +74,7 @@ class MadcoreBase(object):
                 response = requests.get(url, verify=verify)
                 response.raise_for_status()
                 return True
-            except requests.exceptions.HTTPError:
+            except Exception:
                 if log_msg:
                     self.logger.info(log_msg)
                 elapsed_sec += sleep_time
@@ -117,10 +118,17 @@ class AwsBase(object):
             InstanceIds=[instance_id]
         )
 
-        return instance_details['Reservations'][0]['Instances'][0]
+        try:
+            return instance_details['Reservations'][0]['Instances'][0]
+        except IndexError:
+            return {}
 
     def is_instance_terminated(self, instance_id):
         instance_details = self.describe_instance(instance_id)
+
+        if not instance_details:
+            return True
+
         instance_status = instance_details['State']['Name']
 
         if instance_status in ['terminated', 'shutting-down']:
@@ -316,9 +324,8 @@ class JenkinsBase(CloudFormationBase):
     def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=1, retry_times=3):
         """We are retrying this method because there may be cases when jenkins gives an error when making API calls"""
 
+        retry_time = 0
         while True:
-            retry_time = 0
-
             try:
                 jenkins_server = self.create_jenkins_server()
                 job_info = jenkins_server.get_job_info(job_name, depth=1)
@@ -352,7 +359,7 @@ class JenkinsBase(CloudFormationBase):
 
 
 class Stdout(object):
-    log = logging.getLogger('no_formatter')
+    logger = logging.getLogger('file_no_formatter')
 
     def write(self, msg):
-        self.log.info(msg)
+        self.logger.info(msg)
