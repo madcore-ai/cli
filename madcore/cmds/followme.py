@@ -11,7 +11,7 @@ from madcore.libs.cloudformation import StackManagement
 class Followme(StackManagement, ShowOne):
     _description = "Update Followme stack with current IP"
 
-    log = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
 
     def followme_stack_update(self, ipv4):
         parameters = [
@@ -38,7 +38,7 @@ class Followme(StackManagement, ShowOne):
             self.exit()
 
         ipv4 = self.get_ipv4()
-        self.log.info('Core Followme: Your public IP detected as: {0}'.format(ipv4))
+        self.log.info('Core Followme: Your public IP detected as: %s', ipv4)
         previous_parameters = stack_details['Parameters']
         ipv4_previous = self.get_param_from_dict(previous_parameters, 'FollowMeIpAddress')
         if ipv4 == ipv4_previous:
@@ -48,12 +48,14 @@ class Followme(StackManagement, ShowOne):
         self.log.info("Updating '%s' Stack...", STACK_FOLLOWME)
         self.followme_stack_update(ipv4)
 
-        columns = ('New IPv4',
-                   'Stack ID',
-                   'Previous IPv4'
-                   )
-        data = (''.join(ipv4.split()),
-                stack_details['StackId'],
-                ipv4_previous
-                )
+        columns = (
+            'New IPv4',
+            'Stack ID',
+            'Previous IPv4'
+        )
+        data = (
+            ''.join(ipv4.split()),
+            stack_details['StackId'],
+            ipv4_previous
+        )
         return columns, data

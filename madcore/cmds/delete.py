@@ -10,7 +10,7 @@ from madcore.configs import config
 
 
 class Delete(StackManagement, Lister):
-    log = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
     _description = "Delete stacks"
 
     def take_action(self, parsed_args):

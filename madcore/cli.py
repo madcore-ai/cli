@@ -1,37 +1,33 @@
 from __future__ import unicode_literals, print_function
 
-import logging.config
-
-from logs import LOGGING
-logging.config.dictConfig(LOGGING)
-
+import logging
 import sys
 import traceback
 
 from cliff.app import App
 from cliff.commandmanager import CommandManager
 
-import utils
-from base import Stdout
-from cmds import configure
-from cmds import create
-from cmds import delete
-from cmds import endpoints
-from cmds import followme
-from cmds import registration
-from cmds import selftest
-from cmds import stacks
-from configs import config
+from madcore import utils
+from madcore.base import Stdout
+from madcore.cmds import configure
+from madcore.cmds import create
+from madcore.cmds import delete
+from madcore.cmds import endpoints
+from madcore.cmds import followme
+from madcore.cmds import registration
+from madcore.cmds import selftest
+from madcore.cmds import stacks
+from madcore.configs import config
 
 
 class MadcoreCli(App):
     def __init__(self):
-        command = CommandManager('madcorecli.app')
+        command_manager = CommandManager('madcorecli.app')
         super(MadcoreCli, self).__init__(
             description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller'
                         'Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai',
             version='0.3',
-            command_manager=command,
+            command_manager=command_manager,
             stdout=Stdout()
         )
         commands = {
@@ -45,8 +41,8 @@ class MadcoreCli(App):
             'registration': registration.Registration
         }
 
-        for k, v in commands.iteritems():
-            command.add_command(k, v)
+        for command_name, command_class in commands.iteritems():
+            command_manager.add_command(command_name, command_class)
 
     def configure_logging(self):
         self.LOG = logging.getLogger('madcore')

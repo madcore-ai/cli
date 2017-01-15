@@ -6,5 +6,5 @@ from madcore.libs.jenkins import JenkinsJobCommand
 
 
 class SelfTest(JenkinsJobCommand):
-    log = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
     job_name = 'madcore.selftest'

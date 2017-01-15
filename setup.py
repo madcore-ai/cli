@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 from subprocess import check_output
 
 from setuptools import setup, find_packages
@@ -65,7 +64,6 @@ setup(
     scripts=[],
 
     provides=[],
-    # TODO@geo get this from requirements.txt
     install_requires=required,
 
     namespace_packages=[],
@@ -74,7 +72,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'madcore = madcore.madcore:main'
+            'madcore = madcore.cli:main'
         ],
         'madcorecli.app': [
             'configure = madcore.cmds.configure:Configure',

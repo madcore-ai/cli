@@ -5,13 +5,14 @@ import os
 import time
 
 import boto3
+import botocore.exceptions
 from botocore import UNSIGNED
 from botocore.client import Config
 
 from madcore import const
 from madcore.configs import config
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class AwsConfig(object):
@@ -21,10 +22,10 @@ class AwsConfig(object):
     @classmethod
     def load_config(cls, config_path=None):
         config_path = config_path or os.path.join(os.path.expanduser("~"), '.aws/config')
-        config = ConfigParser.ConfigParser()
-        config.read(config_path)
+        cfg = ConfigParser.ConfigParser()
+        cfg.read(config_path)
 
-        return config
+        return cfg
 
     def get_regions(self):
         regions = []
@@ -96,7 +97,7 @@ class AwsLambda(object):
                 )
                 credentials = response['Credentials']
                 # TODO@geo we may need to save this expiration and check whether to login again
-                # log.debug(response['Credentials']['Expiration'])
+                # logger.debug(response['Credentials']['Expiration'])
 
                 credentials = {
                     'aws_access_key_id': credentials['AccessKeyId'],
@@ -107,16 +108,16 @@ class AwsLambda(object):
                 client = boto3.client('lambda', **credentials)
 
                 return client
-            except Exception as e:
-                log.error(e)
-                if 'Token is expired' in str(e):
-                    log.debug('Token is expired, login.')
+            except botocore.exceptions.ClientError as error:
+                logger.error(error)
+                if 'Token is expired' in str(error):
+                    logger.debug('Token is expired, login.')
                     login_response = self.auth_login(user_data['email'], user_data['password'])
                     if login_response['login']:
-                        log.info("Successfully logged in.")
+                        logger.info("Successfully logged in.")
                         config.set_login_data(login_response)
                     else:
-                        log.error("Invalid login, try again")
+                        logger.error("Invalid login, try again")
                         time.sleep(5)
 
     def verify_user(self, email, verify_code):
@@ -181,8 +182,8 @@ class AwsLambda(object):
             'awsid': account_id,
         }
 
-        for i, ns in enumerate(nameservers, 1):
-            payload['dns%s' % i] = ns
+        for i, name_server in enumerate(nameservers, 1):
+            payload['dns%s' % i] = name_server
 
         response = lambda_client_auth.invoke(
             FunctionName='LambdSendDNSValues',

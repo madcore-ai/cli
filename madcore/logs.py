@@ -1,6 +1,7 @@
+import logging.config
 import os
 
-import utils
+from madcore import utils
 
 utils.create_project_config_dir()
 
@@ -11,7 +12,7 @@ LOGGING = {
         'standard': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
-        'simple': {
+        'no_formatter': {
             'format': '%(message)s'
         }
     },
@@ -19,13 +20,19 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(utils.project_logs_path(), 'madcore.log'),
+            'filename': os.path.join(utils.project_logs_path(), 'madcore.logger'),
             'formatter': 'standard'
+        },
+        'file_no_formatter': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(utils.project_logs_path(), 'madcore.logger'),
+            'formatter': 'no_formatter'
         },
         'file_error': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(utils.project_logs_path(), 'madcore_error.log'),
+            'filename': os.path.join(utils.project_logs_path(), 'madcore_error.logger'),
             'formatter': 'standard'
         },
         'console': {
@@ -33,15 +40,20 @@ LOGGING = {
             'level': 'DEBUG',
             'formatter': 'standard'
         },
-        'console_simple': {
+        'console_no_formatter': {
             'class': 'logging.StreamHandler',
             'level': 'DEBUG',
-            'formatter': 'simple'
+            'formatter': 'no_formatter'
         }
     },
     'loggers': {
         'no_formatter': {
-            'handlers': ['console_simple'],
+            'handlers': ['console_no_formatter'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'file_no_formatter': {
+            'handlers': ['console_no_formatter', 'file_no_formatter'],
             'level': 'DEBUG',
             'propagate': False,
         },
@@ -74,3 +86,7 @@ LOGGING = {
         }
     }
 }
+
+
+def config_logs():
+    logging.config.dictConfig(LOGGING)

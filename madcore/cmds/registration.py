@@ -1,9 +1,10 @@
 from __future__ import print_function, unicode_literals
 
-from madcore.cmds.configure import Configure
 import logging
+
+from madcore.cmds.configure import Configure
 
 
 class Registration(Configure):
     _description = "Register madcore"
-    log = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)
