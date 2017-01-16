@@ -11,7 +11,7 @@ from madcore import utils
 from madcore.base import Stdout
 from madcore.cmds import configure
 from madcore.cmds import create
-from madcore.cmds import delete
+from madcore.cmds import destroy
 from madcore.cmds import endpoints
 from madcore.cmds import followme
 from madcore.cmds import registration
@@ -34,7 +34,7 @@ class MadcoreCli(App):
             'configure': configure.Configure,
             'stacks': stacks.Stacks,
             'create': create.Create,
-            'delete': delete.Delete,
+            'destroy': destroy.Destroy,
             'followme': followme.Followme,
             'endpoints': endpoints.Endpoints,
             'selftest': selftest.SelfTest,
@@ -69,7 +69,7 @@ class MadcoreCli(App):
     def prepare_to_run_command(self, cmd):
         self.LOG.debug('prepare_to_run_command %s', cmd.__class__.__name__)
 
-        if not isinstance(cmd, (configure.Configure, delete.Delete)):
+        if not isinstance(cmd, (configure.Configure, destroy.Destroy)):
             self.trigger_configuration()
 
     def clean_up(self, cmd, result, err):

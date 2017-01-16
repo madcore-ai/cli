@@ -2,9 +2,9 @@ from __future__ import print_function, unicode_literals
 
 import logging
 
+import botocore.exceptions
 from cliff.command import Command
 from cliff.formatters.table import TableFormatter
-import botocore.exceptions
 
 from madcore import const
 from madcore import utils
@@ -249,19 +249,20 @@ class StackManagement(CloudFormationBase):
 
         return cf_params
 
-    def start_instance_if_not_running(self, instance_id):
-        self.logger.info("Check if madcore instance is running.")
+    def start_instance_if_not_running(self, instance_id, log_label=''):
+        self.logger.info("%sCheck if madcore instance is running...", log_label)
         try:
             instance_details = self.describe_instance(instance_id)
 
             if not instance_details:
-                self.logger.info("Instance not exists.")
+                self.logger.info("%sInstance not exists.", log_label)
                 return False
 
             instance_status = instance_details['State']['Name']
             if instance_status in ['stopped', 'stopping']:
-                self.logger.info("Madcore instance is not running, current status is: '%s'.", instance_status)
-                self.logger.info("Start madcore instance...")
+                self.logger.info("%sMadcore instance is not running, current status is: '%s'.", log_label,
+                                 instance_status)
+                self.logger.info("%sStart madcore instance...", log_label)
                 ec2_cli = self.get_aws_client('ec2')
                 ec2_cli.start_instances(
                     InstanceIds=[instance_id]
@@ -270,12 +271,12 @@ class StackManagement(CloudFormationBase):
                 ec2_cli.get_waiter('instance_running').wait(
                     InstanceIds=[instance_id]
                 )
-                self.logger.info("Madcore instance is running.")
+                self.logger.info("%sMadcore instance is running.", log_label)
                 return True
             else:
-                self.logger.info("Madcore instance is already running.")
+                self.logger.info("%sMadcore instance is already running.", log_label)
         except botocore.exceptions.ClientError as ec2_error:
-            self.logger.error("Error while starting instance '%s'.", instance_id)
+            self.logger.error("%sError while starting instance '%s'.", log_label, instance_id)
             self.logger.error(ec2_error)
 
         return False
@@ -333,7 +334,7 @@ class StackCreate(StackManagement, Command):
                 else:
                     self.logger.debug("[%s] Instance not terminated.", const.STACK_CORE)
 
-                self.start_instance_if_not_running(core_instance_id)
+                self.start_instance_if_not_running(core_instance_id, '[%s] ' % const.STACK_CORE)
 
         core_stack, core_exists, _ = self.create_stack_if_not_exists('core', core_parameters, parsed_args,
                                                                      capabilities=core_capabilities)
