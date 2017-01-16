@@ -7,4 +7,4 @@ from madcore.cmds.configure import Configure
 
 class Create(Configure):
     _description = "Create madcore"
-    log = logging.getLogger(__name__)
+    logger = logging.getLogger(__name__)

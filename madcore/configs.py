@@ -1,7 +1,7 @@
 import ConfigParser
 import os
 
-import utils
+from madcore import utils
 
 
 class MadcoreConfig(object):
@@ -31,7 +31,7 @@ class MadcoreConfig(object):
     def get_aws_identity_id(self, section='aws'):
         try:
             return self.config.get(section, 'identity_id')
-        except:
+        except ConfigParser.Error:
             pass
 
         return None
@@ -71,7 +71,7 @@ class MadcoreConfig(object):
             if key:
                 return data[key]
             return data
-        except:
+        except ConfigParser.Error:
             pass
 
         return {}
@@ -85,7 +85,7 @@ class MadcoreConfig(object):
     def is_key_true(self, section, key):
         try:
             return self.config.getboolean(key, section)
-        except:
+        except ConfigParser.Error:
             pass
 
         return False
@@ -99,13 +99,17 @@ class MadcoreConfig(object):
         return self.is_key_true('registration', 'user')
 
     @property
+    def is_config_deleted(self):
+        return self.is_key_true('config_deleted', 'user')
+
+    @property
     def is_user_created(self):
         try:
             created = self.config.getboolean('user', 'created')
             verified = self.config.getboolean('user', 'verified')
 
             return all((created, verified))
-        except:
+        except ConfigParser.Error:
             pass
 
         return False

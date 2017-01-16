@@ -6,24 +6,23 @@ import sys
 import time
 
 import boto3
+import botocore.exceptions
 import requests
+import requests.exceptions
 import urllib3
-from botocore.exceptions import ClientError
 from jenkins import Jenkins
 from jenkins import JenkinsException
 
-import const
-import utils
-from configs import config
-from libs.figlet import figlet
+from madcore import const
+from madcore import utils
+from madcore.configs import config
+from madcore.libs.figlet import figlet
 
 
 class MadcoreBase(object):
-    log = logging.getLogger(__name__)
-    log_simple = logging.getLogger('no_formatter')
-
-    def __init__(self, *args, **kwargs):
-        super(MadcoreBase, self).__init__(*args, **kwargs)
+    logger = logging.getLogger(__name__)
+    logger_simple = logging.getLogger('no_formatter')
+    logger_file_simple = logging.getLogger('file_no_formatter')
 
     @property
     def config_path(self):
@@ -41,42 +40,43 @@ class MadcoreBase(object):
     @classmethod
     def get_ipv4(cls):
         http = urllib3.PoolManager()
-        r = http.request('GET', 'http://ipv4.icanhazip.com/')
-        if r.status is not 200:
+        response = http.request('GET', 'http://ipv4.icanhazip.com/')
+        if response.status is not 200:
             raise RuntimeError('No Internet')
-        return r.data.strip()
+        return response.data.strip()
         # return '8.8.8.8'
 
     @classmethod
-    def list_diff(cls, l1, l2):
-        return [x for x in l1 if x not in l2]
+    def list_diff(cls, list1, list2):
+        return [x for x in list1 if x not in list2]
 
     def get_allowed_domains(self, url=None):
         try:
             url = url or 'https://raw.githubusercontent.com/madcore-ai/plugins/master/domain-index.json'
             return requests.get(url).json()
-        except Exception:
-            self.log.error("Error downloading domain from: '%s'" % url)
+        except requests.exceptions.HTTPError:
+            self.logger.error("Error downloading domain from: '%s'", url)
 
-    def log_piglet(self, msg, *args):
+    def log_figlet(self, msg, *args):
         if args:
             msg %= tuple(args)
-        self.log_simple.info(figlet.renderText(msg))
+        self.logger_simple.info(figlet.renderText(msg))
+        self.logger.info(msg)
 
     def exit(self):
-        self.log.info("EXIT")
+        self.logger.info("EXIT")
         sys.exit(1)
 
-    def wait_until_url_is_up(self, url, verify=False, max_sleep=600):
+    def wait_until_url_is_up(self, url, log_msg=None, verify=False, max_sleep=600, sleep_time=10):
         elapsed_sec = 0
-        sleep_time = 10
-
         while True:
             try:
                 response = requests.get(url, verify=verify)
                 response.raise_for_status()
                 return True
-            except:
+            except Exception:
+                if log_msg:
+                    self.logger.info(log_msg)
                 elapsed_sec += sleep_time
                 if elapsed_sec > max_sleep:
                     break
@@ -118,10 +118,17 @@ class AwsBase(object):
             InstanceIds=[instance_id]
         )
 
-        return instance_details['Reservations'][0]['Instances'][0]
+        try:
+            return instance_details['Reservations'][0]['Instances'][0]
+        except IndexError:
+            return {}
 
     def is_instance_terminated(self, instance_id):
         instance_details = self.describe_instance(instance_id)
+
+        if not instance_details:
+            return True
+
         instance_status = instance_details['State']['Name']
 
         if instance_status in ['terminated', 'shutting-down']:
@@ -137,14 +144,22 @@ class AwsBase(object):
 class CloudFormationBase(MadcoreBase, AwsBase):
     def __init__(self, *args, **kwargs):
         super(CloudFormationBase, self).__init__(*args, **kwargs)
-        self.session = None
-        self.cf_client = None
+        self._session = None
+        self._cf_client = None
 
-        self.create_aws_objects()
+    @property
+    def session(self):
+        if self._session is None:
+            self._session = boto3.Session(**self.get_aws_connection_params)
 
-    def create_aws_objects(self):
-        self.session = boto3.Session(**self.get_aws_connection_params)
-        self.cf_client = self.session.client('cloudformation')
+        return self._session
+
+    @property
+    def cf_client(self):
+        if self._cf_client is None:
+            self._cf_client = self.session.client('cloudformation')
+
+        return self._cf_client
 
     @classmethod
     def stack_name(cls, stack_short_name):
@@ -154,16 +169,16 @@ class CloudFormationBase(MadcoreBase, AwsBase):
 
     def get_stack(self, stack_name, debug=True):
         try:
-            r = self.cf_client.describe_stacks(
+            stack = self.cf_client.describe_stacks(
                 StackName=stack_name
             )
-            return r['Stacks'][0]
-        except ClientError as e:
+            return stack['Stacks'][0]
+        except botocore.exceptions.ClientError as cf_error:
             if debug:
-                self.log.error(e)
-        except Exception as e:
+                self.logger.error(cf_error)
+        except Exception as error:
             if debug:
-                self.log.error(e)
+                self.logger.error(error)
 
         return None
 
@@ -198,8 +213,8 @@ class CloudFormationBase(MadcoreBase, AwsBase):
             response_events = self.cf_client.describe_stack_events(
                 StackName=stack_name
             )
-        except ClientError as e:
-            self.log.error(e)
+        except botocore.exceptions.ClientError as client_error:
+            self.logger.error(client_error)
             return
 
         shown_events = []
@@ -213,7 +228,7 @@ class CloudFormationBase(MadcoreBase, AwsBase):
 
         # TODO@geo Maybe we should investigate and see if we can create this table using PrettyTable?
         # Display top of updates stream
-        self.app.stdout.write("{: <45} {: <23} {: <}".format("Resource", "Status", "Details"))
+        self.logger_file_simple.info("{: <45} {: <23} {: <}".format("Resource", "Status", "Details"))
 
         # Steam updates until we hit a closing case
         while self.maintain_loop(response_events, last_event_id, event_type):
@@ -222,7 +237,7 @@ class CloudFormationBase(MadcoreBase, AwsBase):
                 response_events = self.cf_client.describe_stack_events(
                     StackName=stack_name,
                 )
-            except ClientError:
+            except botocore.exceptions.ClientError:
                 # we reach a point when we try to describe the stack events but is already deleted
                 break
 
@@ -234,18 +249,18 @@ class CloudFormationBase(MadcoreBase, AwsBase):
                     if 'ResourceStatusReason' not in event:
                         event['ResourceStatusReason'] = ""
 
-                    self.app.stdout.write("{: <40} {: <30} {: <}".format(event['ResourceType'],
-                                                                         event['ResourceStatus'],
-                                                                         event['ResourceStatusReason']))
+                    self.logger_file_simple.info("{: <40} {: <30} {: <}".format(event['ResourceType'],
+                                                                                event['ResourceStatus'],
+                                                                                event['ResourceStatusReason']))
                     shown_events.append(event['EventId'])
 
-    def show_stack_create_events_progress(self, stack_name, **kwargs):
+    def show_create_stack_events_progress(self, stack_name, **kwargs):
         self.show_stack_events_progress(stack_name, 'create', **kwargs)
 
-    def show_stack_update_events_progress(self, stack_name, **kwargs):
+    def show_update_stack_events_progress(self, stack_name, **kwargs):
         self.show_stack_events_progress(stack_name, 'update', **kwargs)
 
-    def show_stack_delete_events_progress(self, stack_name, **kwargs):
+    def show_delete_stack_events_progress(self, stack_name, **kwargs):
         self.show_stack_events_progress(stack_name, 'delete', **kwargs)
 
     def get_core_public_ip(self):
@@ -256,17 +271,24 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         url = 'https://%s' % config.get_full_domain()
         return self.wait_until_url_is_up(url, verify=True, max_sleep=timeout)
 
+    def get_core_instance_data(self):
+        core_stack_details = self.get_stack(const.STACK_CORE, debug=False)
 
-class JenkinsBase(CloudFormationBase, MadcoreBase):
-    def __init__(self, *args, **kwargs):
-        super(JenkinsBase, self).__init__(*args, **kwargs)
+        if core_stack_details is not None:
+            if core_stack_details['StackStatus'] in ['CREATE_COMPLETE']:
+                instance_id = self.get_output_from_dict(core_stack_details['Outputs'], 'MadCoreInstanceId')
+                return self.describe_instance(instance_id)
 
+        return {}
+
+
+class JenkinsBase(CloudFormationBase):
     @property
     def jenkins_endpoint(self):
         return 'https://jenkins.%s' % config.get_full_domain()
 
     def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1):
-        self.log.info("Get console output for job: '%s'\n", job_name)
+        self.logger.info("Get console output for job: '%s'\n", job_name)
         output_lines = []
 
         # wait until job is is started to get the output
@@ -274,7 +296,7 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
             job_info = jenkins_server.get_job_info(job_name, depth=1)
 
             if job_info['builds'] and job_info['builds'][0]['building']:
-                self.log.debug("Job removed from queue, start processing")
+                self.logger.debug("Job removed from queue, start processing")
                 break
             time.sleep(1)
 
@@ -292,7 +314,7 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
             # only display if there are new lines
             if output_diff:
                 for line in output_diff:
-                    self.log.info(line.strip())
+                    self.logger.info(line.strip())
 
             time.sleep(sleep_time)
 
@@ -302,9 +324,8 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
     def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=1, retry_times=3):
         """We are retrying this method because there may be cases when jenkins gives an error when making API calls"""
 
+        retry_time = 0
         while True:
-            retry_time = 0
-
             try:
                 jenkins_server = self.create_jenkins_server()
                 job_info = jenkins_server.get_job_info(job_name, depth=1)
@@ -314,11 +335,11 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
                 if job_info['builds'] and job_info['builds'][0]['building']:
                     # current job is already building, get it's number
                     build_number = job_info['builds'][0]['number']
-                    self.log.info("Job '%s' already running." % job_name)
+                    self.logger.info("[%s] Job already running.", job_name)
                 else:
                     # start the job
                     jenkins_server.build_job(job_name, parameters=parameters)
-                    self.log.info("Build job '%s'.", job_name)
+                    self.logger.info("[%s] Build job.", job_name)
 
                 self.show_job_console_output(jenkins_server, job_name, build_number, sleep_time=sleep_time)
 
@@ -326,19 +347,19 @@ class JenkinsBase(CloudFormationBase, MadcoreBase):
                 job_info = jenkins_server.get_job_info(job_name, depth=1)
 
                 return job_info['lastBuild']['result'] in ['SUCCESS']
-            except JenkinsException as e:
+            except JenkinsException as jenkins_error:
                 retry_time += 1
                 if retry_time > retry_times:
                     break
-                self.log.error(e)
-                self.log.info("Retry: %s", retry_time)
+                self.logger.error(jenkins_error)
+                self.logger.info("Retry: %s", retry_time)
 
-    def wait_until_jenkins_is_up(self):
-        return self.wait_until_url_is_up(self.jenkins_endpoint, verify=False)
+    def wait_until_jenkins_is_up(self, log_msg='Waiting until Jenkins is up...'):
+        return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False)
 
 
 class Stdout(object):
-    log = logging.getLogger('no_formatter')
+    logger = logging.getLogger('file_no_formatter')
 
     def write(self, msg):
-        self.log.info(msg)
+        self.logger.info(msg)

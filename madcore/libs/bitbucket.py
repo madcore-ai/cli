@@ -3,12 +3,17 @@ from __future__ import print_function, unicode_literals
 import json
 
 import requests
+import requests.exceptions
 
 API_BASE_URL = 'https://api.bitbucket.org/2.0/{api}'
 DEFAULT_TIMEOUT = 10
 
 
 class Error(Exception):
+    pass
+
+
+class AuthError(Error):
     pass
 
 
@@ -51,7 +56,10 @@ class BaseAPI(object):
 
 class Auth(BaseAPI):
     def check_auth(self):
-        return self.get('user')
+        try:
+            return self.get('user')
+        except requests.exceptions.RequestException as req_error:
+            raise AuthError(req_error)
 
 
 class Teams(BaseAPI):

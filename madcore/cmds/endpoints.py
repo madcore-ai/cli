@@ -12,7 +12,7 @@ class Endpoints(Lister):
 
         data = []
 
-        for endpoint in ENDPOINTS.keys():
+        for endpoint in ENDPOINTS:
             data.append((endpoint, 'https://{}.{sub_domain}.{domain}'.format(endpoint, **user_config)))
 
         return (
