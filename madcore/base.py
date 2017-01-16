@@ -51,10 +51,17 @@ class MadcoreBase(object):
     def list_diff(cls, list1, list2):
         return [x for x in list1 if x not in list2]
 
+    def get_json_from_url(self, url=None):
+        try:
+            return requests.get(url).json()
+        except requests.exceptions.HTTPError as http_error:
+            self.logger.error("Error downloading url from: '%s'", url)
+            raise http_error
+
     def get_allowed_domains(self, url=None):
         try:
             url = url or 'https://raw.githubusercontent.com/madcore-ai/plugins/master/domain-index.json'
-            return requests.get(url).json()
+            return self.get_json_from_url(url)
         except requests.exceptions.HTTPError:
             self.logger.error("Error downloading domain from: '%s'", url)
 
@@ -380,6 +387,11 @@ class JenkinsBase(CloudFormationBase):
 
     def wait_until_jenkins_is_up(self, log_msg='Waiting until Jenkins is up...'):
         return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False, max_timeout=60 * 60)
+
+
+class PluginsBase(MadcoreBase):
+    # TODO@geo add here the base code for plugins
+    pass
 
 
 class Stdout(object):

@@ -89,6 +89,7 @@ setup(
             'endpoints = madcore.cmds.endpoints:Endpoints',
             'selftest = madcore.cmds.selftest:SelfTest',
             'registration = madcore.cmds.registration:Registration',
+            'plugin list = madcore.cmds.plugins.list:PluginList',
         ],
     },
     zip_safe=False,
