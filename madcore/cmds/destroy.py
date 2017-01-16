@@ -9,9 +9,9 @@ from madcore.libs.cloudformation import StackManagement
 from madcore.configs import config
 
 
-class Delete(StackManagement, Lister):
+class Destroy(StackManagement, Lister):
     logger = logging.getLogger(__name__)
-    _description = "Delete stacks"
+    _description = "Destroy stacks"
 
     def take_action(self, parsed_args):
         core_deleted = self.delete_stack_if_exists('core')

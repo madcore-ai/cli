@@ -78,7 +78,7 @@ setup(
             'configure = madcore.cmds.configure:Configure',
             'stacks = madcore.cmds.stacks:Stacks',
             'create = madcore.cmds.create:Create',
-            'delete = madcore.cmds.delete:Delete',
+            'destroy = madcore.cmds.destroy:Destroy',
             'followme = madcore.cmds.followme:Followme',
             'endpoints = madcore.cmds.endpoints:Endpoints',
             'selftest = madcore.cmds.selftest:SelfTest',
