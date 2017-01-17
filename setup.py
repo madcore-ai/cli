@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 PROJECT = 'madcore'
 
-VERSION = '0.3'
+VERSION = '0.3.6'
 
 
 def format_version(version):
@@ -36,9 +36,6 @@ try:
 except IOError:
     long_description = ''
 
-with open('requirements.txt') as f:
-    required = f.read().splitlines()
-
 setup(
     name=PROJECT,
     version=VERSION,
@@ -64,7 +61,16 @@ setup(
     scripts=[],
 
     provides=[],
-    install_requires=required,
+    install_requires=[
+        'six>=1.9.0',
+        'cliff==2.4.0',
+        'boto3==1.4.3',
+        'urllib3==1.19.1',
+        'python-jenkins==0.4.13',
+        'requests==2.12.4',
+        'questionnaire==1.1.0',
+        'pyfiglet==0.7.5'
+    ],
 
     namespace_packages=[],
     packages=find_packages(),
