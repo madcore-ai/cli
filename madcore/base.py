@@ -439,18 +439,37 @@ class PluginsBase(JenkinsBase):
 
         return job_params
 
+    def get_plugin_extra_jobs(self, plugin_name):
+        plugin = self.get_plugin_by_name(plugin_name)
+
+        exclude_jobs = ['deploy', 'delete', 'update']
+
+        job_names = []
+        for job in plugin['jobs']:
+            if job['name'] not in exclude_jobs:
+                job_names.append(job['name'])
+
+        return job_names
+
+    @classmethod
+    def get_plugin_jobs_prefix(cls):
+        return 'madcore.plugin'
+
     @classmethod
     def get_plugin_id(cls, plugin_name):
-        return 'madcore.plugin.%s' % plugin_name
+        return plugin_name
+
+    def get_plugin_job_name(self, plugin_name, job_name):
+        return '.'.join((self.get_plugin_jobs_prefix(), plugin_name, job_name))
 
     def get_plugin_deploy_job_name(self, plugin_name):
-        return '%s.deploy' % self.get_plugin_id(plugin_name)
+        return self.get_plugin_job_name(plugin_name, 'deploy')
 
     def get_plugin_delete_job_name(self, plugin_name):
-        return '%s.delete' % self.get_plugin_id(plugin_name)
+        return self.get_plugin_job_name(plugin_name, 'delete')
 
     def get_plugin_status_job_name(self, plugin_name):
-        return '%s.status' % self.get_plugin_id(plugin_name)
+        return self.get_plugin_job_name(plugin_name, 'status')
 
     def ask_for_plugin_parameters(self, plugin_params, confirm_default=True, to_upper=True):
         plugin_input_params = Questionnaire()

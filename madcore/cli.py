@@ -43,8 +43,9 @@ class MadcoreCli(App):
             'registration': registration.Registration,
             'plugin list': plugins.list.PluginList,
             'plugin install': plugins.install.PluginInstall,
-            'plugin delete': plugins.delete.PluginDelete,
-            'plugin status': plugins.status.PluginStatus
+            'plugin remove': plugins.remove.PluginRemove,
+            'plugin status': plugins.status.PluginStatus,
+            'func': plugins.functions.PluginFunctions,
         }
 
         for command_name, command_class in commands.iteritems():

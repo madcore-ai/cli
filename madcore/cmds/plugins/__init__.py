@@ -1,4 +1,5 @@
 import install
-import delete
+import remove
 import status
+import functions
 import list
