@@ -61,7 +61,7 @@ class Configure(JenkinsBase, Lister):
         self.wait_until_all_endpoint_is_up('kubedash')
         self.wait_until_all_endpoint_is_up('grafana')
         self.wait_until_all_endpoint_is_up('jenkins')
-        self.wait_until_all_endpoint_is_up('influxdb')
+        # self.wait_until_all_endpoint_is_up('influxdb')
 
     def take_action(self, parsed_args):
         # TODO#geo this is a hack to skip ssl verification when we do jenkins registration
