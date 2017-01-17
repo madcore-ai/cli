@@ -10,11 +10,12 @@ from madcore.base import JenkinsBase
 class JenkinsJobCommand(JenkinsBase, Command):
     logger = logging.getLogger(__name__)
     job_name = None
+    job_parameters = None
 
     def take_action(self, parsed_args):
         if self.job_name is None:
             self.logger.error("You need to define a job_name.")
             self.exit()
-        self.jenkins_run_job_show_output(self.job_name)
+        self.jenkins_run_job_show_output(self.job_name, parameters=self.job_parameters)
 
         return 0

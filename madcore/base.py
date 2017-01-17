@@ -10,6 +10,7 @@ import botocore.exceptions
 import requests
 import requests.exceptions
 import urllib3
+from cliff.formatters.table import TableFormatter
 from jenkins import Jenkins
 from jenkins import JenkinsException
 
@@ -67,7 +68,7 @@ class MadcoreBase(object):
         self.logger.info("EXIT")
         sys.exit(1)
 
-    def wait_until_url_is_up(self, url, log_msg=None, verify=False, max_sleep=600, sleep_time=10):
+    def wait_until_url_is_up(self, url, log_msg=None, verify=False, max_timeout=600, sleep_time=10):
         elapsed_sec = 0
         while True:
             try:
@@ -78,11 +79,15 @@ class MadcoreBase(object):
                 if log_msg:
                     self.logger.info(log_msg)
                 elapsed_sec += sleep_time
-                if elapsed_sec > max_sleep:
+                if elapsed_sec > max_timeout:
                     break
                 time.sleep(sleep_time)
 
         return False
+
+    @classmethod
+    def get_endpoint_url(cls, endpoint):
+        return 'https://%s.%s' % (endpoint, config.get_full_domain())
 
 
 class AwsBase(object):
@@ -144,8 +149,15 @@ class AwsBase(object):
 class CloudFormationBase(MadcoreBase, AwsBase):
     def __init__(self, *args, **kwargs):
         super(CloudFormationBase, self).__init__(*args, **kwargs)
+        self.formatter = TableFormatter()
         self._session = None
         self._cf_client = None
+
+    def show_table_output(self, column_names, data):
+        # TODO#geo a hack to make this work without input parsed args
+        # we may consider to change this an extend to properly implement all the formatters
+        parsed_args = type(str("Namespace"), (object,), {"print_empty": False, "max_width": 500})
+        self.formatter.emit_list(column_names, data, Stdout(), parsed_args)
 
     @property
     def session(self):
@@ -267,9 +279,9 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         dns_stack = self.get_stack(const.STACK_CORE)
         return self.get_output_from_dict(dns_stack['Outputs'], 'MadCorePublicIp')
 
-    def wait_until_domain_is_certified(self, timeout=30):
+    def wait_until_domain_is_encrypted(self, timeout=30):
         url = 'https://%s' % config.get_full_domain()
-        return self.wait_until_url_is_up(url, verify=True, max_sleep=timeout)
+        return self.wait_until_url_is_up(url, verify=True, max_timeout=timeout)
 
     def get_core_instance_data(self):
         core_stack_details = self.get_stack(const.STACK_CORE, debug=False)
@@ -281,11 +293,17 @@ class CloudFormationBase(MadcoreBase, AwsBase):
 
         return {}
 
+    def get_s3_bucket_name(self):
+        stack = self.get_stack(const.STACK_S3, debug=False)
+        if stack is not None:
+            return self.get_output_from_dict(stack['Outputs'], 'S3BucketName')
+        return None
+
 
 class JenkinsBase(CloudFormationBase):
     @property
     def jenkins_endpoint(self):
-        return 'https://jenkins.%s' % config.get_full_domain()
+        return self.get_endpoint_url('jenkins')
 
     def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1):
         self.logger.info("Get console output for job: '%s'\n", job_name)
@@ -324,6 +342,12 @@ class JenkinsBase(CloudFormationBase):
     def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=1, retry_times=3):
         """We are retrying this method because there may be cases when jenkins gives an error when making API calls"""
 
+        if parameters:
+            column_names = ['Name', 'Value']
+            data = parameters.items()
+            self.logger.info("[%s] Job input parameter.", job_name)
+            self.show_table_output(column_names, data)
+
         retry_time = 0
         while True:
             try:
@@ -355,7 +379,7 @@ class JenkinsBase(CloudFormationBase):
                 self.logger.info("Retry: %s", retry_time)
 
     def wait_until_jenkins_is_up(self, log_msg='Waiting until Jenkins is up...'):
-        return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False)
+        return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False, max_timeout=60 * 60)
 
 
 class Stdout(object):

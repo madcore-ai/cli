@@ -4,12 +4,10 @@ import logging
 
 import botocore.exceptions
 from cliff.command import Command
-from cliff.formatters.table import TableFormatter
 
 from madcore import const
 from madcore import utils
 from madcore.base import CloudFormationBase
-from madcore.base import Stdout
 from madcore.configs import config
 from madcore.libs.aws import AwsLambda
 
@@ -19,12 +17,9 @@ class StackManagement(CloudFormationBase):
 
     def __init__(self, *args, **kwargs):
         super(StackManagement, self).__init__(*args, **kwargs)
-        self.formatter = TableFormatter()
+        self.stack_data = {}
 
-    def produce_output(self, parsed_args, column_names, data):
-        self.formatter.emit_list(column_names, data, Stdout(), parsed_args)
-
-    def stack_show_output_parameters(self, stack_details, parsed_args):
+    def stack_show_output_parameters(self, stack_details):
         def show_output(results_key, column_names):
             data = []
 
@@ -32,12 +27,12 @@ class StackManagement(CloudFormationBase):
                 for param in stack_details[results_key]:
                     data.append([param.get(c, '') for c in column_names])
 
-                self.produce_output(parsed_args, column_names, data)
+                self.show_table_output(column_names, data)
 
         self.logger.info("[%s] Output parameters for stack:", stack_details['StackName'])
         show_output('Outputs', ['OutputKey', 'OutputValue', 'Description'])
 
-    def stack_show_input_parameter(self, stack_short_name, input_params, parsed_args, debug=True):
+    def stack_show_input_parameter(self, stack_short_name, input_params, debug=True):
         stack_name = self.stack_name(stack_short_name)
 
         def show_output(column_names):
@@ -46,7 +41,7 @@ class StackManagement(CloudFormationBase):
             for param in input_params:
                 data.append([param[c] for c in column_names])
 
-            self.produce_output(parsed_args, column_names, data)
+            self.show_table_output(column_names, data)
 
         if input_params != [{}]:
             if debug:
@@ -120,7 +115,7 @@ class StackManagement(CloudFormationBase):
 
         return response
 
-    def create_stack_if_not_exists(self, stack_short_name, dict_params, parsed_args, capabilities=None):
+    def create_stack_if_not_exists(self, stack_short_name, dict_params, capabilities=None):
         exists = False
         error = False
         updated = False
@@ -130,7 +125,7 @@ class StackManagement(CloudFormationBase):
 
         stack_name = self.stack_name(stack_short_name)
 
-        self.stack_show_input_parameter(stack_short_name, stack_params, parsed_args)
+        self.stack_show_input_parameter(stack_short_name, stack_params)
 
         stack_details = self.get_stack(stack_name, debug=False)
 
@@ -164,13 +159,12 @@ class StackManagement(CloudFormationBase):
             stack_details = self.get_stack(stack_name, debug=False)
         else:
             self.logger.info("[%s] Stack already exists, skip.", stack_name)
-            updated = self.update_stack_if_changed(stack_short_name, stack_details, dict_params, parsed_args,
-                                                   capabilities)
+            updated = self.update_stack_if_changed(stack_short_name, stack_details, dict_params, capabilities)
             stack_details = self.get_stack(stack_name, debug=False)
             exists = True
 
         if not error:
-            self.stack_show_output_parameters(stack_details, parsed_args)
+            self.stack_show_output_parameters(stack_details)
         else:
             self.logger.error("[%s] Error while creating stack.", stack_name)
             self.exit()
@@ -196,7 +190,7 @@ class StackManagement(CloudFormationBase):
 
         return response
 
-    def update_stack_if_changed(self, stack_short_name, stack_details, stack_create_parameters, parsed_args,
+    def update_stack_if_changed(self, stack_short_name, stack_details, stack_create_parameters,
                                 capabilities=None, show_progress=True):
         updated = False
         stack_name = self.stack_name(stack_short_name)
@@ -224,7 +218,7 @@ class StackManagement(CloudFormationBase):
 
         if updated_params:
             self.logger.info("[%s] Stack params changed, show params that require update.", stack_name)
-            self.stack_show_input_parameter(stack_short_name, updated_params, parsed_args, debug=False)
+            self.stack_show_input_parameter(stack_short_name, updated_params, debug=False)
             self.logger.info("[%s] Start updating stack.", stack_name)
             self.update_stack(stack_short_name, stack_update_params, capabilities, show_progress)
             updated = True
@@ -286,7 +280,8 @@ class StackCreate(StackManagement, Command):
     def take_action(self, parsed_args):
         # create S3
         self.log_figlet("STACK %s", const.STACK_S3)
-        s3_stack, s3_exists, _ = self.create_stack_if_not_exists('s3', {}, parsed_args)
+        s3_stack, s3_exists, _ = self.create_stack_if_not_exists('s3', {})
+        s3_bucket_name = self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
 
         self.log_figlet("STACK %s", const.STACK_NETWORK)
         # create Network
@@ -295,7 +290,7 @@ class StackCreate(StackManagement, Command):
             'Env': 'madcore',
             'VPCCIDRBlock': '10.99.0.0/16'
         }
-        network_stack, network_exists, _ = self.create_stack_if_not_exists('network', network_parameters, parsed_args)
+        network_stack, network_exists, _ = self.create_stack_if_not_exists('network', network_parameters)
 
         self.log_figlet("STACK %s", const.STACK_FOLLOWME)
         # create SGFM
@@ -303,7 +298,7 @@ class StackCreate(StackManagement, Command):
             'FollowMeIpAddress': self.get_ipv4(),
             'VpcId': self.get_output_from_dict(network_stack['Outputs'], 'VpcId')
         }
-        sgfm_stack, sgfm_exists, _ = self.create_stack_if_not_exists('sgfm', sgfm_parameters, parsed_args)
+        sgfm_stack, sgfm_exists, _ = self.create_stack_if_not_exists('sgfm', sgfm_parameters)
 
         self.log_figlet("STACK %s", const.STACK_CORE)
         # create Core
@@ -311,7 +306,7 @@ class StackCreate(StackManagement, Command):
         core_parameters = {
             'FollowmeSecurityGroup': self.get_output_from_dict(sgfm_stack['Outputs'], 'FollowmeSgId'),
             'PublicNetZoneA': self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA'),
-            'S3BucketName': self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName'),
+            'S3BucketName': s3_bucket_name,
             'InstanceType': aws_config['instance_type'],
             'KeyName': aws_config['key_name']
         }
@@ -336,7 +331,7 @@ class StackCreate(StackManagement, Command):
 
                 self.start_instance_if_not_running(core_instance_id, '[%s] ' % const.STACK_CORE)
 
-        core_stack, core_exists, _ = self.create_stack_if_not_exists('core', core_parameters, parsed_args,
+        core_stack, core_exists, _ = self.create_stack_if_not_exists('core', core_parameters,
                                                                      capabilities=core_capabilities)
 
         self.log_figlet("STACK %s", const.STACK_DNS)
@@ -347,51 +342,55 @@ class StackCreate(StackManagement, Command):
             'SubDomainName': user_config['sub_domain'],
             'EC2PublicIP': self.get_output_from_dict(core_stack['Outputs'], 'MadCorePublicIp'),
         }
-        dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists('dns', dns_parameters, parsed_args)
+        dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists('dns', dns_parameters)
 
         # at this point we have cloudformation up and running so we can
         config.set_user_data({'config_deleted': False})
 
+        # save extra data related to cloudformation
+        config.set_user_data({
+            's3_bucket_name': s3_bucket_name
+        })
+
         self.log_figlet("DNS delegation")
-        # do DNS delegation
-        if not config.is_dns_delegated or dns_updated:
-            self.logger.info("DNS delegation start")
-            aws_lambda = AwsLambda()
-            name_servers = self.get_hosted_zone_name_servers(
-                self.get_output_from_dict(dns_stack['Outputs'], 'HostedZoneID'))
+        # TODO@geo run DNS relegation all the time to make sure that all is uptodate
+        # if not dns_exists or dns_updated or not config.is_dns_delegated:
+        self.logger.info("DNS delegation start")
+        aws_lambda = AwsLambda()
+        name_servers = self.get_hosted_zone_name_servers(
+            self.get_output_from_dict(dns_stack['Outputs'], 'HostedZoneID'))
 
-            delegation_response = aws_lambda.dns_delegation(name_servers)
+        delegation_response = aws_lambda.dns_delegation(name_servers)
 
-            if delegation_response.get('verified', False):
-                self.logger.info("DNS delegation verified.")
-                dns_delegation = True
-            else:
-                self.logger.error("DNS delegation error: %s", delegation_response)
-                dns_delegation = False
-
-            config.set_user_data({'dns_delegation': dns_delegation})
-            self.logger.info("DNS delegation end.")
-
-            if not dns_delegation:
-                self.exit()
-
-            self.logger.info("Wait until DNS for domain '%s' is resolved...", config.get_full_domain())
-            if utils.hostname_resolves(config.get_full_domain()):
-                self.logger.info("DNS resolved.")
-            else:
-                self.logger.error("DNS not resolvable.")
+        if delegation_response.get('verified', False):
+            self.logger.info("DNS delegation verified.")
+            dns_delegation = True
         else:
-            self.logger.info("DNS delegation already setup.")
+            self.logger.error("DNS delegation error: %s", delegation_response)
+            dns_delegation = False
+
+        config.set_user_data({'dns_delegation': dns_delegation})
+        self.logger.info("DNS delegation end.")
+
+        if not dns_delegation:
+            self.exit()
+
+        self.logger.info("Wait until DNS for domain '%s' is resolved...", config.get_full_domain())
+        if utils.hostname_resolves(config.get_full_domain()):
+            self.logger.info("DNS resolved.")
+        else:
+            self.logger.error("DNS not resolvable.")
+        # else:
+        #     self.logger.info("DNS delegation already setup.")
 
         self.logger.info("Stack Create status:")
-        self.produce_output(parsed_args, ('StackName', 'Created'),
-                            (
-                                (const.STACK_S3, not s3_exists),
-                                (const.STACK_NETWORK, not network_exists),
-                                (const.STACK_FOLLOWME, not sgfm_exists),
-                                (const.STACK_CORE, not core_exists),
-                                (const.STACK_DNS, not dns_exists)
-                                # (const.STACK_CLUSTER, not cluster_exists)
-                            ))
+        self.show_table_output(('StackName', 'Created'),
+                               (
+                                   (const.STACK_S3, not s3_exists),
+                                   (const.STACK_NETWORK, not network_exists),
+                                   (const.STACK_FOLLOWME, not sgfm_exists),
+                                   (const.STACK_CORE, not core_exists),
+                                   (const.STACK_DNS, not dns_exists)
+                               ))
 
         return 0

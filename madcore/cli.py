@@ -6,6 +6,7 @@ import traceback
 
 from cliff.app import App
 from cliff.commandmanager import CommandManager
+from questionnaire import Questionnaire
 
 from madcore import utils
 from madcore.base import Stdout
@@ -26,7 +27,7 @@ class MadcoreCli(App):
         super(MadcoreCli, self).__init__(
             description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller'
                         'Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai',
-            version='0.3',
+            version='0.3.1',
             command_manager=command_manager,
             stdout=Stdout()
         )
@@ -48,9 +49,17 @@ class MadcoreCli(App):
         self.LOG = logging.getLogger('madcore')
 
     def trigger_configuration(self):
-        # Trigger configure if not yet setup
-        if config.is_config_deleted or not config.get_user_data():
-            self.run_subcommand(['configure'])
+        if not config.get_user_data():
+            ask_msg = 'CLI must be configured to use this command. Do you want to begin?'
+            start_config_selector = Questionnaire()
+            start_config_selector.add_question('answer', options=['yes', 'no'], prompt=ask_msg)
+            start_config = start_config_selector.run()
+
+            if start_config['answer'] == 'yes':
+                self.run_subcommand(['configure'])
+            else:
+                self.LOG.info("EXIT.")
+                sys.exit(1)
         else:
             self.LOG.info("Already configured.")
 
