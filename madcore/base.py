@@ -1,9 +1,11 @@
-from __future__ import print_function, unicode_literals
+from __future__ import print_function
 
+import json
 import logging
 import os
 import sys
 import time
+from collections import OrderedDict
 
 import boto3
 import botocore.exceptions
@@ -13,6 +15,7 @@ import urllib3
 from cliff.formatters.table import TableFormatter
 from jenkins import Jenkins
 from jenkins import JenkinsException
+from questionnaire import Questionnaire
 
 from madcore import const
 from madcore import utils
@@ -33,7 +36,7 @@ class MadcoreBase(object):
     def is_config_file_created(self):
         return os.path.exists(utils.config_file_path())
 
-    def get_template_local(self, template_file):
+    def get_cf_template_local(self, template_file):
         with open(os.path.join(self.config_path, 'cloudformation', template_file)) as content_file:
             content = content_file.read()
         return content
@@ -51,10 +54,17 @@ class MadcoreBase(object):
     def list_diff(cls, list1, list2):
         return [x for x in list1 if x not in list2]
 
+    def get_json_from_url(self, url=None):
+        try:
+            return requests.get(url).json()
+        except requests.exceptions.HTTPError as http_error:
+            self.logger.error("Error downloading url from: '%s'", url)
+            raise http_error
+
     def get_allowed_domains(self, url=None):
         try:
             url = url or 'https://raw.githubusercontent.com/madcore-ai/plugins/master/domain-index.json'
-            return requests.get(url).json()
+            return self.get_json_from_url(url)
         except requests.exceptions.HTTPError:
             self.logger.error("Error downloading domain from: '%s'", url)
 
@@ -380,6 +390,90 @@ class JenkinsBase(CloudFormationBase):
 
     def wait_until_jenkins_is_up(self, log_msg='Waiting until Jenkins is up...'):
         return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False, max_timeout=60 * 60)
+
+
+class PluginsBase(JenkinsBase):
+    def __init__(self, *args, **kwargs):
+        super(PluginsBase, self).__init__(*args, **kwargs)
+        self._plugins = None
+
+    def load_plugin_index(self):
+        with open(os.path.join(self.config_path, 'plugins', 'plugins-index.json')) as content_file:
+            return json.load(content_file)
+
+    def get_plugins(self):
+        if not self._plugins:
+            plugins = []
+            for product in self.load_plugin_index()['products']:
+                if product['type'] == 'plugin':
+                    plugins.append(product)
+            self._plugins = plugins
+
+        return self._plugins
+
+    def get_plugin_names(self):
+        names = []
+        for plugin in self.get_plugins():
+            # id have the form plugin.madcore.<plugin_name>
+            names.append(plugin['id'].rsplit('.', 1)[-1])
+
+        return names
+
+    def get_plugin_by_name(self, plugin_name):
+        plugin_id = self.get_plugin_id(plugin_name)
+
+        for plugin in self.get_plugins():
+            if plugin['id'] == plugin_id:
+                return plugin
+
+    def get_plugin_parameters(self, plugin_name, job_name, load_general_param=True):
+        plugin = self.get_plugin_by_name(plugin_name)
+
+        job_params = {}
+        for job in plugin['jobs']:
+            if job['name'] == job_name:
+                job_params = job['parameters']
+        if load_general_param:
+            # load also the default params of the plugin for all jobs
+            job_params.update(plugin.get('parameters', {}))
+
+        return job_params
+
+    @classmethod
+    def get_plugin_id(cls, plugin_name):
+        return 'madcore.plugin.%s' % plugin_name
+
+    def get_plugin_deploy_job_name(self, plugin_name):
+        return '%s.deploy' % self.get_plugin_id(plugin_name)
+
+    def get_plugin_delete_job_name(self, plugin_name):
+        return '%s.delete' % self.get_plugin_id(plugin_name)
+
+    def get_plugin_status_job_name(self, plugin_name):
+        return '%s.status' % self.get_plugin_id(plugin_name)
+
+    def ask_for_plugin_parameters(self, plugin_params, confirm_default=True, to_upper=True):
+        plugin_input_params = Questionnaire()
+        input_params = OrderedDict()
+        input_params.update(plugin_params)
+
+        for param_key, param_default_value in plugin_params.items():
+            if confirm_default:
+                plugin_input_params.add_question(param_key, prompter='raw',
+                                                 prompt="Input %s [%s]" % (param_key, param_default_value or ''))
+
+        input_params.update(plugin_input_params.run())
+
+        # add default values if user does not selected one
+        for key, value in input_params.items():
+            if not value and plugin_params[key]:
+                input_params[key] = plugin_params[key]
+
+        if to_upper:
+            # Currently all jobs require upper case params, so we make sure we follow this
+            input_params = dict([(key.upper(), value) for key, value in input_params.items()])
+
+        return input_params
 
 
 class Stdout(object):

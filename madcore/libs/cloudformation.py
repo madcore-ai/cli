@@ -105,7 +105,7 @@ class StackManagement(CloudFormationBase):
 
         response = self.cf_client.create_stack(
             StackName=stack_name,
-            TemplateBody=self.get_template_local(template_file),
+            TemplateBody=self.get_cf_template_local(template_file),
             Parameters=input_parameters,
             Capabilities=capabilities or []
         )
@@ -180,7 +180,7 @@ class StackManagement(CloudFormationBase):
 
         response = self.cf_client.update_stack(
             StackName=stack_name,
-            TemplateBody=self.get_template_local(template_file),
+            TemplateBody=self.get_cf_template_local(template_file),
             Parameters=input_parameters,
             Capabilities=capabilities or []
         )

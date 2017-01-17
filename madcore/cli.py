@@ -9,7 +9,7 @@ from cliff.commandmanager import CommandManager
 from questionnaire import Questionnaire
 
 from madcore import utils
-from madcore.base import Stdout
+from madcore.base import Stdout, PluginsBase
 from madcore.cmds import configure
 from madcore.cmds import create
 from madcore.cmds import destroy
@@ -19,6 +19,7 @@ from madcore.cmds import registration
 from madcore.cmds import selftest
 from madcore.cmds import stacks
 from madcore.configs import config
+from madcore.cmds import plugins
 
 
 class MadcoreCli(App):
@@ -39,7 +40,11 @@ class MadcoreCli(App):
             'followme': followme.Followme,
             'endpoints': endpoints.Endpoints,
             'selftest': selftest.SelfTest,
-            'registration': registration.Registration
+            'registration': registration.Registration,
+            'plugin list': plugins.list.PluginList,
+            'plugin install': plugins.install.PluginInstall,
+            'plugin delete': plugins.delete.PluginDelete,
+            'plugin status': plugins.status.PluginStatus
         }
 
         for command_name, command_class in commands.iteritems():
@@ -78,7 +83,7 @@ class MadcoreCli(App):
     def prepare_to_run_command(self, cmd):
         self.LOG.debug('prepare_to_run_command %s', cmd.__class__.__name__)
 
-        if not isinstance(cmd, (configure.Configure, destroy.Destroy)):
+        if not isinstance(cmd, (configure.Configure, destroy.Destroy, PluginsBase)):
             self.trigger_configuration()
 
     def clean_up(self, cmd, result, err):
