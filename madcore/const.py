@@ -36,7 +36,8 @@ DOMAIN_REGISTRATION = {
     'OrganizationName': 'Madcore Ltd',
     'OrganizationalUnitName': 'Development',
     'LocalityName': 'London',
-    'Country': 'GB'
+    'Country': 'GB',
+    'S3BucketName': '',
 }
 
 ALLOWED_INSTANCE_TYPES = [

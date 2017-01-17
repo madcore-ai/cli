@@ -131,10 +131,12 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
         while True:
             selected_file = self.raw_prompt('ssh_priv_file',
-                                            'Input ssh private key path to use[%s]: ' % default_priv_key_path)
+                                            'Input ssh private key path to use [%s]: ' % default_priv_key_path)
             ssh_file = os.path.expanduser(selected_file['ssh_priv_file'])
+
             if not ssh_file:
                 ssh_file = os.path.expanduser(default_priv_key_path)
+                selected_file['ssh_priv_file'] = ssh_file
                 # we don't need to show this into prompt anymore because does not exists
                 default_priv_key_path = ''
 
@@ -187,9 +189,10 @@ class MadcoreConfigure(CloudFormationBase, Command):
                 self.logger.warn("No keys available for region: '{%s}' in AWS.", aws_data['region_name'])
                 selected_key_name = self.configure_ssh_public_key()
 
-            selected_key_name.update(self.configure_ssh_private_key())
-
             aws_data.update(selected_key_name)
+
+        if not aws_data.get('ssh_priv_file', None):
+            aws_data.update(self.configure_ssh_private_key())
 
         if core_instance.get('InstanceType', None):
             self.logger.info("Using InstanceType: '%s' form the already created instance.",
@@ -205,11 +208,15 @@ class MadcoreConfigure(CloudFormationBase, Command):
         self.logger.info("End aws configuration.")
 
     def user_login(self, aws_lambda, user_data):
+        user_exists = False
         self.logger.info("Login user(automatically)")
-        login_response = aws_lambda.auth_login(user_data['email'], user_data['password'])
+        email, password = user_data['email'], user_data['password']
+
+        login_response = aws_lambda.auth_login(email, password)
 
         logged_in = login_response.get('login', False)
         if logged_in:
+            user_exists = True
             self.logger.info("User successfully logged in.")
             config.set_login_data(login_response)
             # TODO@geo fix this
@@ -217,13 +224,17 @@ class MadcoreConfigure(CloudFormationBase, Command):
             # at the moment I login and if success I mark user as created, verified
             # get domain from login
             sub_domain, domain = login_response['domain'].split('.', 1)
-            user_data.update({'created': True, 'verified': True, 'sub_domain': sub_domain,
+            user_data.update({'created': user_exists, 'verified': True, 'sub_domain': sub_domain,
                               'domain': domain})
             config.set_user_data(user_data)
         else:
+            if login_response.get('exists', False):
+                # TODO@geo finish this to check if user already exists and reset password/verify if needed
+                pass
+
             self.logger.error("User could not login.")
 
-        return logged_in
+        return user_exists
 
     def configure_user_registration(self):
         self.logger.info("Start user registration.")
