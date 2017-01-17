@@ -59,6 +59,20 @@ class MadcoreConfig(object):
     def set_aws_data(self, aws_data, section='aws'):
         self.set_data(aws_data, section)
 
+    def set_plugin_installed(self, plugin_name, default=True):
+        self.set_data({"installed": default}, section=plugin_name)
+
+    def set_plugin_deleted(self, plugin_name, default=True):
+        self.set_data({"installed": not default}, section=plugin_name)
+
+    def set_plugin_params(self, plugin_name, params):
+        section = '%s_params' % plugin_name
+        self.set_data(params, section=section)
+
+    def get_plugin_params(self, plugin_name):
+        section = '%s_params' % plugin_name
+        return self.get_data(section)
+
     def get_aws_data(self, key=None, section='aws'):
         return self.get_data(section, key)
 
@@ -82,9 +96,9 @@ class MadcoreConfig(object):
     def get_full_domain(self):
         return '{sub_domain}.{domain}'.format(**self.get_user_data())
 
-    def is_key_true(self, section, key):
+    def is_key_true(self, key, section):
         try:
-            return self.config.getboolean(key, section)
+            return self.config.getboolean(section, key)
         except ConfigParser.Error:
             pass
 
@@ -117,6 +131,9 @@ class MadcoreConfig(object):
     @property
     def is_logged_in(self):
         return self.is_key_true('login', 'login')
+
+    def is_plugin_installed(self, plugin_name):
+        return self.is_key_true('installed', plugin_name)
 
 
 config = MadcoreConfig()
