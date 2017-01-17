@@ -193,3 +193,31 @@ class AwsLambda(object):
         )
 
         return json.loads(response['Payload'].read())
+
+    def lost_password(self, email):
+        payload = {
+            'email': email,
+        }
+        response = self.lambda_client_no_auth.invoke(
+            FunctionName='LambdAuthLostPassword',
+            InvocationType='RequestResponse',
+            LogType='Tail',
+            Payload=json.dumps(payload)
+        )
+
+        return json.loads(response['Payload'].read())
+
+    def reset_password(self, email, token, new_password):
+        payload = {
+            'email': email,
+            'lostToken': token,
+            'newPassword': new_password
+        }
+        response = self.lambda_client_no_auth.invoke(
+            FunctionName='LambdAuthResetPassword',
+            InvocationType='RequestResponse',
+            LogType='Tail',
+            Payload=json.dumps(payload)
+        )
+
+        return json.loads(response['Payload'].read())

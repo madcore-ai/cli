@@ -207,32 +207,96 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
         self.logger.info("End aws configuration.")
 
-    def user_login(self, aws_lambda, user_data):
-        user_exists = False
-        self.logger.info("Login user(automatically)")
-        email, password = user_data['email'], user_data['password']
+    def verify_user_account(self, aws_lambda, user_email):
+        verified = False
+        verify_code = self.raw_prompt('verify_code', 'Input verification token(from email): ')
 
-        login_response = aws_lambda.auth_login(email, password)
+        self.logger.debug("Verify user token.")
+        verify_response = aws_lambda.verify_user(user_email, verify_code['verify_code'])
 
-        logged_in = login_response.get('login', False)
-        if logged_in:
-            user_exists = True
-            self.logger.info("User successfully logged in.")
-            config.set_login_data(login_response)
-            # TODO@geo fix this
-            # in case that user exists we need a way to check it,
-            # at the moment I login and if success I mark user as created, verified
-            # get domain from login
-            sub_domain, domain = login_response['domain'].split('.', 1)
-            user_data.update({'created': user_exists, 'verified': True, 'sub_domain': sub_domain,
-                              'domain': domain})
-            config.set_user_data(user_data)
+        if verify_response['verified']:
+            self.logger.info("User successfully verified.")
+            verified = True
+            config.set_user_data({'verified': verified})
         else:
-            if login_response.get('exists', False):
-                # TODO@geo finish this to check if user already exists and reset password/verify if needed
-                pass
+            self.logger.error("User was not verified.")
 
-            self.logger.error("User could not login.")
+        return verified
+
+    def reset_password(self, aws_lambda, email, new_password=None):
+        password_reset = False
+
+        if not new_password:
+            new_password = getpass.getpass('Input new madcore password: ')
+
+        self.logger.info("Reset password")
+        self.logger.info("Send verification token to '%s'", email)
+
+        lost_password = aws_lambda.lost_password(email)
+        if lost_password.get('sent', False):
+            verify_token = self.raw_prompt('verify_token', 'Input verification token(from email): ')
+            reset_password_response = aws_lambda.reset_password(email, verify_token['verify_token'], new_password)
+            if reset_password_response.get('changed', False):
+                self.logger.info("Successfully reset password.")
+                config.set_user_data({'password': new_password})
+                password_reset = True
+            else:
+                self.logger.error("Error while reset password.")
+                self.logger.error(reset_password_response)
+        else:
+            self.logger.error("Error while sending verification core")
+
+        return password_reset
+
+    def user_login(self, aws_lambda):
+        user_exists = False
+
+        self.logger.info("Login user(automatically)")
+        user_data = config.get_user_data()
+
+        while True:
+            if not user_data:
+                break
+
+            email, password = user_data['email'], user_data['password']
+
+            login_response = aws_lambda.auth_login(email, password)
+
+            logged_in = login_response.get('login', False)
+            if logged_in:
+                user_exists = True
+                self.logger.info("User successfully logged in.")
+                config.set_login_data(login_response)
+                # TODO@geo Check if user is not verified and verify here
+                sub_domain, domain = login_response['domain'].split('.', 1)
+                user_data.update({
+                    'created': user_exists,
+                    'verified': True,
+                    'sub_domain': sub_domain,
+                    'domain': domain,
+                    'password': password
+                })
+                config.set_user_data(user_data)
+                break
+            else:
+                if login_response.get('exist', False):
+                    self.logger.debug("Invalid login password")
+                    password_option_sel = self.single_prompt('password_option', options=['reset', 'login'],
+                                                             prompt='Invalid login password, continue with?')
+                    if password_option_sel['password_option'] == 'login':
+                        user_data['password'] = getpass.getpass('Input madcore password: ')
+                    else:
+                        new_password = getpass.getpass('Input new madcore password: ')
+                        if self.reset_password(aws_lambda, email, new_password):
+                            # continue and it will try to login again with new password, if changed
+                            user_data['password'] = new_password
+                            continue
+                        else:
+                            self.exit()
+                else:
+                    # at this stage we know that uer does not exists and we just exit
+                    self.logger.error(login_response['error'])
+                    break
 
         return user_exists
 
@@ -241,7 +305,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
         aws_lambda = AwsLambda()
 
-        if not config.is_user_created:
+        if not self.user_login(aws_lambda):
             bitbucket_auth = self.raw_prompt('username', 'Input bitbucket username:')
             bitbucket_auth['password'] = getpass.getpass('Input bitbucket password: ')
 
@@ -274,7 +338,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
             config.set_user_data(user_data)
 
             # check if user already exists on madcore
-            if self.user_login(aws_lambda, user_data):
+            if self.user_login(aws_lambda):
                 self.logger.info("User '%s' exists.", user_email)
             else:
                 self.logger.info("User does not exists, create: '%s'", user_email)
@@ -302,30 +366,13 @@ class MadcoreConfigure(CloudFormationBase, Command):
                     # at this point we save data into config because we know that user already created on madcore part
                     config.set_user_data(user_data)
 
-                    verify_code = self.raw_prompt('verify_code', 'Input verification code(from email): ')
-
-                    self.logger.debug("Verify user code.")
-                    verify_response = aws_lambda.verify_user(user_email, verify_code['verify_code'])
-
-                    if verify_response['verified']:
-                        self.logger.info("User successfully verified.")
-                        config.set_user_data({'verified': True})
-                    else:
-                        self.logger.error("User was not verified.")
-                        self.logger.error("verify_response %s", verify_response)
+                    if not self.verify_user_account(aws_lambda, user_email):
                         self.exit()
+                    else:
+                        if not self.user_login(aws_lambda):
+                            self.exit()
                 else:
                     self.logger.error("User was not created.")
-        else:
-            user_data = config.get_user_data()
-
-        if not config.is_logged_in or not config.is_user_created:
-            user_logged_in = self.user_login(aws_lambda, user_data)
-
-            if not user_logged_in:
-                self.exit()
-        else:
-            self.logger.debug("User already created and logged in.")
 
         self.logger.info("End user registration.")
 
