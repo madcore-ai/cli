@@ -73,8 +73,7 @@ class MadcoreCli(App):
         print()
         print()
         print("Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller")
-        print(utils.get_version())
-        print("Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai")
+        print("v%s Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai" % utils.get_version())
         print()
         self.LOG.debug('initialize_app')
         # here we need to trigger

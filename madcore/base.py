@@ -82,7 +82,7 @@ class MadcoreBase(object):
         elapsed_sec = 0
         while True:
             try:
-                response = requests.get(url, verify=verify)
+                response = requests.get(url, verify=verify, timeout=max_timeout)
                 response.raise_for_status()
                 return True
             except Exception:
@@ -291,7 +291,7 @@ class CloudFormationBase(MadcoreBase, AwsBase):
 
     def wait_until_domain_is_encrypted(self, timeout=30):
         url = 'https://%s' % config.get_full_domain()
-        return self.wait_until_url_is_up(url, verify=True, max_timeout=timeout)
+        return self.wait_until_url_is_up(url, verify=True, max_timeout=timeout, sleep_time=5)
 
     def get_core_instance_data(self):
         core_stack_details = self.get_stack(const.STACK_CORE, debug=False)
