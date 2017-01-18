@@ -354,7 +354,7 @@ class StackCreate(StackManagement, Command):
 
         self.log_figlet("DNS delegation")
         # TODO@geo run DNS relegation all the time to make sure that all is uptodate
-        # if not dns_exists or dns_updated or not config.is_dns_delegated:
+        # if not dns_exists or dns_updated:
         self.logger.info("DNS delegation start")
         aws_lambda = AwsLambda()
         name_servers = self.get_hosted_zone_name_servers(
@@ -376,7 +376,7 @@ class StackCreate(StackManagement, Command):
             self.exit()
 
         self.logger.info("Wait until DNS for domain '%s' is resolved...", config.get_full_domain())
-        if utils.hostname_resolves(config.get_full_domain()):
+        if utils.hostname_resolves(config.get_full_domain(), max_time=60*30):
             self.logger.info("DNS resolved.")
         else:
             self.logger.error("DNS not resolvable.")

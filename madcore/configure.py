@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 import getpass
 import logging
@@ -24,13 +24,13 @@ class MadcoreConfigure(CloudFormationBase, Command):
     @classmethod
     def raw_prompt(cls, key, description):
         questionnaire = Questionnaire()
-        questionnaire.add_question(key, prompter='raw', prompt=description)
+        questionnaire.add_question(key, prompter=str('raw'), prompt=description)
         return questionnaire.run()
 
     @classmethod
     def single_prompt(cls, key, options=None, prompt=''):
         questionnaire = Questionnaire()
-        questionnaire.add_question(key, prompter='single', options=options, prompt=prompt)
+        questionnaire.add_question(key, prompter=str('single'), options=options, prompt=prompt)
         return questionnaire.run()
 
     def get_ec2_key_pairs(self, region_name):
@@ -343,7 +343,13 @@ class MadcoreConfigure(CloudFormationBase, Command):
             else:
                 self.logger.info("User does not exists, create: '%s'", user_email)
 
-                teams = bitbucket.teams.get_teams_username()
+                while True:
+                    try:
+                        teams = bitbucket.teams.get_teams_username()
+                        break
+                    except Exception:
+                        self.logger.error("You have no teams into bitbucket account, create one.")
+                        input("Press enter when team was created.")
 
                 selected_team = self.single_prompt('team', options=teams, prompt='Select bitbucket team')
                 selected_domain = self.single_prompt('domain', options=self.get_allowed_domains(),

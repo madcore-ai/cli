@@ -1,4 +1,7 @@
+from __future__ import unicode_literals, print_function
+
 import ConfigParser
+import json
 import os
 
 from madcore import utils
@@ -65,13 +68,25 @@ class MadcoreConfig(object):
     def set_plugin_deleted(self, plugin_name, default=True):
         self.set_data({"installed": not default}, section=plugin_name)
 
-    def set_plugin_params(self, plugin_name, params):
-        section = '%s_params' % plugin_name
-        self.set_data(params, section=section)
+    def set_plugin_job_params(self, plugin_name, job_name, params):
+        self.set_data({job_name: json.dumps(params)}, section=plugin_name)
 
-    def get_plugin_params(self, plugin_name):
-        section = '%s_params' % plugin_name
-        return self.get_data(section)
+    def delete_plugin_job_params(self, plugin_name, job_names):
+        if not isinstance(job_names, list):
+            job_names = [job_names]
+
+        for job_name in job_names:
+            try:
+                self.config.remove_option(plugin_name, job_name)
+            except:
+                pass
+
+    def get_plugin_job_params(self, plugin_name, job_name):
+        params = self.get_data(plugin_name, job_name)
+        if params:
+            params = json.loads(params)
+
+        return params or None
 
     def get_aws_data(self, key=None, section='aws'):
         return self.get_data(section, key)
@@ -83,7 +98,7 @@ class MadcoreConfig(object):
         try:
             data = dict(self.config.items(section))
             if key:
-                return data[key]
+                return data.get(key, None)
             return data
         except ConfigParser.Error:
             pass
@@ -105,32 +120,8 @@ class MadcoreConfig(object):
         return False
 
     @property
-    def is_dns_delegated(self):
-        return self.is_key_true('dns_delegation', 'user')
-
-    @property
-    def is_domain_registered(self):
-        return self.is_key_true('registration', 'user')
-
-    @property
     def is_config_deleted(self):
         return self.is_key_true('config_deleted', 'user')
-
-    @property
-    def is_user_created(self):
-        try:
-            created = self.config.getboolean('user', 'created')
-            verified = self.config.getboolean('user', 'verified')
-
-            return all((created, verified))
-        except ConfigParser.Error:
-            pass
-
-        return False
-
-    @property
-    def is_logged_in(self):
-        return self.is_key_true('login', 'login')
 
     def is_plugin_installed(self, plugin_name):
         return self.is_key_true('installed', plugin_name)
