@@ -67,7 +67,7 @@ class Configure(JenkinsBase, Lister):
         return endpoint_up
 
     def wait_until_all_endpoints_are_up(self):
-        endpoints = ['kubeapi', 'kubedash', 'grafana', 'jenkins', 'influxdb']
+        endpoints = ['kubeapi', 'kubedash', 'grafana', 'jenkins']
 
         results = []
         for endpoint in endpoints:
@@ -78,7 +78,7 @@ class Configure(JenkinsBase, Lister):
 
     def wait_until_all_plugin_endpoints_are_up(self):
         # TODO@geo fix this after we install proper plugins
-        endpoints = ['spark', 'zeppelin']
+        endpoints = ['spark', 'zeppelin', 'influxdb']
 
         results = []
         for endpoint in endpoints:
