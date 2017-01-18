@@ -376,7 +376,7 @@ class StackCreate(StackManagement, Command):
             self.exit()
 
         self.logger.info("Wait until DNS for domain '%s' is resolved...", config.get_full_domain())
-        if utils.hostname_resolves(config.get_full_domain()):
+        if utils.hostname_resolves(config.get_full_domain(), max_time=60*30):
             self.logger.info("DNS resolved.")
         else:
             self.logger.error("DNS not resolvable.")
