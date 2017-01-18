@@ -11,15 +11,9 @@ from questionnaire import Questionnaire
 from madcore import utils
 from madcore.base import Stdout, PluginsBase
 from madcore.cmds import configure
-from madcore.cmds import create
 from madcore.cmds import destroy
-from madcore.cmds import endpoints
-from madcore.cmds import followme
-from madcore.cmds import registration
-from madcore.cmds import selftest
-from madcore.cmds import stacks
 from madcore.configs import config
-from madcore.cmds import plugins
+from madcore.libs.plugins import PluginLoader
 
 
 class MadcoreCli(App):
@@ -28,28 +22,24 @@ class MadcoreCli(App):
         super(MadcoreCli, self).__init__(
             description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller'
                         'Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai',
-            version='0.3.1',
+            version='0.4',
             command_manager=command_manager,
-            stdout=Stdout()
+            stdout=Stdout(),
+            deferred_help=False
         )
-        commands = {
-            'configure': configure.Configure,
-            'stacks': stacks.Stacks,
-            'create': create.Create,
-            'destroy': destroy.Destroy,
-            'followme': followme.Followme,
-            'endpoints': endpoints.Endpoints,
-            'selftest': selftest.SelfTest,
-            'registration': registration.Registration,
-            'plugin list': plugins.list.PluginList,
-            'plugin install': plugins.install.PluginInstall,
-            'plugin remove': plugins.remove.PluginRemove,
-            'plugin status': plugins.status.PluginStatus,
-            'func': plugins.functions.PluginFunctions,
-        }
 
-        for command_name, command_class in commands.iteritems():
-            command_manager.add_command(command_name, command_class)
+        self.plugin_loader = PluginLoader(command_manager)
+        self.plugin_loader.load_installed_plugins_commands()
+
+        self.load_extra_commands()
+
+    def load_extra_commands(self):
+        # load other extra commands here
+        commands = [
+        ]
+
+        for command_name, command_class in commands:
+            self.command_manager.add_command(command_name, command_class)
 
     def configure_logging(self):
         self.LOG = logging.getLogger('madcore')
