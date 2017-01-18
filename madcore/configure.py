@@ -343,7 +343,13 @@ class MadcoreConfigure(CloudFormationBase, Command):
             else:
                 self.logger.info("User does not exists, create: '%s'", user_email)
 
-                teams = bitbucket.teams.get_teams_username()
+                while True:
+                    try:
+                        teams = bitbucket.teams.get_teams_username()
+                        break
+                    except Exception:
+                        self.logger.error("You have no teams into bitbucket account, create one.")
+                        input("Press enter when team was created.")
 
                 selected_team = self.single_prompt('team', options=teams, prompt='Select bitbucket team')
                 selected_domain = self.single_prompt('domain', options=self.get_allowed_domains(),
