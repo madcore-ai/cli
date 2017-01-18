@@ -7,6 +7,8 @@ from madcore.const import ENDPOINTS
 
 
 class Endpoints(MadcoreBase, Lister):
+    _description = "Show madcore endpoints"
+
     def take_action(self, parsed_args):
         data = []
 

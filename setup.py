@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 PROJECT = 'madcore'
 
-VERSION = '0.3.6'
+VERSION = '0.4'
 
 
 def format_version(version):
@@ -64,7 +64,7 @@ setup(
     install_requires=[
         'six>=1.9.0',
         'cliff==2.4.0',
-        'boto3==1.4.3',
+        'boto3==1.4.4',
         'urllib3==1.19.1',
         'python-jenkins==0.4.13',
         'requests==2.12.4',
@@ -92,8 +92,7 @@ setup(
             'plugin list = madcore.cmds.plugins.list:PluginList',
             'plugin install = madcore.cmds.plugins.install:PluginInstall',
             'plugin remove = madcore.cmds.plugins.remove:PluginRemove',
-            'plugin status = madcore.cmds.plugins.status:PluginStatus',
-            'func = madcore.cmds.plugins.functions:PluginFunctions',
+            'plugin status = madcore.cmds.plugins.status:PluginStatus'
         ],
     },
     zip_safe=False,

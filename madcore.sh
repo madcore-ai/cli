@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-python madcore/madcore.py "$@"
+python madcore/cli.py "$@"
 

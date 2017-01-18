@@ -157,8 +157,11 @@ class AwsBase(object):
 
 
 class CloudFormationBase(MadcoreBase, AwsBase):
-    def __init__(self, *args, **kwargs):
-        super(CloudFormationBase, self).__init__(*args, **kwargs)
+    def __init__(self, app, app_args, cmd_name=None):
+        # make sure you define parameters here by name and not using *args, **kwargs
+        # because inspect.getargspec will give false results in cliff
+        super(CloudFormationBase, self).__init__(app, app_args, cmd_name=cmd_name)
+
         self.formatter = TableFormatter()
         self._session = None
         self._cf_client = None
@@ -392,10 +395,8 @@ class JenkinsBase(CloudFormationBase):
         return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False, max_timeout=60 * 60)
 
 
-class PluginsBase(JenkinsBase):
-    def __init__(self, *args, **kwargs):
-        super(PluginsBase, self).__init__(*args, **kwargs)
-        self._plugins = None
+class PluginsBase(MadcoreBase):
+    _plugins = None
 
     def load_plugin_index(self):
         with open(os.path.join(self.config_path, 'plugins', 'plugins-index.json')) as content_file:
@@ -433,6 +434,8 @@ class PluginsBase(JenkinsBase):
         for job in plugin['jobs']:
             if job['name'] == job_name:
                 job_params = job['parameters']
+                break
+
         if load_general_param:
             # load also the default params of the plugin for all jobs
             job_params.update(plugin.get('parameters', {}))
@@ -471,17 +474,33 @@ class PluginsBase(JenkinsBase):
     def get_plugin_status_job_name(self, plugin_name):
         return self.get_plugin_job_name(plugin_name, 'status')
 
-    def ask_for_plugin_parameters(self, plugin_params, confirm_default=True, to_upper=True):
-        plugin_input_params = Questionnaire()
+    @classmethod
+    def ask_for_plugin_parameters(cls, plugin_params, parsed_args, to_upper=True):
+        confirm_default = parsed_args.confirm_default_params
+
+        # check if parsed_args have input parameters and override the plugin_params
+        for arg_param_key, arg_param_val in vars(parsed_args).items():
+            if arg_param_key.startswith('_'):
+                # remove leading '_' added by parsed args
+                plugin_params[arg_param_key[1:]] = arg_param_val
+
+        input_params_selector = Questionnaire()
         input_params = OrderedDict()
         input_params.update(plugin_params)
 
         for param_key, param_default_value in plugin_params.items():
-            if confirm_default:
-                plugin_input_params.add_question(param_key, prompter='raw',
-                                                 prompt="Input %s [%s]" % (param_key, param_default_value or ''))
+            prompt = None
 
-        input_params.update(plugin_input_params.run())
+            if param_default_value:
+                if confirm_default:
+                    prompt = "Input [%s] [%s]" % (param_key, param_default_value or '')
+            else:
+                prompt = "Input [%s]: " % (param_key,)
+
+            if prompt:
+                input_params_selector.add_question(param_key, prompter='raw', prompt=prompt)
+
+        input_params.update(input_params_selector.run())
 
         # add default values if user does not selected one
         for key, value in input_params.items():

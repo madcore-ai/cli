@@ -11,7 +11,7 @@ from madcore.libs.cloudformation import StackManagement
 
 class Destroy(StackManagement, Lister):
     logger = logging.getLogger(__name__)
-    _description = "Destroy stacks"
+    _description = "Destroy madcore"
 
     def take_action(self, parsed_args):
         self.log_figlet("Destroy")

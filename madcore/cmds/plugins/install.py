@@ -2,27 +2,26 @@ from __future__ import print_function
 
 import logging
 
-from madcore.base import PluginsBase
-from madcore.libs.plugins import PluginCommand
+from madcore.base import PluginsBase, JenkinsBase
+from madcore.libs.mixins import PluginCommand
 from madcore.configs import config
 
 logger = logging.getLogger(__name__)
 
 
-class PluginInstall(PluginsBase, PluginCommand):
-    def get_setup_install_plugin_parameters(self, plugin_name):
+class PluginInstall(PluginsBase, JenkinsBase, PluginCommand):
+    _description = "Install madcore plugins"
+
+    def get_setup_install_plugin_parameters(self, plugin_name, parsed_args):
         plugin_params = self.get_plugin_parameters(plugin_name, 'deploy')
 
         if not plugin_params:
             logger.debug("[%s] No plugin install parameters", plugin_name)
         else:
             logger.info("[%s] Setup plugin install parameters", plugin_name)
-            plugin_params = self.ask_for_plugin_parameters(plugin_params, confirm_default=True)
+            plugin_params = self.ask_for_plugin_parameters(plugin_params, parsed_args)
 
         return plugin_params or None
-
-    def add_extra_plugin_commands(self):
-        pass
 
     def take_action(self, parsed_args):
         plugin_name = parsed_args.plugin_name
@@ -31,7 +30,7 @@ class PluginInstall(PluginsBase, PluginCommand):
             self.logger.info("[%s] Plugin already installed.", plugin_name)
             return 0
 
-        job_params = self.get_setup_install_plugin_parameters(plugin_name)
+        job_params = self.get_setup_install_plugin_parameters(plugin_name, parsed_args)
         job_name = self.get_plugin_deploy_job_name(plugin_name)
 
         plugin_installed = self.jenkins_run_job_show_output(job_name, parameters=job_params)
