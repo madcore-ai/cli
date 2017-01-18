@@ -9,7 +9,7 @@ from madcore.libs.plugins import PluginCommand
 logger = logging.getLogger(__name__)
 
 
-class PluginDelete(PluginsBase, PluginCommand):
+class PluginRemove(PluginsBase, PluginCommand):
     def get_delete_install_plugin_parameters(self, plugin_name):
         plugin_params = self.get_plugin_parameters(plugin_name, 'delete')
 

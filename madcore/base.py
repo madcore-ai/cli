@@ -82,7 +82,7 @@ class MadcoreBase(object):
         elapsed_sec = 0
         while True:
             try:
-                response = requests.get(url, verify=verify)
+                response = requests.get(url, verify=verify, timeout=max_timeout)
                 response.raise_for_status()
                 return True
             except Exception:
@@ -291,7 +291,7 @@ class CloudFormationBase(MadcoreBase, AwsBase):
 
     def wait_until_domain_is_encrypted(self, timeout=30):
         url = 'https://%s' % config.get_full_domain()
-        return self.wait_until_url_is_up(url, verify=True, max_timeout=timeout)
+        return self.wait_until_url_is_up(url, verify=True, max_timeout=timeout, sleep_time=5)
 
     def get_core_instance_data(self):
         core_stack_details = self.get_stack(const.STACK_CORE, debug=False)
@@ -439,18 +439,37 @@ class PluginsBase(JenkinsBase):
 
         return job_params
 
+    def get_plugin_extra_jobs(self, plugin_name):
+        plugin = self.get_plugin_by_name(plugin_name)
+
+        exclude_jobs = ['deploy', 'delete', 'update']
+
+        job_names = []
+        for job in plugin['jobs']:
+            if job['name'] not in exclude_jobs:
+                job_names.append(job['name'])
+
+        return job_names
+
+    @classmethod
+    def get_plugin_jobs_prefix(cls):
+        return 'madcore.plugin'
+
     @classmethod
     def get_plugin_id(cls, plugin_name):
-        return 'madcore.plugin.%s' % plugin_name
+        return plugin_name
+
+    def get_plugin_job_name(self, plugin_name, job_name):
+        return '.'.join((self.get_plugin_jobs_prefix(), plugin_name, job_name))
 
     def get_plugin_deploy_job_name(self, plugin_name):
-        return '%s.deploy' % self.get_plugin_id(plugin_name)
+        return self.get_plugin_job_name(plugin_name, 'deploy')
 
     def get_plugin_delete_job_name(self, plugin_name):
-        return '%s.delete' % self.get_plugin_id(plugin_name)
+        return self.get_plugin_job_name(plugin_name, 'delete')
 
     def get_plugin_status_job_name(self, plugin_name):
-        return '%s.status' % self.get_plugin_id(plugin_name)
+        return self.get_plugin_job_name(plugin_name, 'status')
 
     def ask_for_plugin_parameters(self, plugin_params, confirm_default=True, to_upper=True):
         plugin_input_params = Questionnaire()

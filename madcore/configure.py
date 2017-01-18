@@ -414,4 +414,4 @@ class MadcoreConfigure(CloudFormationBase, Command):
         self.log_figlet("Clone repos")
         columns, data = self.configure_repos()
 
-        return columns, data
+        self.show_table_output(columns, data)

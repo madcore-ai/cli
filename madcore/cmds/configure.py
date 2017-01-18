@@ -17,6 +17,14 @@ class Configure(JenkinsBase, Lister):
     _description = "Configure madcore"
     logger = logging.getLogger(__name__)
 
+    @classmethod
+    def enable_ssl(cls):
+        ssl._create_default_https_context = ssl.create_default_context
+
+    @classmethod
+    def disable_ssl(cls):
+        ssl._create_default_https_context = ssl._create_unverified_context
+
     def is_backup_found(self):
         # TODO@geo maybe we should check if specific files exists in backup?
 
@@ -45,30 +53,42 @@ class Configure(JenkinsBase, Lister):
             self.logger.error("Error while waiting for madcore.")
             self.exit()
 
-    def wait_until_all_endpoint_is_up(self, endpoint):
+    def wait_until_endpoint_is_up(self, endpoint):
         msg = "Wait until '%s' is up" % endpoint
         endpoint_url = self.get_endpoint_url(endpoint)
 
         self.log_figlet(msg)
-        if self.wait_until_url_is_up(endpoint_url, log_msg=msg, max_timeout=60 * 10, verify=True):
+        endpoint_up = self.wait_until_url_is_up(endpoint_url, log_msg=msg, max_timeout=60 * 10, verify=True)
+        if endpoint_up:
             self.logger.info("[%s] Endpoint is up, continue.", endpoint)
         else:
             self.logger.error("[%s] Error while waiting for endpoint.", endpoint)
-            self.exit()
+
+        return endpoint_up
 
     def wait_until_all_endpoints_are_up(self):
-        self.wait_until_all_endpoint_is_up('kubeapi')
-        self.wait_until_all_endpoint_is_up('kubedash')
-        self.wait_until_all_endpoint_is_up('grafana')
-        self.wait_until_all_endpoint_is_up('jenkins')
-        # self.wait_until_all_endpoint_is_up('influxdb')
+        endpoints = ['kubeapi', 'kubedash', 'grafana', 'jenkins']
+
+        results = []
+        for endpoint in endpoints:
+            endpoint_up = self.wait_until_endpoint_is_up(endpoint)
+            results.append((endpoint, 'OK' if endpoint_up else 'NOT OK'))
+
+        return results
+
+    def wait_until_all_plugin_endpoints_are_up(self):
+        # TODO@geo fix this after we install proper plugins
+        endpoints = ['spark', 'zeppelin', 'influxdb']
+
+        results = []
+        for endpoint in endpoints:
+            results.append((endpoint, 'NOT OK'))
+
+        return results
 
     def take_action(self, parsed_args):
-        # TODO#geo this is a hack to skip ssl verification when we do jenkins registration
-        ssl._create_default_https_context = ssl._create_unverified_context
-
         configure = MadcoreConfigure(self.app, self.app_args)
-        config_results = configure.take_action(parsed_args)
+        configure.take_action(parsed_args)
 
         self.log_figlet("Cloudformation")
         stack_create = StackCreate(self.app, self.app_args)
@@ -76,6 +96,9 @@ class Configure(JenkinsBase, Lister):
 
         s3_bucket_name = config.get_user_data('s3_bucket_name')
         hostname = config.get_full_domain()
+
+        # For now we disable ssl verification
+        self.disable_ssl()
 
         self.wait_until_madcore_is_up()
 
@@ -116,13 +139,14 @@ class Configure(JenkinsBase, Lister):
                     config.set_user_data({"registration": False})
                     self.exit()
 
-        # enable ssl and run the rest of jenkins jobs via ssl
-        ssl._create_default_https_context = ssl.create_default_context
+        # enable ssl verification and all the checks are done on the encrypted endpoint
+        self.enable_ssl()
 
         # make sure all endpoints are up before running selftests
-        self.wait_until_all_endpoints_are_up()
+        endpoints_status = self.wait_until_all_endpoints_are_up()
+        endpoints_status += self.wait_until_all_plugin_endpoints_are_up()
 
         self.log_figlet("Madcore selftests")
         self.app.run_subcommand(['selftest'])
 
-        return config_results
+        return ('Endpoint', 'Status'), endpoints_status

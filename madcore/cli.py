@@ -43,8 +43,9 @@ class MadcoreCli(App):
             'registration': registration.Registration,
             'plugin list': plugins.list.PluginList,
             'plugin install': plugins.install.PluginInstall,
-            'plugin delete': plugins.delete.PluginDelete,
-            'plugin status': plugins.status.PluginStatus
+            'plugin remove': plugins.remove.PluginRemove,
+            'plugin status': plugins.status.PluginStatus,
+            'func': plugins.functions.PluginFunctions,
         }
 
         for command_name, command_class in commands.iteritems():
@@ -72,8 +73,7 @@ class MadcoreCli(App):
         print()
         print()
         print("Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller")
-        print(utils.get_version())
-        print("Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai")
+        print("v%s Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai" % utils.get_version())
         print()
         self.LOG.debug('initialize_app')
         # here we need to trigger
