@@ -69,7 +69,8 @@ setup(
         'python-jenkins==0.4.13',
         'requests==2.12.4',
         'questionnaire==1.1.0',
-        'pyfiglet==0.7.5'
+        'pyfiglet==0.7.5',
+        'jinja2==2.9.4'
     ],
 
     namespace_packages=[],
