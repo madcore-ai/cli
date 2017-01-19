@@ -367,7 +367,7 @@ class JenkinsBase(CloudFormationBase):
             self.logger.info("[%s] Job input parameter.", job_name)
             self.show_table_output(column_names, data)
         else:
-            self.logger.debug("[%S] Job does not have input parameters.", job_name)
+            self.logger.debug("[%s] Job does not have input parameters.", job_name)
 
         retry_time = 0
         while True:
