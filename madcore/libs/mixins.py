@@ -7,12 +7,15 @@ class BasePluginCommand(Command):
     def get_parser(self, prog_name):
         parser = super(BasePluginCommand, self).get_parser(prog_name)
 
-        parser.add_argument('--confirm-default-params', default=False, action='store_true',
+        parser.add_argument('-c', '--confirm-default-params', default=False, action='store_true',
                             dest='confirm_default_params',
                             help='Ask for plugin input params confirmation')
-        parser.add_argument('--reset-params', default=False, action='store_true',
+        parser.add_argument('-r', '--reset-params', default=False, action='store_true',
                             dest='reset_params',
                             help="Reset previously stored params")
+        parser.add_argument('-f', '--force', default=False, action='store_true',
+                            dest='force',
+                            help="Ignore previous states and rerun the command.")
         return parser
 
 
