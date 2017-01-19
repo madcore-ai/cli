@@ -8,8 +8,8 @@ from madcore.const import STACK_CORE
 from madcore.libs.cloudformation import StackManagement
 
 
-class MadcoreUp(StackManagement, ShowOne):
-    _description = "Start madcore instance"
+class MadcoreHalt(StackManagement, ShowOne):
+    _description = "Stop madcore instance"
 
     logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class MadcoreUp(StackManagement, ShowOne):
             self.exit()
 
         core_instance_id = self.get_output_from_dict(core_stack_details['Outputs'], 'MadCoreInstanceId')
-        instance_running = self.start_instance_if_not_running(core_instance_id, '[MADCORE-UP] ')
+        instance_running = self.stop_instance_if_running(core_instance_id, '[MADCORE-HALT] ')
 
         if instance_running:
             self.logger.info("OK.")

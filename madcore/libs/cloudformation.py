@@ -275,6 +275,38 @@ class StackManagement(CloudFormationBase):
 
         return False
 
+    def stop_instance_if_running(self, instance_id, log_label=''):
+        self.logger.info("%sCheck if madcore instance is running...", log_label)
+        try:
+            instance_details = self.describe_instance(instance_id)
+
+            if not instance_details:
+                self.logger.info("%sInstance not exists.", log_label)
+                return False
+
+            instance_status = instance_details['State']['Name']
+            if instance_status in ['pending', 'running', 'stopping']:
+                self.logger.info("%sMadcore instance is running, current status is: '%s'.", log_label,
+                                 instance_status)
+                self.logger.info("%sStop madcore instance...", log_label)
+                ec2_cli = self.get_aws_client('ec2')
+                ec2_cli.stop_instances(
+                    InstanceIds=[instance_id]
+                )
+                # wait until instance is stopped
+                ec2_cli.get_waiter('instance_stopped').wait(
+                    InstanceIds=[instance_id]
+                )
+                self.logger.info("%sMadcore instance is stopped.", log_label)
+                return True
+            else:
+                self.logger.info("%sMadcore instance is already stopped.", log_label)
+        except botocore.exceptions.ClientError as ec2_error:
+            self.logger.error("%sError while stopping instance '%s'.", log_label, instance_id)
+            self.logger.error(ec2_error)
+
+        return False
+
 
 class StackCreate(StackManagement, Command):
     def take_action(self, parsed_args):
