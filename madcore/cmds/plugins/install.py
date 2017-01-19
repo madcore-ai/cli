@@ -16,7 +16,7 @@ class PluginInstall(PluginsBase, PluginCommand):
     def take_action(self, parsed_args):
         plugin_name = parsed_args.plugin_name
 
-        if config.is_plugin_installed(plugin_name):
+        if not parsed_args.force and config.is_plugin_installed(plugin_name):
             self.logger.info("[%s] Plugin already installed.", plugin_name)
             return 0
 

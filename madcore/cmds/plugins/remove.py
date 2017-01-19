@@ -16,7 +16,7 @@ class PluginRemove(PluginsBase, PluginCommand):
     def take_action(self, parsed_args):
         plugin_name = parsed_args.plugin_name
 
-        if not config.is_plugin_installed(plugin_name):
+        if not parsed_args.force and not config.is_plugin_installed(plugin_name):
             self.logger.info("[%s] Install plugin first.", plugin_name)
             return 0
 
