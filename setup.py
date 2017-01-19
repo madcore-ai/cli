@@ -92,6 +92,7 @@ setup(
             'registration = madcore.cmds.registration:Registration',
             'up = madcore.cmds.up:MadcoreUp',
             'halt = madcore.cmds.halt:MadcoreHalt',
+            'ssh = madcore.cmds.ssh:MadcoreSSH',
             'plugin list = madcore.cmds.plugins.list:PluginList',
             'plugin install = madcore.cmds.plugins.install:PluginInstall',
             'plugin remove = madcore.cmds.plugins.remove:PluginRemove',
