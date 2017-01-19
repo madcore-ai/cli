@@ -511,7 +511,7 @@ class PluginsBase(JenkinsBase):
 
         for job in plugin['jobs']:
             if job['name'] == job_name:
-                job_parameters = job['parameters']
+                job_parameters = job.get('parameters', [])
                 break
 
         job_parameters = self.override_parameters_if_exists(plugin_parameters, job_parameters)
