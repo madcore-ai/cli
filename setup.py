@@ -90,6 +90,7 @@ setup(
             'endpoints = madcore.cmds.endpoints:Endpoints',
             'selftest = madcore.cmds.selftest:SelfTest',
             'registration = madcore.cmds.registration:Registration',
+            'up = madcore.cmds.up:MadcoreUp',
             'plugin list = madcore.cmds.plugins.list:PluginList',
             'plugin install = madcore.cmds.plugins.install:PluginInstall',
             'plugin remove = madcore.cmds.plugins.remove:PluginRemove',
