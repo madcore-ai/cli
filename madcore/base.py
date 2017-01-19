@@ -425,6 +425,9 @@ class PluginsBase(JenkinsBase):
     def load_plugin_index(self):
         plugin_index_path = os.path.join(self.config_path, 'plugins', 'plugins-index.json')
 
+        # TODO@geo maybe we should render default jinja parameters from template here?
+        # and later one params will have filled values. This may be faster then rendering each
+        # 'value' field of parameter
         if os.path.exists(plugin_index_path):
             with open(plugin_index_path, 'r') as content_file:
                 return json.load(content_file)
@@ -509,7 +512,7 @@ class PluginsBase(JenkinsBase):
         plugin_parameters = plugin.get('parameters', [])
         job_parameters = []
 
-        for job in plugin['jobs']:
+        for job in plugin.get('jobs', []):
             if job['name'] == job_name:
                 job_parameters = job.get('parameters', [])
                 break
@@ -538,8 +541,8 @@ class PluginsBase(JenkinsBase):
         plugin = self.get_plugin_by_name(plugin_name)
 
         job_names = []
-        for job in plugin['jobs']:
-            if job['name'] not in self.PLUGIN_DEFAULT_JOBS:
+        for job in plugin.get('jobs', []):
+            if job['name'] not in self.PLUGIN_DEFAULT_JOBS and not job.get('private', False):
                 job_names.append(job['name'])
 
         return job_names
