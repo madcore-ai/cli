@@ -9,28 +9,28 @@ import sys
 import boto3
 import botocore.exceptions
 from cliff.command import Command
-from questionnaire import Questionnaire
 
 from madcore import const
 from madcore.base import CloudFormationBase
 from madcore.configs import config
 from madcore.libs.aws import AwsLambda, AwsConfig
 from madcore.libs.bitbucket import Bitbucket, AuthError
+from madcore.libs.input_questions import Questionnaire
 
 
 class MadcoreConfigure(CloudFormationBase, Command):
     logger = logging.getLogger(__name__)
 
     @classmethod
-    def raw_prompt(cls, key, description):
+    def raw_prompt(cls, key, description, **kwargs):
         questionnaire = Questionnaire()
-        questionnaire.add_question(key, prompter=str('raw'), prompt=description)
+        questionnaire.add_question(key, prompter=str('raw'), prompt=description, **kwargs)
         return questionnaire.run()
 
     @classmethod
-    def single_prompt(cls, key, options=None, prompt=''):
+    def single_prompt(cls, key, options=None, prompt='', **kwargs):
         questionnaire = Questionnaire()
-        questionnaire.add_question(key, prompter=str('single'), options=options, prompt=prompt)
+        questionnaire.add_question(key, prompter=str('single'), options=options, prompt=prompt, **kwargs)
         return questionnaire.run()
 
     def get_ec2_key_pairs(self, region_name):
@@ -86,12 +86,10 @@ class MadcoreConfigure(CloudFormationBase, Command):
         else:
             while True:
                 selected_file = self.raw_prompt('ssh_pub_file',
-                                                'Input ssh public key path to use [%s]: ' % default_ssh_key_path)
-                if not selected_file['ssh_pub_file'].strip():
-                    self.logger.debug("Using default key: '%s'", default_ssh_key_path)
-                    selected_file['ssh_pub_file'] = default_ssh_key_path
-                    break
-                else:
+                                                'Input ssh public key path to use ' % default_ssh_key_path,
+                                                default=default_ssh_key_path)
+
+                if selected_file['ssh_pub_file']:
                     ssh_pub_file = os.path.expanduser(selected_file['ssh_pub_file'])
                     if not os.path.exists(ssh_pub_file):
                         self.logger.error("File does not exists: '%s'", ssh_pub_file)
@@ -131,17 +129,12 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
         while True:
             selected_file = self.raw_prompt('ssh_priv_file',
-                                            'Input ssh private key path to use [%s]: ' % default_priv_key_path)
+                                            'Input ssh private key path to use ', default=default_priv_key_path)
             ssh_file = os.path.expanduser(selected_file['ssh_priv_file'])
-
-            if not ssh_file:
-                ssh_file = os.path.expanduser(default_priv_key_path)
-                selected_file['ssh_priv_file'] = ssh_file
-                # we don't need to show this into prompt anymore because does not exists
-                default_priv_key_path = ''
 
             if not os.path.exists(ssh_file):
                 self.logger.error("Key does not exists at: '%s', try again.", ssh_file)
+                default_priv_key_path = ''
             else:
                 self.logger.debug("OK, using ssh private key from: '%s'", ssh_file)
                 break

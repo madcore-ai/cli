@@ -6,14 +6,14 @@ import traceback
 
 from cliff.app import App
 from cliff.commandmanager import CommandManager
-from questionnaire import Questionnaire
 
 from madcore import utils
 from madcore.base import Stdout, PluginsBase
 from madcore.cmds import configure
 from madcore.cmds import destroy
 from madcore.configs import config
-from madcore.libs.plugins import PluginLoader
+from madcore.libs.input_questions import Questionnaire
+from madcore.libs.plugins_loader import PluginLoader
 
 
 class MadcoreCli(App):

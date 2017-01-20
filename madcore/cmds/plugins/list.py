@@ -21,11 +21,12 @@ class PluginList(PluginsBase, Lister):
         for plugin in self.get_plugins():
             data.append((
                 plugin['id'],
+                plugin['type'],
                 plugin['description'],
                 config.is_plugin_installed(plugin['id'])
             ))
 
         return (
-            ('Name', 'Description', 'Installed'),
+            ('Name', 'Type', 'Description', 'Installed'),
             data
         )

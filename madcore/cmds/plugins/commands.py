@@ -2,14 +2,14 @@ from __future__ import print_function, unicode_literals
 
 import logging
 
-from madcore.base import PluginsBase
 from madcore.configs import config
 from madcore.libs.mixins import BasePluginCommand
+from madcore.libs.plugins import PluginManagement
 
 logger = logging.getLogger(__name__)
 
 
-class PluginCustomCommands(PluginsBase, BasePluginCommand):
+class PluginCustomCommands(PluginManagement, BasePluginCommand):
     _description = "Run specific plugin command"
 
     @property
@@ -31,7 +31,6 @@ class PluginCustomCommands(PluginsBase, BasePluginCommand):
         for job_param in plugin_command_params:
             parser.add_argument(
                 '--%s' % job_param['name'],
-                default=job_param['value'],
                 dest='_%s' % job_param['name'],
                 type=job_param['validator'],
                 help=job_param['description'],
@@ -47,16 +46,10 @@ class PluginCustomCommands(PluginsBase, BasePluginCommand):
             self.logger.info("[%s] Install plugin first.", plugin_name)
             return 0
 
-        plugin_params = self.get_plugin_job_final_params(plugin_name, plugin_command_name, parsed_args)
-        jenkins_params = self.params_to_jenkins_format(plugin_params)
-
-        job_name = self.get_plugin_job_name(plugin_name, plugin_command_name)
-
-        command_run = self.jenkins_run_job_show_output(job_name, parameters=jenkins_params)
+        command_run = self.execute_plugin_job(plugin_name, plugin_command_name, parsed_args)
 
         if command_run:
             self.logger.info("[%s][%s] Successfully run plugin command.", plugin_name, plugin_command_name)
-            self.set_plugin_jobs_params_to_config(plugin_name, plugin_command_name, plugin_params, parsed_args)
         else:
             self.logger.error("[%s][%s] Error running plugin command.", plugin_name, plugin_command_name)
 

@@ -29,12 +29,18 @@ class StringValidator(BaseValidator):
     def __str__(self):
         return "string"
 
+    def __unicode__(self):
+        return "string"
+
     def validate(self, val):
         return str(val)
 
 
 class IntegerValidator(BaseValidator):
     def __str__(self):
+        return "integer"
+
+    def __unicode__(self):
         return "integer"
 
     def validate(self, val):
@@ -51,3 +57,4 @@ VALIDATORS = {
 
 def get_validator(param_type):
     return VALIDATORS.get(param_type, StringValidator)
+

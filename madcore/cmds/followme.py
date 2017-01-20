@@ -26,7 +26,8 @@ class Followme(StackManagement, ShowOne):
             },
         ]
 
-        update_response = self.update_stack('sgfm', parameters)
+        sgfm_stack_template = self.get_cf_template_local('sgfm.json')
+        update_response = self.update_stack(STACK_FOLLOWME, sgfm_stack_template, parameters)
 
         return update_response
 
