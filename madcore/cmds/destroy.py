@@ -15,9 +15,9 @@ class Destroy(StackManagement, Lister):
 
     def take_action(self, parsed_args):
         self.log_figlet("Destroy")
-        core_deleted = self.delete_stack_if_exists('core')
-        sgfm_deleted = self.delete_stack_if_exists('sgfm')
-        network_deleted = self.delete_stack_if_exists('network')
+        core_deleted = self.delete_stack_if_exists(const.STACK_CORE)
+        sgfm_deleted = self.delete_stack_if_exists(const.STACK_FOLLOWME)
+        network_deleted = self.delete_stack_if_exists(const.STACK_NETWORK)
         # dns_deleted = self.delete_stack_if_exists('dns')
         # for now we do not delete S3 because it may contain critical information like backups and other
         # s3_deleted = self.delete_stack_if_exists('s3')

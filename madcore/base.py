@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import time
+from collections import OrderedDict
 
 import boto3
 import botocore.exceptions
@@ -15,12 +16,12 @@ from cliff.formatters.table import TableFormatter
 from jenkins import Jenkins
 from jenkins import JenkinsException
 from jinja2 import Environment
-from questionnaire import Questionnaire
 
 from madcore import const
 from madcore import utils
 from madcore.configs import config
 from madcore.libs.figlet import figlet
+from madcore.libs.input_questions import Questionnaire
 from madcore.libs.validators import get_validator
 
 
@@ -100,6 +101,10 @@ class MadcoreBase(object):
     def get_endpoint_url(cls, endpoint):
         return 'https://%s.%s' % (endpoint, config.get_full_domain())
 
+    @classmethod
+    def jinja_render_string(cls, template_str, **kwargs):
+        return Environment().from_string(template_str).render(**kwargs)
+
 
 class AwsBase(object):
     def get_aws_client(self, name, **kwargs):
@@ -167,11 +172,6 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         self._session = None
         self._cf_client = None
 
-        self.jinja_env = Environment()
-
-    def jinja_render_string(self, template_str, **kwargs):
-        return self.jinja_env.from_string(template_str).render(**kwargs)
-
     def show_table_output(self, column_names, data):
         # TODO#geo a hack to make this work without input parsed args
         # we may consider to change this an extend to properly implement all the formatters
@@ -192,12 +192,6 @@ class CloudFormationBase(MadcoreBase, AwsBase):
 
         return self._cf_client
 
-    @classmethod
-    def stack_name(cls, stack_short_name):
-        """Given the short stack name, like s3, network, core, output the proper name"""
-
-        return const.STACK_SHORT_NAMES[stack_short_name]
-
     def get_stack(self, stack_name, debug=True):
         try:
             stack = self.cf_client.describe_stacks(
@@ -212,9 +206,6 @@ class CloudFormationBase(MadcoreBase, AwsBase):
                 self.logger.error(error)
 
         return None
-
-    def get_stack_by_short_name(self, stack_short_name, **kwargs):
-        return self.get_stack(self.stack_name(stack_short_name), **kwargs)
 
     @classmethod
     def get_param_from_dict(cls, dic, param):
@@ -318,6 +309,17 @@ class CloudFormationBase(MadcoreBase, AwsBase):
             return self.get_output_from_dict(stack['Outputs'], 'S3BucketName')
         return None
 
+    @classmethod
+    def stack_output_to_dict(cls, stack_details):
+        stack_details = stack_details or {}
+        return OrderedDict((param['OutputKey'], param['OutputValue']) for param in stack_details.get('Outputs', []))
+
+    @classmethod
+    def stack_parameters_to_dict(cls, stack_details):
+        stack_details = stack_details or {}
+        return OrderedDict(
+            (param['ParameterKey'], param['ParameterValue']) for param in stack_details.get('Parameters', []))
+
 
 class JenkinsBase(CloudFormationBase):
     @property
@@ -331,10 +333,14 @@ class JenkinsBase(CloudFormationBase):
         # wait until job is is started to get the output
         while True:
             job_info = jenkins_server.get_job_info(job_name, depth=1)
-
-            if job_info['builds'] and job_info['builds'][0]['building']:
-                self.logger.debug("Job removed from queue, start processing")
-                break
+            if job_info['builds']:
+                last_build = job_info['builds'][0]
+                if last_build['building']:
+                    self.logger.debug("Job removed from queue, start processing")
+                    break
+                # case when job already finished
+                elif last_build['result'] in ['SUCCESS']:
+                    break
             time.sleep(1)
 
         while True:
@@ -358,7 +364,7 @@ class JenkinsBase(CloudFormationBase):
     def create_jenkins_server(self):
         return Jenkins(self.jenkins_endpoint)
 
-    def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=1, retry_times=3):
+    def jenkins_run_job_show_output(self, job_name, parameters=None, sleep_time=1, max_retry_times=3):
         """We are retrying this method because there may be cases when jenkins gives an error when making API calls"""
 
         if parameters:
@@ -394,10 +400,13 @@ class JenkinsBase(CloudFormationBase):
                 return job_info['lastBuild']['result'] in ['SUCCESS']
             except JenkinsException as jenkins_error:
                 retry_time += 1
-                if retry_time > retry_times:
+                if retry_time > max_retry_times:
                     break
-                self.logger.error(jenkins_error)
-                self.logger.info("Retry: %s", retry_time)
+                self.logger.error("[%s] %s. Retry: %s", job_name, jenkins_error, retry_time)
+
+        self.logger.error("[%s] Error while trying to run jenkins job.", job_name)
+
+        return False
 
     def wait_until_jenkins_is_up(self, log_msg='Waiting until Jenkins is up...'):
         return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False, max_timeout=60 * 60)
@@ -406,7 +415,9 @@ class JenkinsBase(CloudFormationBase):
 class PluginsBase(JenkinsBase):
     _plugins = None
     _core_params = {}
-    PLUGIN_DEFAULT_JOBS = ['deploy', 'delete', 'update']
+
+    PLUGIN_DEFAULT_JOBS = ['deploy', 'delete', 'status']
+    PLUGIN_TYPES = ['plugin', 'cluster']
 
     @property
     def madcore_plugin_parameters(self):
@@ -414,43 +425,61 @@ class PluginsBase(JenkinsBase):
         it will automatically fill it.
         """
         if not self._core_params:
-            params = {
-                "MADCORE_S3_BUCKET": self.get_s3_bucket_name()
+            madcore_params_mapping = {
+                const.STACK_CORE: {
+                    # stack output param: general madcore params
+                    'MadCorePrivateIp': 'MADCORE_PRIVATE_IP',
+                    'MadCorePublicDnsName': 'MADCORE_PUBLIC_DNS_NAME',
+                    'MadCoreInstanceId': 'MADCORE_INSTANCE_ID',
+                    'MadCorePublicIp': 'MADCORE_PUBLIC_IP',
+                },
+                const.STACK_NETWORK: {
+                    'VpcId': 'MADCORE_VPC_ID',
+                    'PublicNetZoneA': 'MADCORE_PUBLIC_NET_ZONE_A',
+                }
             }
+
+            params = {
+                "MADCORE_S3_BUCKET": self.get_s3_bucket_name(),
+                "MADCORE_KEY_NAME": config.get_aws_data('key_name')
+            }
+
+            for stack_name, params_mapping in madcore_params_mapping.items():
+                stack_details = self.get_stack(stack_name, debug=True)
+                if stack_details:
+                    for stack_param, core_param in params_mapping.items():
+                        params[core_param] = self.get_output_from_dict(stack_details['Outputs'], stack_param)
 
             self._core_params = params
 
         return self._core_params
 
+    def update_core_params(self, new_params, param_prefix):
+        new_params = dict(('MADCORE_%s_%s' % (param_prefix.upper(), k), v) for k, v in new_params.items())
+        self.madcore_plugin_parameters.update(new_params)
+
     def load_plugin_index(self):
         plugin_index_path = os.path.join(self.config_path, 'plugins', 'plugins-index.json')
 
-        # TODO@geo maybe we should render default jinja parameters from template here?
-        # and later one params will have filled values. This may be faster then rendering each
-        # 'value' field of parameter
         if os.path.exists(plugin_index_path):
             with open(plugin_index_path, 'r') as content_file:
-                return json.load(content_file)
+                index_content = content_file.read()
+                return json.loads(index_content)
 
         return {}
 
-    def get_plugins(self):
-        if not self._plugins:
+    def get_plugins(self, reload_plugin=False):
+        if reload_plugin or not self._plugins:
             plugins = []
             for product in self.load_plugin_index().get('products', []):
-                if product['type'] == 'plugin':
+                if product['type'] in self.PLUGIN_TYPES:
                     plugins.append(product)
             self._plugins = plugins
 
         return self._plugins
 
     def get_plugin_names(self):
-        names = []
-        for plugin in self.get_plugins():
-            # id have the form plugin.madcore.<plugin_name>
-            names.append(plugin['id'].rsplit('.', 1)[-1])
-
-        return names
+        return [plugin['id'] for plugin in self.get_plugins()]
 
     def get_plugin_by_name(self, plugin_name):
         plugin_id = self.get_plugin_id(plugin_name)
@@ -458,6 +487,16 @@ class PluginsBase(JenkinsBase):
         for plugin in self.get_plugins():
             if plugin['id'] == plugin_id:
                 return plugin
+
+    def get_plugin_job_definition(self, plugin_name, job_name, job_type='jobs'):
+        plugin_data = self.get_plugin_by_name(plugin_name)
+
+        if plugin_data:
+            for job in plugin_data.get(job_type, []):
+                if job['name'] == job_name:
+                    return job
+
+        return {}
 
     @classmethod
     def _get_parameters_name(cls, param_list):
@@ -488,8 +527,6 @@ class PluginsBase(JenkinsBase):
             # add new parameter at the top of the override list because plugins level params are important
             param_list_override.insert(0, self._get_parameter_definition(new_job_param, params_list_base))
 
-        param_list_override = self._populate_core_parameters(param_list_override)
-
         return param_list_override
 
     @classmethod
@@ -504,24 +541,21 @@ class PluginsBase(JenkinsBase):
     def params_to_jenkins_format(cls, params_list):
         # convert parameters to jenkins format. Jus a simple dict with all param names as keys and
         # uppercase
-        return dict([(job_param['name'].upper(), job_param['value']) for job_param in params_list])
+        return OrderedDict([(job_param['name'].upper(), job_param['value']) for job_param in params_list])
 
-    def get_plugin_job_parameters(self, plugin_name, job_name, load_validators=True, check_config=True):
+    def get_plugin_job_parameters(self, plugin_name, job_name, job_type='jobs', load_validators=True,
+                                  check_config=True):
         plugin = self.get_plugin_by_name(plugin_name)
 
         plugin_parameters = plugin.get('parameters', [])
-        job_parameters = []
 
-        for job in plugin.get('jobs', []):
-            if job['name'] == job_name:
-                job_parameters = job.get('parameters', [])
-                break
-
+        job_parameters = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type).get('parameters', [])
         job_parameters = self.override_parameters_if_exists(plugin_parameters, job_parameters)
+        job_parameters = self._populate_core_parameters(job_parameters)
 
         if check_config:
             # load data from config and populate the parameters
-            dict_job_params = config.get_plugin_job_params(plugin_name, job_name) or {}
+            dict_job_params = config.get_plugin_job_params(plugin_name, job_name, job_type) or {}
             job_parameters = self.override_parameters_from_dict_if_exists(dict_job_params, job_parameters)
 
         if load_validators:
@@ -555,50 +589,47 @@ class PluginsBase(JenkinsBase):
     def get_plugin_id(cls, plugin_name):
         return plugin_name
 
-    def get_plugin_job_name(self, plugin_name, job_name):
+    def get_plugin_jenkins_job_name(self, plugin_name, job_name):
         return '.'.join((self.get_plugin_jobs_prefix(), plugin_name, job_name))
 
-    def ask_for_plugin_parameters(self, plugin_name, plugin_job, parsed_args):
-        check_config = True
+    @classmethod
+    def plugin_params_to_dict(cls, plugin_params):
+        return OrderedDict(((job_param['name'], job_param['value']) for job_param in plugin_params))
 
-        if parsed_args.reset_params:
-            check_config = False
+    def ask_for_plugin_parameters(self, job_params, parsed_args):
 
-        job_params = self.get_plugin_job_parameters(plugin_name, plugin_job, check_config=check_config)
+        parsed_args_dict = dict(
+            ((arg_param[1:], arg_value) for arg_param, arg_value in vars(parsed_args).items() if
+             arg_param.startswith('_') and arg_value is not None))
 
-        parsed_args_dict = vars(parsed_args)
-
-        # get only params that have trailing _, this are marked as used changed params
-        job_args_fields = [field for field in parsed_args_dict.keys() if field.startswith('_')]
-        job_params_name = self._get_parameters_name(job_params)
-
-        params_diff = list(set(job_args_fields) - set(job_params_name))
-
+        # reset parameters with user cmd line input parameters
         for job_param in job_params:
-            param_name = '_%s' % job_param['name']
-            if param_name in params_diff:
-                job_param['value'] = parsed_args_dict[param_name]
-
-        confirm_default = parsed_args.confirm_default_params
+            if job_param['name'] in parsed_args_dict:
+                job_param['value'] = parsed_args_dict[job_param['name']]
 
         input_params_selector = Questionnaire()
 
         for job_param in job_params:
-            prompt = None
+            # TODO@geo if user already input params via cmd line args then skip to ask here
+            # this mean that user already set this param via cmd line so, no need to confirm again
+            if (job_param['name'] in parsed_args_dict) or (
+                        parsed_args.skip_confirm_default_params and job_param['value']):
+                continue
 
-            if job_param['value']:
-                if confirm_default:
-                    prompt = "{description}\nInput {type} field {name}={value} ".format(**job_param)
-            elif job_param['value'] is None:
-                prompt = "{description}\nInput {type} field {name}= ".format(**job_param)
+            prompt = "{description}\nInput {type} field {name}= ".format(**job_param)
 
-            if prompt:
-                input_params_selector.add_question(job_param['name'], prompter=str('raw'), prompt=prompt,
-                                                   type=job_param['validator'])
+            options = job_param.get('allowed', None)
+            if options:
+                prompter = 'single'
+            else:
+                prompter = 'raw'
+            input_params_selector.add_question(job_param['name'], prompter=str(prompter), prompt=prompt,
+                                               type=job_param['validator'], options=options,
+                                               default=job_param['value'])
 
         user_input_params = input_params_selector.run()
 
-        # check user input parameters and change modified ones
+        # Update user input params with the job params
         for job_param in job_params:
             if job_param['name'] in user_input_params:
                 # user setup here new value for the param
@@ -610,27 +641,37 @@ class PluginsBase(JenkinsBase):
 
         return job_params
 
-    def get_plugin_job_final_params(self, plugin_name, plugin_job, parsed_args):
+    def get_plugin_job_final_params(self, plugin_name, plugin_job, job_type, parsed_args):
         """Get the final parameters. Any other logic related to params should be added here
         """
+        check_config = True
 
-        plugin_params = self.ask_for_plugin_parameters(plugin_name, plugin_job, parsed_args)
+        if parsed_args.reset_params:
+            check_config = False
 
-        return plugin_params
+        job_params = self.get_plugin_job_parameters(plugin_name, plugin_job, job_type=job_type,
+                                                    check_config=check_config)
+        job_params = self.ask_for_plugin_parameters(job_params, parsed_args)
 
-    @classmethod
-    def set_plugin_jobs_params_to_config(cls, plugin_name, plugin_job, plugin_params, parsed_args):
+        return job_params
 
-        config_params = dict(((job_param['name'], job_param['value']) for job_param in plugin_params))
+    def save_plugin_jobs_params_to_config(self, plugin_name, plugin_job, job_type, plugin_params, parsed_args):
 
-        config.set_plugin_job_params(plugin_name, plugin_job, config_params)
+        config_params = self.plugin_params_to_dict(plugin_params)
 
-    def remove_plugin_jobs_params_from_config(self, plugin_name, parsed_args, plugin_jobs=None):
+        config.set_plugin_job_params(plugin_name, plugin_job, job_type, config_params)
+
+    def remove_plugin_jobs_params_from_config(self, plugin_name, parsed_args, plugin_jobs=None, job_type='job'):
 
         if not plugin_jobs:
             plugin_jobs = self.get_plugin_extra_jobs(plugin_name) + self.PLUGIN_DEFAULT_JOBS
 
-        config.delete_plugin_job_params(plugin_name, plugin_jobs)
+        config.delete_plugin_job_params(plugin_name, plugin_jobs, job_type=job_type)
+
+    def get_plugin_template_file(self, plugin_name, template_file, plugin_type='cluster'):
+        with open(os.path.join(self.config_path, 'plugins', plugin_type, plugin_name, template_file)) as content_file:
+            content = content_file.read()
+        return content
 
 
 class Stdout(object):

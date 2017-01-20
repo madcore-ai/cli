@@ -68,21 +68,24 @@ class MadcoreConfig(object):
     def set_plugin_deleted(self, plugin_name, default=True):
         self.set_data({"installed": not default}, section=plugin_name)
 
-    def set_plugin_job_params(self, plugin_name, job_name, params):
-        self.set_data({job_name: json.dumps(params)}, section=plugin_name)
+    def set_plugin_job_params(self, plugin_name, job_name, job_type, params):
+        key_name = '{job_type}_{job_name}'.format(job_type=job_type, job_name=job_name)
+        self.set_data({key_name: json.dumps(params)}, section=plugin_name)
 
-    def delete_plugin_job_params(self, plugin_name, job_names):
+    def delete_plugin_job_params(self, plugin_name, job_names, job_type='job'):
         if not isinstance(job_names, list):
             job_names = [job_names]
 
         for job_name in job_names:
             try:
-                self.config.remove_option(plugin_name, job_name)
+                option_name = '{job_type}_{job_name}'.format(job_type=job_type, job_name=job_name)
+                self.config.remove_option(plugin_name, option_name)
             except:
                 pass
 
-    def get_plugin_job_params(self, plugin_name, job_name):
-        params = self.get_data(plugin_name, job_name)
+    def get_plugin_job_params(self, plugin_name, job_name, job_type):
+        key_name = '{job_type}_{job_name}'.format(job_type=job_type, job_name=job_name)
+        params = self.get_data(plugin_name, key_name)
         if params:
             params = json.loads(params)
 

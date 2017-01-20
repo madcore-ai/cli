@@ -15,10 +15,6 @@ from madcore.libs.aws import AwsLambda
 class StackManagement(CloudFormationBase):
     logger = logging.getLogger(__name__)
 
-    def __init__(self, *args, **kwargs):
-        super(StackManagement, self).__init__(*args, **kwargs)
-        self.stack_data = {}
-
     def stack_show_output_parameters(self, stack_details):
         def show_output(results_key, column_names):
             data = []
@@ -32,9 +28,7 @@ class StackManagement(CloudFormationBase):
         self.logger.info("[%s] Output parameters for stack:", stack_details['StackName'])
         show_output('Outputs', ['OutputKey', 'OutputValue', 'Description'])
 
-    def stack_show_input_parameter(self, stack_short_name, input_params, debug=True):
-        stack_name = self.stack_name(stack_short_name)
-
+    def stack_show_input_parameter(self, stack_name, input_params, debug=True):
         def show_output(column_names):
             data = []
 
@@ -68,9 +62,7 @@ class StackManagement(CloudFormationBase):
     def wait_for_stack_to_complete(self, stack_name):
         self._cf_client.get_waiter('stack_create_complete').wait(StackName=stack_name)
 
-    def delete_stack(self, stack_short_name, show_progress=True):
-        stack_name = self.stack_name(stack_short_name)
-
+    def delete_stack(self, stack_name, show_progress=True):
         response = self.cf_client.delete_stack(
             StackName=stack_name
         )
@@ -80,15 +72,13 @@ class StackManagement(CloudFormationBase):
 
         return response
 
-    def delete_stack_if_exists(self, stack_short_name):
+    def delete_stack_if_exists(self, stack_name):
         stack_deleted = False
-        stack_name = self.stack_name(stack_short_name)
-
         stack_details = self.get_stack(stack_name, debug=False)
 
         if stack_details is not None:
             self.logger.info("[%s] Stack exists, delete...", stack_name)
-            self.delete_stack(stack_short_name)
+            self.delete_stack(stack_name)
             self.logger.info("[%s] Stack deleted.", stack_name)
             stack_deleted = True
         else:
@@ -96,16 +86,13 @@ class StackManagement(CloudFormationBase):
 
         return stack_deleted
 
-    def create_stack(self, stack_short_name, input_parameters, capabilities=None, show_progress=True):
-        stack_name = self.stack_name(stack_short_name)
-        template_file = '%s.json' % stack_short_name.lower()
-
+    def create_stack(self, stack_name, stack_template_body, input_parameters, capabilities=None, show_progress=True):
         if not input_parameters:
             input_parameters = [{}]
 
         response = self.cf_client.create_stack(
             StackName=stack_name,
-            TemplateBody=self.get_cf_template_local(template_file),
+            TemplateBody=stack_template_body,
             Parameters=input_parameters,
             Capabilities=capabilities or []
         )
@@ -115,7 +102,7 @@ class StackManagement(CloudFormationBase):
 
         return response
 
-    def create_stack_if_not_exists(self, stack_short_name, dict_params, capabilities=None):
+    def create_stack_if_not_exists(self, stack_name, stack_template_body, dict_params, capabilities=None):
         exists = False
         error = False
         updated = False
@@ -123,64 +110,52 @@ class StackManagement(CloudFormationBase):
         # construct the parameters for the stack from the dict
         stack_params = self.create_stack_parameters(dict_params=dict_params)
 
-        stack_name = self.stack_name(stack_short_name)
-
-        self.stack_show_input_parameter(stack_short_name, stack_params)
+        self.stack_show_input_parameter(stack_name, stack_params)
 
         stack_details = self.get_stack(stack_name, debug=False)
 
         if stack_details is None:
             self.logger.info("[%s] Stack does not exists, creating it...", stack_name)
-            self.create_stack(stack_short_name, stack_params, capabilities=capabilities)
-            stack_details = self.get_stack(stack_name)
-            if stack_details and not self.is_stack_create_failed(stack_details):
-                self.logger.info("[%s] Stack created with status '%s'.\n", stack_details['StackName'],
-                                 stack_details['StackStatus'])
-            else:
-                self.logger.error("[%s] Error while creating stack. Check logs for details.", stack_name)
-                error = True
+            self.create_stack(stack_name, stack_template_body, stack_params, capabilities=capabilities)
         elif self.is_stack_create_failed(stack_details):
             self.logger.info("[%s] Stack is created but failed with status '%s'", stack_details['StackName'],
                              stack_details['StackStatus'])
             self.logger.info("[%s] Try to create again.", stack_name)
-            self.delete_stack(stack_short_name)
-            self.create_stack(stack_short_name, stack_params, capabilities=capabilities)
-            stack_details = self.get_stack(stack_name)
-            if stack_details and not self.is_stack_create_failed(stack_details):
-                self.logger.info("[%s] Stack recreated with status '%s'.\n", stack_details['StackName'],
-                                 stack_details['StackStatus'])
-            else:
-                self.logger.error("[%s] Error while creating stack. Check logs for details.", stack_name)
-                error = True
+            self.delete_stack(stack_name)
+            self.create_stack(stack_name, stack_template_body, stack_params, capabilities=capabilities)
         elif self.is_stack_create_in_progress(stack_details):
             self.logger.info('[%s] Stack create in progress, wait to finish...', stack_name)
             self.show_create_stack_events_progress(stack_name)
             self.logger.info('[%s] Stack finished.', stack_name)
-            stack_details = self.get_stack(stack_name, debug=False)
         else:
             self.logger.info("[%s] Stack already exists, skip.", stack_name)
-            updated = self.update_stack_if_changed(stack_short_name, stack_details, dict_params, capabilities)
-            stack_details = self.get_stack(stack_name, debug=False)
+            updated = self.update_stack_if_changed(stack_name, stack_template_body, stack_details, dict_params, capabilities)
             exists = True
+
+        stack_details = self.get_stack(stack_name, debug=False)
+
+        if stack_details and not self.is_stack_create_failed(stack_details):
+            self.logger.info("[%s] Stack created with status '%s'.\n", stack_details['StackName'],
+                             stack_details['StackStatus'])
+        else:
+            self.logger.error("[%s] Error while creating stack. Check logs for details.", stack_name)
+            error = True
 
         if not error:
             self.stack_show_output_parameters(stack_details)
         else:
-            self.logger.error("[%s] Error while creating stack.", stack_name)
             self.exit()
 
         return stack_details, exists, updated
 
-    def update_stack(self, stack_short_name, input_parameters, capabilities=None, show_progress=True):
-        stack_name = self.stack_name(stack_short_name)
-        template_file = '%s.json' % stack_short_name.lower()
+    def update_stack(self, stack_name, stack_template_body, input_parameters, capabilities=None, show_progress=True):
 
         if not input_parameters:
             input_parameters = [{}]
 
         response = self.cf_client.update_stack(
             StackName=stack_name,
-            TemplateBody=self.get_cf_template_local(template_file),
+            TemplateBody=stack_template_body,
             Parameters=input_parameters,
             Capabilities=capabilities or []
         )
@@ -190,10 +165,9 @@ class StackManagement(CloudFormationBase):
 
         return response
 
-    def update_stack_if_changed(self, stack_short_name, stack_details, stack_create_parameters,
+    def update_stack_if_changed(self, stack_name, stack_template_body, stack_details, stack_create_parameters,
                                 capabilities=None, show_progress=True):
         updated = False
-        stack_name = self.stack_name(stack_short_name)
 
         self.logger.info("[%s] Try to update stack if needed.", stack_name)
 
@@ -202,25 +176,23 @@ class StackManagement(CloudFormationBase):
 
         # check if there are diff between stack params and new stack params
         for stack_param in stack_details.get('Parameters', []):
+            param = {
+                'ParameterKey': stack_param['ParameterKey'],
+                'UsePreviousValue': True
+            }
             if stack_param['ParameterKey'] in stack_create_parameters:
-                param = {
-                    'ParameterKey': stack_param['ParameterKey'],
-                }
                 if stack_param['ParameterValue'] != stack_create_parameters[stack_param['ParameterKey']]:
                     param['ParameterValue'] = stack_create_parameters[stack_param['ParameterKey']]
                     updated_params.append(param)
                     param['UsePreviousValue'] = False
-                else:
-                    # we don't need ParameterValue here when  we specify UsePreviousValue
-                    param['UsePreviousValue'] = True
 
-                stack_update_params.append(param)
+            stack_update_params.append(param)
 
         if updated_params:
             self.logger.info("[%s] Stack params changed, show params that require update.", stack_name)
-            self.stack_show_input_parameter(stack_short_name, updated_params, debug=False)
+            self.stack_show_input_parameter(stack_name, updated_params, debug=False)
             self.logger.info("[%s] Start updating stack.", stack_name)
-            self.update_stack(stack_short_name, stack_update_params, capabilities, show_progress)
+            self.update_stack(stack_name,  stack_template_body, stack_update_params, capabilities, show_progress)
             updated = True
         else:
             self.logger.info("[%s] There are no params to update, skip.", stack_name)
@@ -237,7 +209,7 @@ class StackManagement(CloudFormationBase):
             for param_key, param_value in dict_params.iteritems():
                 cf_param = {
                     'ParameterKey': param_key,
-                    'ParameterValue': param_value
+                    'ParameterValue': str(param_value)
                 }
                 cf_params.append(cf_param)
 
@@ -312,7 +284,8 @@ class StackCreate(StackManagement, Command):
     def take_action(self, parsed_args):
         # create S3
         self.log_figlet("STACK %s", const.STACK_S3)
-        s3_stack, s3_exists, _ = self.create_stack_if_not_exists('s3', {})
+        s3_stack_template = self.get_cf_template_local('s3.json')
+        s3_stack, s3_exists, _ = self.create_stack_if_not_exists(const.STACK_S3, s3_stack_template, {})
         s3_bucket_name = self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
 
         self.log_figlet("STACK %s", const.STACK_NETWORK)
@@ -322,7 +295,9 @@ class StackCreate(StackManagement, Command):
             'Env': 'madcore',
             'VPCCIDRBlock': '10.99.0.0/16'
         }
-        network_stack, network_exists, _ = self.create_stack_if_not_exists('network', network_parameters)
+        network_stack_template = self.get_cf_template_local('network.json')
+        network_stack, network_exists, _ = self.create_stack_if_not_exists(const.STACK_NETWORK, network_stack_template,
+                                                                           network_parameters)
 
         self.log_figlet("STACK %s", const.STACK_FOLLOWME)
         # create SGFM
@@ -330,7 +305,9 @@ class StackCreate(StackManagement, Command):
             'FollowMeIpAddress': self.get_ipv4(),
             'VpcId': self.get_output_from_dict(network_stack['Outputs'], 'VpcId')
         }
-        sgfm_stack, sgfm_exists, _ = self.create_stack_if_not_exists('sgfm', sgfm_parameters)
+        sgfm_stack_template = self.get_cf_template_local('sgfm.json')
+        sgfm_stack, sgfm_exists, _ = self.create_stack_if_not_exists(const.STACK_FOLLOWME, sgfm_stack_template,
+                                                                     sgfm_parameters)
 
         self.log_figlet("STACK %s", const.STACK_CORE)
         # create Core
@@ -344,7 +321,7 @@ class StackCreate(StackManagement, Command):
         }
         core_capabilities = ["CAPABILITY_IAM"]
 
-        core_stack = self.get_stack_by_short_name('core', debug=False)
+        core_stack = self.get_stack(const.STACK_CORE, debug=False)
 
         if core_stack is not None:
             if self.is_stack_create_in_progress(core_stack):
@@ -357,14 +334,15 @@ class StackCreate(StackManagement, Command):
                 if self.is_instance_terminated(core_instance_id):
                     self.logger.info("[%s] Madcore instance is terminated, recreate stack.", const.STACK_CORE)
                     self.logger.info("[%s] Delete stack.", core_stack['StackName'])
-                    self.delete_stack('core')
+                    self.delete_stack(const.STACK_CORE)
                 else:
                     self.logger.debug("[%s] Instance not terminated.", const.STACK_CORE)
 
                 self.start_instance_if_not_running(core_instance_id, '[%s] ' % const.STACK_CORE)
 
-        core_stack, core_exists, _ = self.create_stack_if_not_exists('core', core_parameters,
-                                                                     capabilities=core_capabilities)
+        core_stack_template = self.get_cf_template_local('core.json')
+        core_stack, core_exists, _ = self.create_stack_if_not_exists(const.STACK_CORE, core_stack_template,
+                                                                     core_parameters, capabilities=core_capabilities)
 
         self.log_figlet("STACK %s", const.STACK_DNS)
         # create DNS
@@ -374,7 +352,9 @@ class StackCreate(StackManagement, Command):
             'SubDomainName': user_config['sub_domain'],
             'EC2PublicIP': self.get_output_from_dict(core_stack['Outputs'], 'MadCorePublicIp'),
         }
-        dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists('dns', dns_parameters)
+        dns_stack_template = self.get_cf_template_local('dns.json')
+        dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists(const.STACK_DNS, dns_stack_template,
+                                                                             dns_parameters)
 
         # at this point we have cloudformation up and running so we can
         config.set_user_data({'config_deleted': False})
@@ -408,12 +388,10 @@ class StackCreate(StackManagement, Command):
             self.exit()
 
         self.logger.info("Wait until DNS for domain '%s' is resolved...", config.get_full_domain())
-        if utils.hostname_resolves(config.get_full_domain(), max_time=60*30):
+        if utils.hostname_resolves(config.get_full_domain(), max_time=60 * 30):
             self.logger.info("DNS resolved.")
         else:
             self.logger.error("DNS not resolvable.")
-        # else:
-        #     self.logger.info("DNS delegation already setup.")
 
         self.logger.info("Stack Create status:")
         self.show_table_output(('StackName', 'Created'),
