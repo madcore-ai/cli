@@ -52,11 +52,8 @@ class AwsLambda(object):
     def get_identity_id(self):
         identity_id = config.get_aws_identity_id()
 
-        account_id = self.get_account_id()
-
         if identity_id is None:
             response = self.cognito_client.get_id(
-                AccountId=account_id,
                 IdentityPoolId=self.identity_pool_id,
             )
             identity_id = response['IdentityId']

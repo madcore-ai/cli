@@ -71,41 +71,30 @@ class MadcoreConfigure(CloudFormationBase, Command):
         """Ask user to upload an ssh key to ec2"""
 
         self.logger.info("Create AWS KeyPair from local ssh key")
-        ssh_path = os.path.join(os.path.expanduser("~"), '.ssh')
+        default_ssh_key_path = '~/.ssh/id_rsa.pub'
 
-        if not os.path.exists(ssh_path):
-            self.logger.error("No ssh path found at: '%s'", ssh_path)
-            self.logger.info("Can't continue configuration. EXIT.")
-            sys.exit(1)
+        while True:
+            selected_file = self.raw_prompt('ssh_pub_file',
+                                            'Input ssh public key path to use: ',
+                                            default=default_ssh_key_path
+                                            )
 
-        default_ssh_key_path = os.path.join(ssh_path, 'id_rsa.pub')
-        if not os.path.exists(default_ssh_key_path):
-            self.logger.error("No ssh key found at: '%s'", default_ssh_key_path)
-            self.logger.info("Can't continue configuration. EXIT.")
-            sys.exit(1)
-        else:
-            while True:
-                selected_file = self.raw_prompt('ssh_pub_file',
-                                                'Input ssh public key path to use ' % default_ssh_key_path,
-                                                default=default_ssh_key_path)
-
-                if selected_file['ssh_pub_file']:
-                    ssh_pub_file = os.path.expanduser(selected_file['ssh_pub_file'])
-                    if not os.path.exists(ssh_pub_file):
-                        self.logger.error("File does not exists: '%s'", ssh_pub_file)
-                        self.logger.info("Try again.")
-                    else:
-                        self.logger.debug("OK, using ssh key from: '%s'", ssh_pub_file)
-                        break
-            while True:
-                # TODO@geo validate key to some format
-                selected_key_name = self.raw_prompt('key_name', 'Input key name: ')
-                key_name = selected_key_name['key_name']
-                if not key_name.strip():
-                    self.logger.error("Invalid key name, try again.")
-                else:
-                    self.logger.info("Key name set to: %s", key_name)
-                    break
+            ssh_pub_file = os.path.expanduser(selected_file['ssh_pub_file'])
+            if not os.path.exists(ssh_pub_file):
+                self.logger.error("File does not exists: '%s'", selected_file['ssh_pub_file'])
+                self.logger.info("Try again.")
+            else:
+                self.logger.debug("OK, using ssh key from: '%s'", selected_file['ssh_pub_file'])
+                break
+        while True:
+            # TODO@geo validate key to some format
+            selected_key_name = self.raw_prompt('key_name', 'Input key name: ')
+            key_name = selected_key_name['key_name']
+            if not key_name.strip():
+                self.logger.error("Invalid key name, try again.")
+            else:
+                self.logger.info("Key name set to: %s", key_name)
+                break
 
         ssh_pub_file = os.path.expanduser(selected_file['ssh_pub_file'])
 
@@ -179,7 +168,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
             if keys_name:
                 selected_key_name = self.single_prompt('key_name', options=keys_name, prompt='Select AWS KeyPair')
             else:
-                self.logger.warn("No keys available for region: '{%s}' in AWS.", aws_data['region_name'])
+                self.logger.warn("No keys available for region: '%s' in AWS.", aws_data['region_name'])
                 selected_key_name = self.configure_ssh_public_key()
 
             aws_data.update(selected_key_name)
