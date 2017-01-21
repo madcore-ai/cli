@@ -65,9 +65,9 @@ setup(
         'six>=1.9.0',
         'cliff==2.4.0',
         'boto3==1.4.4',
-        'urllib3==1.19.1',
+        'urllib3==1.20',
         'python-jenkins==0.4.13',
-        'requests==2.12.4',
+        'requests==2.12.5',
         'questionnaire==1.1.0',
         'pyfiglet==0.7.5',
         'jinja2==2.9.4'

@@ -47,9 +47,6 @@ class PluginManagement(PluginsBase, StackManagement):
             )
 
             self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, job_params, parsed_args)
-
-            return exists or updated
-
         else:
             self.logger.info("[%s] Stack already created with status: '%s'.", stack_name, stack_details['StackStatus'])
 
