@@ -3,7 +3,6 @@ from __future__ import unicode_literals, print_function
 import logging
 
 from madcore.base import PluginsBase
-from madcore.cmds.plugins.cluster import PluginClusterExtendBy, PluginClusterContractBy, PluginClusterZero
 from madcore.cmds.plugins.commands import PluginCustomCommands
 from madcore.configs import config
 
@@ -11,10 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class PluginLoader(PluginsBase):
+    # define here custom commands for cluster
     PLUGIN_CLUSTER_COMMANDS = {
-        'extend': PluginClusterExtendBy,
-        'contract': PluginClusterContractBy,
-        'zero': PluginClusterZero,
     }
 
     def __init__(self, command_manager):

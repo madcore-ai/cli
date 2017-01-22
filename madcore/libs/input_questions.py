@@ -5,6 +5,9 @@ import sys
 import questionnaire
 from questionnaire.prompters import register
 
+from madcore.exceptions import ParameterValidationError
+from madcore.libs.jinja import jinja_render_string
+
 
 @register(key="raw")
 def raw(prompt="", **kwargs):
@@ -13,6 +16,7 @@ def raw(prompt="", **kwargs):
     """
     go_back = kwargs["go_back"] if "go_back" in kwargs else "<"
     type_ = kwargs["type"] if "type" in kwargs else str
+    jinja_params = kwargs.get('jinja_params', {})
     default_value = kwargs.get('default', None)
 
     while True:
@@ -20,21 +24,39 @@ def raw(prompt="", **kwargs):
             answer = eval('raw_input(prompt)') if sys.version_info < (3, 0) \
                 else eval('input(prompt)')
             if not answer and default_value is not None:
-                answer = default_value
+                answer = jinja_render_string(default_value, **jinja_params)
 
             return (answer, 1) if answer == go_back else (type_(answer), None)
-        except ValueError:
-            print("\n`{}` is not a valid `{}`\n".format(answer, type_))
+        except ParameterValidationError as validation_error:
+            print("\n{}\n".format(validation_error))
 
 
 class Questionnaire(questionnaire.Questionnaire):
+    DEFAULT_VALUE = 'default'
+    DEFAULT_VALUE_LABEL = 'default_label'
     default_values = {}
+    default_values_label = {}
+
+    def __init__(self, madcore_jinja_params=None, show_answers=True):
+        self.madcore_jinja_params = madcore_jinja_params or {}
+        questionnaire.Questionnaire.__init__(self, show_answers=show_answers)
+
+    @property
+    def jinja_params(self):
+        self.madcore_jinja_params.update(self.answers)
+        return self.madcore_jinja_params
 
     def add_question(self, *args, **kwargs):
         question = questionnaire.Questionnaire.add_question(self, *args, **kwargs)
-        if 'default' in kwargs:
-            key = args[0]
-            self.default_values[key] = kwargs['default']
+
+        key = args[0]
+        if self.DEFAULT_VALUE in kwargs:
+            self.default_values[key] = kwargs[self.DEFAULT_VALUE]
+            # set by default label to value
+            self.default_values_label[key] = kwargs[self.DEFAULT_VALUE]
+
+        if kwargs.get(self.DEFAULT_VALUE_LABEL, None) is not None:
+            self.default_values_label[key] = kwargs[self.DEFAULT_VALUE_LABEL]
 
         return question
 
@@ -43,14 +65,22 @@ class Questionnaire(questionnaire.Questionnaire):
         """
         prompt = q.prompt
         if self._show_answers:
-            new_prompt = q.prompt
+            new_prompt = prompt
             if q.key in self.default_values:
-                new_prompt = "{}[{}] ".format(q.prompt, self.default_values[q.key])
+                # there are cases when we want to set different label for default value
+                # if label no set as input, use default input value
+                default_values_label = self.default_values_label.get(q.key, self.default_values[q.key])
+                default_values_label = jinja_render_string(default_values_label, **self.jinja_params)
+                new_prompt = "{}[{}] ".format(q.prompt, default_values_label)
             prompt = self.show_answers() + "\n{}".format(new_prompt)
 
-        answer, back = q.prompter(prompt, **q.prompter_args)
-        if not answer and q.key in self.default_values:
-            answer = self.default_values[q.key]
+        answer, back = q.prompter(prompt, jinja_params=self.jinja_params, **q.prompter_args)
+
+        # read the answer from default values if not set by user and exists in defaults
+        # update default value with the final answer result
+        if answer and q.key in self.default_values:
+            self.default_values[q.key] = answer
+
         self.answers[q.key] = answer
         if back is not None:
             self.go_back(abs(int(back)))

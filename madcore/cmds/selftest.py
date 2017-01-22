@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals
 
 import logging
 
-from madcore.libs.jenkins import JenkinsJobCommand
+from madcore.libs.commands import JenkinsJobCommand
 
 
 class SelfTest(JenkinsJobCommand):
