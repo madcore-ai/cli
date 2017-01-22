@@ -165,7 +165,7 @@ class StackManagement(CloudFormationBase):
 
         return response
 
-    def update_stack_if_changed(self, stack_name, stack_template_body, stack_details, stack_create_parameters,
+    def update_stack_if_changed(self, stack_name, stack_template_body, stack_details, stack_update_parameters,
                                 capabilities=None, show_progress=True):
         updated = False
 
@@ -180,9 +180,9 @@ class StackManagement(CloudFormationBase):
                 'ParameterKey': stack_param['ParameterKey'],
                 'UsePreviousValue': True
             }
-            if stack_param['ParameterKey'] in stack_create_parameters:
-                if stack_param['ParameterValue'] != stack_create_parameters[stack_param['ParameterKey']]:
-                    param['ParameterValue'] = stack_create_parameters[stack_param['ParameterKey']]
+            if stack_param['ParameterKey'] in stack_update_parameters:
+                if stack_param['ParameterValue'] != stack_update_parameters[stack_param['ParameterKey']]:
+                    param['ParameterValue'] = str(stack_update_parameters[stack_param['ParameterKey']])
                     updated_params.append(param)
                     param['UsePreviousValue'] = False
 

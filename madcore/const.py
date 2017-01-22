@@ -9,7 +9,6 @@ STACK_CORE = 'MADCORE-Core'
 STACK_CLUSTER = 'MADCORE-Cluster'
 STACK_DNS = 'MADCORE-Dns'
 
-
 # define all static endpoints
 ENDPOINTS = {
     'influxdb': {},
@@ -37,3 +36,12 @@ ALLOWED_INSTANCE_TYPES = [
     'm4.large',
     'r3.large'
 ]
+
+EC2_SPOT_PRICE_ADD_EXTRA = {
+    'm3.medium': 0.0050,
+    'm4.large': 0.0050,
+    'r3.large': 0.0050
+}
+
+PLUGIN_CLOUDFORMATION_JOB_TYPE = 'cloudformations'
+
