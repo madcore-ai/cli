@@ -48,7 +48,7 @@ class PluginManagement(PluginsBase, StackManagement):
                 capabilities=job_definition['capabilities']
             )
 
-            self.save_plugin_jobs_params_to_config(plugin_name, sequence, job_type, job_params, parsed_args)
+            self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, job_params, parsed_args)
         else:
             self.logger.info("[%s] Stack already created with status: '%s'.", stack_name, stack_details['StackStatus'])
 
@@ -73,13 +73,12 @@ class PluginManagement(PluginsBase, StackManagement):
 
         self.update_core_params(self.stack_output_to_dict(stack_details), job_name, add_madcore_prefix=False)
 
-        dict_job_update_params = {}
+        sequence_params = []
 
         # ask for sequence parameters
         if sequence.get('parameters', None):
             sequence_params = self.load_plugin_job_validators(sequence['parameters'])
             sequence_params = self.ask_for_plugin_parameters(sequence_params, parsed_args)
-            dict_job_update_params = self.list_params_to_dict(sequence_params)
 
         stack_template_body = self.get_plugin_template_file(plugin_name, job_definition['template_file'])
 
@@ -87,12 +86,11 @@ class PluginManagement(PluginsBase, StackManagement):
             stack_name,
             stack_template_body,
             stack_details,
-            dict_job_update_params,
+            self.list_params_to_dict(sequence_params),
             capabilities=job_definition['capabilities']
         )
 
-        # TODO@geo Do we need to save into config file the results when we do update?
-        # For now it's not saved, later we can add this
+        self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, sequence_params, parsed_args)
 
         return updated
 
@@ -134,7 +132,8 @@ class PluginManagement(PluginsBase, StackManagement):
         }
 
         # first of all check if current job does have parameters
-        job_parameters = self.get_plugin_job_final_params(plugin_name, job_name, 'jobs', parsed_args)
+        job_parameters = self.get_plugin_job_final_params(plugin_name, job_name, const.PLUGIN_JENKINS_JOB_TYPE,
+                                                          parsed_args)
         if job_parameters:
             # make the input params available for alter use like
             # <JOB_NAME>_<PARAM_NAME>

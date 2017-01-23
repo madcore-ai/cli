@@ -122,7 +122,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
             ssh_file = os.path.expanduser(selected_file['ssh_priv_file'])
 
             if not os.path.exists(ssh_file):
-                self.logger.error("Key does not exists at: '%s', try again.", ssh_file)
+                self.logger.error("SSH key does not exists at: '%s', try again.", ssh_file)
                 default_priv_key_path = ''
             else:
                 self.logger.debug("OK, using ssh private key from: '%s'", ssh_file)
@@ -282,29 +282,40 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
         return user_exists
 
+    def start_bitbucket_auth(self):
+        self.logger.info("Auth to bitbucket")
+
+        failed_attempts = 0
+
+        while True:
+            bitbucket_auth = self.raw_prompt('username', 'Input bitbucket username:')
+            bitbucket_auth['password'] = getpass.getpass('Input bitbucket password: ')
+
+            self.logger.debug("Authenticate to bitbucket...")
+
+            bitbucket = Bitbucket(bitbucket_auth['username'], bitbucket_auth['password'])
+
+            try:
+                bitbucket.auth.check_auth()
+                return bitbucket
+            except AuthError:
+                failed_attempts += 1
+                self.logger.error("Invalid bitbucket auth, try again [%s]", failed_attempts)
+
     def configure_user_registration(self):
         self.logger.info("Start user registration.")
 
         aws_lambda = AwsLambda()
 
         if not self.user_login(aws_lambda):
-            bitbucket_auth = self.raw_prompt('username', 'Input bitbucket username:')
-            bitbucket_auth['password'] = getpass.getpass('Input bitbucket password: ')
+            bitbucket = self.start_bitbucket_auth()
 
             self.logger.debug("Connect to bitbucket and get information...")
-
-            bitbucket = Bitbucket(bitbucket_auth['username'], bitbucket_auth['password'])
-
-            try:
-                bitbucket.auth.check_auth()
-            except AuthError:
-                self.logger.error("Invalid bitbucket auth.")
-                self.exit()
 
             # get bitbucket user email which will be used to register user to madcore
             user_email = bitbucket.user.get_primary_email()
 
-            self.logger.info("Check if user already exists.")
+            self.logger.info("Check if madcore user already exists: '%s'", user_email)
             user_password = getpass.getpass('Input madcore password: ')
 
             user_data = {
