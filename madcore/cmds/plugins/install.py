@@ -23,12 +23,12 @@ class PluginInstall(PluginManagement, PluginCommand):
             return 0
 
         plugin_installed = self.execute_plugin_job(plugin_name, self.plugin_job, parsed_args)
+        config.set_plugin_installed(plugin_name, plugin_installed)
 
         if plugin_installed:
             self.logger.info("[%s] Successfully installed plugin.", plugin_name)
+            self.app.plugin_loader.load_installed_plugins_commands(plugin_name)
         else:
             self.logger.error("[%s] Error installing plugin.", plugin_name)
-
-        config.set_plugin_installed(plugin_name, plugin_installed)
 
         return 0

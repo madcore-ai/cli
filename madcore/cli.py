@@ -29,9 +29,7 @@ class MadcoreCli(App):
         )
 
         self.plugin_loader = PluginLoader(command_manager)
-        self.plugin_loader.load_installed_plugins_commands()
-
-        self.load_extra_commands()
+        self.reload_commands()
 
     def load_extra_commands(self):
         # load other extra commands here
@@ -40,6 +38,10 @@ class MadcoreCli(App):
 
         for command_name, command_class in commands:
             self.command_manager.add_command(command_name, command_class)
+
+    def reload_commands(self):
+        self.plugin_loader.load_installed_plugins_commands()
+        self.load_extra_commands()
 
     def configure_logging(self):
         self.LOG = logging.getLogger('madcore')

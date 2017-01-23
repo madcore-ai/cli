@@ -2,16 +2,16 @@ from __future__ import unicode_literals, print_function
 
 import logging
 
+from madcore import const
 from madcore.base import PluginsBase
 from madcore.libs.cloudformation import StackManagement
-from madcore.const import PLUGIN_CLOUDFORMATION_JOB_TYPE
 
 logger = logging.getLogger(__name__)
 
 
 class PluginManagement(PluginsBase, StackManagement):
     def execute_plugin_jenkins_job(self, plugin_name, job_name, parsed_args, job_params=None):
-        job_type = 'jobs'
+        job_type = const.PLUGIN_JENKINS_JOB_TYPE
 
         if not job_params:
             job_params = self.get_plugin_job_final_params(plugin_name, job_name, job_type, parsed_args)
@@ -29,7 +29,7 @@ class PluginManagement(PluginsBase, StackManagement):
 
     def execute_plugin_create_cloudformation_job(self, plugin_name, sequence, parsed_args):
         job_name = sequence['job_name']
-        job_type = PLUGIN_CLOUDFORMATION_JOB_TYPE
+        job_type = const.PLUGIN_CLOUDFORMATION_JOB_TYPE
         job_definition = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type)
 
         stack_name = job_definition['stack_name']
@@ -58,7 +58,7 @@ class PluginManagement(PluginsBase, StackManagement):
 
     def execute_plugin_update_cloudformation_job(self, plugin_name, sequence, parsed_args):
         job_name = sequence['job_name']
-        job_type = PLUGIN_CLOUDFORMATION_JOB_TYPE
+        job_type = const.PLUGIN_CLOUDFORMATION_JOB_TYPE
         job_definition = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type)
 
         stack_name = job_definition['stack_name']
@@ -98,7 +98,7 @@ class PluginManagement(PluginsBase, StackManagement):
 
     def execute_plugin_delete_cloudformation_job(self, plugin_name, sequence, parsed_args):
         job_name = sequence['job_name']
-        job_type = PLUGIN_CLOUDFORMATION_JOB_TYPE
+        job_type = const.PLUGIN_CLOUDFORMATION_JOB_TYPE
         job_definition = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type)
 
         stack_name = job_definition['stack_name']
@@ -109,7 +109,7 @@ class PluginManagement(PluginsBase, StackManagement):
 
     def execute_plugin_status_cloudformation_job(self, plugin_name, sequence, parsed_args):
         job_name = sequence['job_name']
-        job_type = PLUGIN_CLOUDFORMATION_JOB_TYPE
+        job_type = const.PLUGIN_CLOUDFORMATION_JOB_TYPE
         job_definition = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type)
 
         stack_name = job_definition['stack_name']
