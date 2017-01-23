@@ -56,7 +56,7 @@ class MadcoreCli(App):
         self.LOG = logging.getLogger('madcore')
 
     def trigger_configuration(self):
-        if not config.get_user_data():
+        if not config.get_user_data() or not config.get_login_data():
             ask_msg = 'CLI must be configured to use this command. Do you want to begin?'
             start_config_selector = Questionnaire()
             start_config_selector.add_question('answer', options=['yes', 'no'], prompt=ask_msg)
