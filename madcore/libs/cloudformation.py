@@ -129,7 +129,8 @@ class StackManagement(CloudFormationBase):
             self.logger.info('[%s] Stack finished.', stack_name)
         else:
             self.logger.info("[%s] Stack already exists, skip.", stack_name)
-            updated = self.update_stack_if_changed(stack_name, stack_template_body, stack_details, dict_params, capabilities)
+            updated = self.update_stack_if_changed(stack_name, stack_template_body, stack_details, dict_params,
+                                                   capabilities)
             exists = True
 
         stack_details = self.get_stack(stack_name, debug=False)
@@ -192,7 +193,7 @@ class StackManagement(CloudFormationBase):
             self.logger.info("[%s] Stack params changed, show params that require update.", stack_name)
             self.stack_show_input_parameter(stack_name, updated_params, debug=False)
             self.logger.info("[%s] Start updating stack.", stack_name)
-            self.update_stack(stack_name,  stack_template_body, stack_update_params, capabilities, show_progress)
+            self.update_stack(stack_name, stack_template_body, stack_update_params, capabilities, show_progress)
             updated = True
         else:
             self.logger.info("[%s] There are no params to update, skip.", stack_name)
@@ -344,13 +345,15 @@ class StackCreate(StackManagement, Command):
         core_stack, core_exists, _ = self.create_stack_if_not_exists(const.STACK_CORE, core_stack_template,
                                                                      core_parameters, capabilities=core_capabilities)
 
+        core_public_ip = self.get_output_from_dict(core_stack['Outputs'], 'MadCorePublicIp')
+
         self.log_figlet("STACK %s", const.STACK_DNS)
         # create DNS
         user_config = config.get_user_data()
         dns_parameters = {
             'DomainName': user_config['domain'],
             'SubDomainName': user_config['sub_domain'],
-            'EC2PublicIP': self.get_output_from_dict(core_stack['Outputs'], 'MadCorePublicIp'),
+            'EC2PublicIP': core_public_ip,
         }
         dns_stack_template = self.get_cf_template_local('dns.json')
         dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists(const.STACK_DNS, dns_stack_template,
@@ -388,10 +391,17 @@ class StackCreate(StackManagement, Command):
             self.exit()
 
         self.logger.info("Wait until DNS for domain '%s' is resolved...", config.get_full_domain())
-        if utils.hostname_resolves(config.get_full_domain(), max_time=60 * 30):
-            self.logger.info("DNS resolved.")
-        else:
+        domain_ip = utils.hostname_resolves(config.get_full_domain(), max_time=60 * 30)
+
+        if domain_ip is None:
             self.logger.error("DNS not resolvable.")
+            self.exit()
+        elif domain_ip != core_public_ip:
+            self.logger.error("Domain '%s' points to '%s' but should point to '%s'", config.get_full_domain(),
+                              domain_ip, core_public_ip)
+            self.exit()
+        else:
+            self.logger.info("DNS resolved.")
 
         self.logger.info("Stack Create status:")
         self.show_table_output(('StackName', 'Created'),

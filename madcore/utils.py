@@ -36,13 +36,15 @@ def hostname_resolves(hostname, max_time=700):
 
     while True:
         try:
-            socket.gethostbyname(hostname)
-            return True
+            ip = socket.gethostbyname(hostname)
+            return ip
         except socket.error:
             time.sleep(sleep_time)
             count += sleep_time
             if count > max_time:
                 break
+
+    return None
 
 
 def get_version():
