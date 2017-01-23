@@ -182,7 +182,7 @@ class StackManagement(CloudFormationBase):
                 'UsePreviousValue': True
             }
             if stack_param['ParameterKey'] in stack_update_parameters:
-                if stack_param['ParameterValue'] != stack_update_parameters[stack_param['ParameterKey']]:
+                if str(stack_param['ParameterValue']) != str(stack_update_parameters[stack_param['ParameterKey']]):
                     param['ParameterValue'] = str(stack_update_parameters[stack_param['ParameterKey']])
                     updated_params.append(param)
                     param['UsePreviousValue'] = False
