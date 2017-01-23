@@ -16,9 +16,18 @@ from madcore.libs.input_questions import Questionnaire
 from madcore.libs.plugins_loader import PluginLoader
 
 
+class MadcoreCommandManager(CommandManager):
+    def __init__(self, namespace, convert_underscores=True):
+        super(MadcoreCommandManager, self).__init__(namespace, convert_underscores)
+
+    def remove_command(self, name):
+        if name in self.commands:
+            del self.commands[name]
+
+
 class MadcoreCli(App):
     def __init__(self):
-        command_manager = CommandManager('madcorecli.app')
+        command_manager = MadcoreCommandManager('madcorecli.app')
         super(MadcoreCli, self).__init__(
             description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller'
                         'Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai',

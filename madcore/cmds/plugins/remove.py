@@ -21,13 +21,13 @@ class PluginRemove(PluginManagement, PluginCommand):
             return 0
 
         plugin_deleted = self.execute_plugin_job(plugin_name, self.plugin_job, parsed_args)
+        config.set_plugin_deleted(plugin_name, plugin_deleted)
 
         if plugin_deleted:
             self.logger.info("[%s] Successfully deleted plugin.", plugin_name)
             self.remove_plugin_jobs_params_from_config(plugin_name, parsed_args)
+            self.app.plugin_loader.unload_removed_plugins_commands(plugin_name)
         else:
             self.logger.error("[%s] Error deleting plugin.", plugin_name)
-
-        config.set_plugin_deleted(plugin_name, plugin_deleted)
 
         return 0
