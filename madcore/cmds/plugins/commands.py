@@ -49,7 +49,7 @@ class PluginCustomCommands(PluginManagement, BasePluginCommand):
         command_run = self.execute_plugin_job(plugin_name, plugin_command_name, parsed_args)
 
         if command_run:
-            self.logger.info("[%s][%s] Successfully run plugin command.", plugin_name, plugin_command_name)
+            self.logger.info("[%s][%s] OK.", plugin_name, plugin_command_name)
         else:
             self.logger.error("[%s][%s] Error running plugin command.", plugin_name, plugin_command_name)
 

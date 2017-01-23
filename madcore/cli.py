@@ -16,9 +16,18 @@ from madcore.libs.input_questions import Questionnaire
 from madcore.libs.plugins_loader import PluginLoader
 
 
+class MadcoreCommandManager(CommandManager):
+    def __init__(self, namespace, convert_underscores=True):
+        super(MadcoreCommandManager, self).__init__(namespace, convert_underscores)
+
+    def remove_command(self, name):
+        if name in self.commands:
+            del self.commands[name]
+
+
 class MadcoreCli(App):
     def __init__(self):
-        command_manager = CommandManager('madcorecli.app')
+        command_manager = MadcoreCommandManager('madcorecli.app')
         super(MadcoreCli, self).__init__(
             description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller'
                         'Licensed under MIT (c) 2015-2017 Madcore Ltd - https://madcore.ai',
@@ -29,9 +38,7 @@ class MadcoreCli(App):
         )
 
         self.plugin_loader = PluginLoader(command_manager)
-        self.plugin_loader.load_installed_plugins_commands()
-
-        self.load_extra_commands()
+        self.reload_commands()
 
     def load_extra_commands(self):
         # load other extra commands here
@@ -40,6 +47,10 @@ class MadcoreCli(App):
 
         for command_name, command_class in commands:
             self.command_manager.add_command(command_name, command_class)
+
+    def reload_commands(self):
+        self.plugin_loader.load_installed_plugins_commands()
+        self.load_extra_commands()
 
     def configure_logging(self):
         self.LOG = logging.getLogger('madcore')

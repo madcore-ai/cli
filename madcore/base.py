@@ -505,7 +505,7 @@ class PluginsBase(JenkinsBase):
             if plugin['id'] == plugin_id:
                 return plugin
 
-    def get_plugin_job_definition(self, plugin_name, job_name, job_type='jobs'):
+    def get_plugin_job_definition(self, plugin_name, job_name, job_type=const.PLUGIN_JENKINS_JOB_TYPE):
         plugin_data = self.get_plugin_by_name(plugin_name)
 
         if plugin_data:
@@ -569,13 +569,13 @@ class PluginsBase(JenkinsBase):
         # uppercase
         return OrderedDict([(job_param['name'].upper(), job_param['value']) for job_param in params_list])
 
-    def get_plugin_job_parameters(self, plugin_name, job_name, job_type='jobs', load_validators=True,
-                                  check_config=True, render_core_params=False):
+    def get_plugin_job_parameters(self, plugin_name, job_name, job_type=const.PLUGIN_JENKINS_JOB_TYPE,
+                                  load_validators=True, check_config=True, render_core_params=False):
         plugin = self.get_plugin_by_name(plugin_name)
 
         job_parameters = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type).get('parameters', [])
 
-        if job_type not in (const.PLUGIN_CLOUDFORMATION_JOB_TYPE, ):
+        if job_type not in (const.PLUGIN_CLOUDFORMATION_JOB_TYPE,):
             # for now we skip adding the plugin root params to the final params
             plugin_parameters = plugin.get('parameters', [])
             job_parameters = self.override_parameters_if_exists(plugin_parameters, job_parameters)
@@ -605,7 +605,7 @@ class PluginsBase(JenkinsBase):
         plugin = self.get_plugin_by_name(plugin_name)
 
         job_names = []
-        for job in plugin.get('jobs', []):
+        for job in plugin.get(const.PLUGIN_JENKINS_JOB_TYPE, []):
             if job['name'] not in self.PLUGIN_DEFAULT_JOBS and not job.get('private', False):
                 job_names.append(job['name'])
 
