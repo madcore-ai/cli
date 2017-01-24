@@ -62,24 +62,30 @@ class MadcoreConfig(object):
     def set_aws_data(self, aws_data, section='aws'):
         self.set_data(aws_data, section)
 
+    def set_global_params_data(self, global_params, section='global_params'):
+        self.set_data(global_params, section)
+
+    def set_plugin_data(self, plugin_data, plugin_name):
+        self.set_data(plugin_data, plugin_name)
+
     def set_plugin_installed(self, plugin_name, default=True):
-        self.set_data({"installed": default}, section=plugin_name)
+        self.set_plugin_data({"installed": default}, plugin_name)
 
     def set_plugin_deleted(self, plugin_name, default=True):
-        self.set_data({"installed": not default}, section=plugin_name)
+        self.set_plugin_data({"installed": not default}, plugin_name)
 
     def set_plugin_job_params(self, plugin_name, job_name, job_type, params):
         key_name = '{job_type}_{job_name}'.format(job_type=job_type, job_name=job_name)
-        self.set_data({key_name: json.dumps(params)}, section=plugin_name)
+        self.set_plugin_data({key_name: json.dumps(params)}, plugin_name)
 
-    def delete_plugin_job_params(self, plugin_name, job_names, job_type='job'):
+    def delete_plugin_job_params(self, plugin_name, job_names, job_type):
         if not isinstance(job_names, list):
             job_names = [job_names]
 
         for job_name in job_names:
             try:
                 option_name = '{job_type}_{job_name}'.format(job_type=job_type, job_name=job_name)
-                self.config.remove_option(plugin_name, option_name)
+                self.remove_option(plugin_name, option_name)
             except:
                 pass
 
@@ -97,9 +103,15 @@ class MadcoreConfig(object):
     def get_login_data(self, key=None, section='login'):
         return self.get_data(section, key)
 
-    def get_data(self, section, key=None):
+    def get_global_params_data(self, key=None, section='global_params'):
+        return self.get_data(section, key, keys_to_upper=True)
+
+    def get_plugin_data(self, plugin_name):
+        return self.get_data(plugin_name)
+
+    def get_data(self, section, key=None, keys_to_upper=False):
         try:
-            data = dict(self.config.items(section))
+            data = dict((key.upper() if keys_to_upper else key, val) for key, val in self.config.items(section))
             if key:
                 return data.get(key, None)
             return data
@@ -113,6 +125,10 @@ class MadcoreConfig(object):
 
     def get_full_domain(self):
         return '{sub_domain}.{domain}'.format(**self.get_user_data())
+
+    def remove_option(self, section, option):
+        self.config.remove_option(section, option)
+        self.save_config()
 
     def is_key_true(self, key, section):
         try:

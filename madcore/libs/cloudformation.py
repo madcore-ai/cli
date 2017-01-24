@@ -7,12 +7,12 @@ from cliff.command import Command
 
 from madcore import const
 from madcore import utils
-from madcore.base import CloudFormationBase
+from madcore.base import PluginsBase
 from madcore.configs import config
 from madcore.libs.aws import AwsLambda
 
 
-class StackManagement(CloudFormationBase):
+class StackManagement(PluginsBase):
     logger = logging.getLogger(__name__)
 
     def stack_show_output_parameters(self, stack_details):
@@ -55,6 +55,20 @@ class StackManagement(CloudFormationBase):
     @classmethod
     def is_stack_create_in_progress(cls, stack_details):
         if stack_details['StackStatus'] in ['CREATE_IN_PROGRESS']:
+            return True
+
+        return False
+
+    @classmethod
+    def is_stack_update_complete(cls, stack_details):
+        if stack_details['StackStatus'] in ['UPDATE_COMPLETE']:
+            return True
+
+        return False
+
+    @classmethod
+    def is_stack_create_complete(cls, stack_details):
+        if stack_details['StackStatus'] in ['CREATE_COMPLETE']:
             return True
 
         return False
@@ -280,6 +294,17 @@ class StackManagement(CloudFormationBase):
 
         return False
 
+    def save_global_params_to_config(self):
+        old_params = config.get_global_params_data()
+        new_params = self.get_madcore_global_parameters()
+
+        if new_params != old_params:
+            self.logger.debug("Save changed global param to config.")
+            config.set_global_params_data(new_params)
+
+            # invalidate plugins saved data
+            self.remove_plugin_jobs_params_from_config()
+
 
 class StackCreate(StackManagement, Command):
     def take_action(self, parsed_args):
@@ -402,6 +427,10 @@ class StackCreate(StackManagement, Command):
             self.exit()
         else:
             self.logger.info("DNS resolved.")
+
+        # save all the core stack parameters into config because this params will be used later when we add plugins
+        # of other functionality
+        self.save_global_params_to_config()
 
         self.logger.info("Stack Create status:")
         self.show_table_output(('StackName', 'Created'),

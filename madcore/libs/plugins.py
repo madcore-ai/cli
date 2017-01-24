@@ -3,13 +3,13 @@ from __future__ import unicode_literals, print_function
 import logging
 
 from madcore import const
-from madcore.base import PluginsBase
 from madcore.libs.cloudformation import StackManagement
+from madcore.base import JenkinsBase
 
 logger = logging.getLogger(__name__)
 
 
-class PluginManagement(PluginsBase, StackManagement):
+class PluginManagement(JenkinsBase, StackManagement):
     def execute_plugin_jenkins_job(self, plugin_name, job_name, parsed_args, job_params=None):
         job_type = const.PLUGIN_JENKINS_JOB_TYPE
 
@@ -48,6 +48,13 @@ class PluginManagement(PluginsBase, StackManagement):
                 capabilities=job_definition['capabilities']
             )
 
+            if (not exists or updated) and self.is_stack_create_complete(stack_details):
+                try:
+                    asg_name = self.get_output_from_dict(stack_details['Outputs'], 'AutoScalingGroupName')
+                    self.wait_for_auto_scale_group_to_finish(asg_name)
+                except KeyError:
+                    pass
+
             self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, job_params, parsed_args)
         else:
             self.logger.info("[%s] Stack already created with status: '%s'.", stack_name, stack_details['StackStatus'])
@@ -75,6 +82,7 @@ class PluginManagement(PluginsBase, StackManagement):
 
         sequence_params = []
 
+        # TODO@geo we need to fix this and make sure we get from configs parameters
         # ask for sequence parameters
         if sequence.get('parameters', None):
             sequence_params = self.load_plugin_job_validators(sequence['parameters'])
@@ -89,6 +97,15 @@ class PluginManagement(PluginsBase, StackManagement):
             self.list_params_to_dict(sequence_params),
             capabilities=job_definition['capabilities']
         )
+
+        stack_details = self.get_stack(stack_name, debug=False)
+
+        if updated and self.is_stack_update_complete(stack_details):
+            try:
+                asg_name = self.get_output_from_dict(stack_details['Outputs'], 'AutoScalingGroupName')
+                self.wait_for_auto_scale_group_to_finish(asg_name)
+            except KeyError:
+                pass
 
         self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, sequence_params, parsed_args)
 
