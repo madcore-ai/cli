@@ -169,6 +169,66 @@ class AwsBase(object):
 
         return data['SpotPriceHistory']
 
+    def wait_for_auto_scale_group_to_finish(self, asg_name):
+        self.logger.info("Wait for AutoScaleGroup to finish activity '%s'", asg_name)
+
+        asg_client = self.get_aws_client('autoscaling')
+
+        first_time = True
+        max_no_activities_count = 5
+        no_activities_count = 0
+        no_activities_sleep = 5
+
+        in_progress = False
+
+        while True:
+            asg_response = asg_client.describe_scaling_activities(
+                AutoScalingGroupName=asg_name,
+                MaxRecords=1
+            )
+
+            if asg_response['Activities']:
+                last_activity = asg_response['Activities'][0]
+                if not in_progress:
+                    in_progress_status = (
+                        'PendingSpotBidPlacement',
+                        'WaitingForSpotInstanceRequestId',
+                        'WaitingForSpotInstanceId',
+                        'WaitingForInstanceId',
+                        'PreInService',
+                        'InProgress',
+                        'WaitingForELBConnectionDraining',
+                        'MidLifecycleAction',
+                        'WaitingForInstanceWarmup',
+                    )
+                    if last_activity['StatusCode'] not in in_progress_status:
+                        # if last activity is not yet in progress then we need to wait because ASG did not put the
+                        # activity in queue
+                        time.sleep(no_activities_sleep)
+                        continue
+                    else:
+                        in_progress = True
+
+                if first_time:
+                    self.logger.info(last_activity['Description'])
+                    # self.logger.debug(last_activity['Cause'])
+
+                    first_time = False
+
+                self.logger.info("Progress: %s", last_activity['Progress'])
+
+                if last_activity['Progress'] == 100:
+                    self.logger.info("StatusMessage: %s", last_activity['StatusMessage'])
+                    break
+
+                time.sleep(no_activities_sleep)
+            else:
+                # if there are no activities wait a little try again
+                no_activities_count += 1
+                if no_activities_count > max_no_activities_count:
+                    break
+                time.sleep(no_activities_sleep)
+
 
 class CloudFormationBase(MadcoreBase, AwsBase):
     def __init__(self, app, app_args, cmd_name=None):
@@ -179,6 +239,7 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         self.formatter = TableFormatter()
         self._session = None
         self._cf_client = None
+        self._core_params = {}
 
     def show_table_output(self, column_names, data):
         # TODO#geo a hack to make this work without input parsed args
@@ -216,12 +277,18 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         return None
 
     @classmethod
-    def get_param_from_dict(cls, dic, param):
-        return next(i for i in dic if i['ParameterKey'] == param)['ParameterValue']
+    def get_param_from_dict(cls, params_list, param):
+        try:
+            return next(i for i in params_list if i['ParameterKey'] == param)['ParameterValue']
+        except StopIteration:
+            raise KeyError("Invalid Parameters param name: '%s'" % param)
 
     @classmethod
-    def get_output_from_dict(cls, dic, param):
-        return next(i for i in dic if i['OutputKey'] == param)['OutputValue']
+    def get_output_from_dict(cls, params_list, param):
+        try:
+            return next(i for i in params_list if i['OutputKey'] == param)['OutputValue']
+        except StopIteration:
+            raise KeyError("Invalid Outputs param name: '%s'" % param)
 
     @classmethod
     def maintain_loop(cls, response, last_event_id, event_type):
@@ -328,6 +395,60 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         return OrderedDict(
             (param['ParameterKey'], param['ParameterValue']) for param in stack_details.get('Parameters', []))
 
+    def get_madcore_global_parameters(self):
+        """Define root parameters for for madcore. This parameters will be saved into config and user later by the
+        plugins  and other similar functionality.
+        """
+
+        madcore_params_mapping = {
+            const.STACK_CORE: {
+                # stack output param: general madcore params
+                'MadCorePrivateIp': 'MADCORE_PRIVATE_IP',
+                'MadCorePublicDnsName': 'MADCORE_PUBLIC_DNS_NAME',
+                'MadCoreInstanceId': 'MADCORE_INSTANCE_ID',
+                'MadCorePublicIp': 'MADCORE_PUBLIC_IP',
+            },
+            const.STACK_NETWORK: {
+                'VpcId': 'MADCORE_VPC_ID',
+                'PublicNetZoneA': 'MADCORE_PUBLIC_NET_ZONE_A',
+            },
+            const.STACK_S3: {
+                'S3BucketName': 'MADCORE_S3_BUCKET'
+            },
+            const.STACK_DNS: {
+                'HostedZoneID': 'MADCORE_HOSTED_ZONE_ID'
+            },
+            const.STACK_FOLLOWME: {
+                'FollowmeSgId': 'MADCORE_FOLLOWME_SG_ID'
+            }
+        }
+
+        params = {
+            "MADCORE_KEY_NAME": config.get_aws_data('key_name'),
+            "MADCORE_INSTANCE_TYPE": config.get_aws_data('instance_type'),
+        }
+
+        for stack_name, params_mapping in madcore_params_mapping.items():
+            stack_details = self.get_stack(stack_name, debug=True)
+            if stack_details:
+                for stack_param, core_param in params_mapping.items():
+                    params[core_param] = self.get_output_from_dict(stack_details['Outputs'], stack_param)
+
+        return params
+
+    @property
+    def madcore_global_parameters(self):
+        """Define root parameters for for madcore. This parameters will be saved into config and user later by the
+        plugins  and other similar functionality.
+        """
+
+        if not self._core_params:
+            params = config.get_global_params_data() or self.get_madcore_global_parameters()
+
+            self._core_params = params
+
+        return self._core_params
+
 
 class JenkinsBase(CloudFormationBase):
     @property
@@ -413,48 +534,11 @@ class JenkinsBase(CloudFormationBase):
         return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False, max_timeout=60 * 60)
 
 
-class PluginsBase(JenkinsBase):
+class PluginsBase(CloudFormationBase):
     _plugins = None
-    _core_params = {}
 
     PLUGIN_DEFAULT_JOBS = ['deploy', 'delete', 'status']
-    PLUGIN_TYPES = ['plugin', 'cluster']
-
-    @property
-    def madcore_plugin_parameters(self):
-        """Define root parameters for all plugins. If plugin will define this parameter and the value is null,
-        it will automatically fill it.
-        """
-        if not self._core_params:
-            madcore_params_mapping = {
-                const.STACK_CORE: {
-                    # stack output param: general madcore params
-                    'MadCorePrivateIp': 'MADCORE_PRIVATE_IP',
-                    'MadCorePublicDnsName': 'MADCORE_PUBLIC_DNS_NAME',
-                    'MadCoreInstanceId': 'MADCORE_INSTANCE_ID',
-                    'MadCorePublicIp': 'MADCORE_PUBLIC_IP',
-                },
-                const.STACK_NETWORK: {
-                    'VpcId': 'MADCORE_VPC_ID',
-                    'PublicNetZoneA': 'MADCORE_PUBLIC_NET_ZONE_A',
-                }
-            }
-
-            params = {
-                "MADCORE_S3_BUCKET": self.get_s3_bucket_name(),
-                "MADCORE_KEY_NAME": config.get_aws_data('key_name'),
-                "MADCORE_INSTANCE_TYPE": config.get_aws_data('instance_type'),
-            }
-
-            for stack_name, params_mapping in madcore_params_mapping.items():
-                stack_details = self.get_stack(stack_name, debug=True)
-                if stack_details:
-                    for stack_param, core_param in params_mapping.items():
-                        params[core_param] = self.get_output_from_dict(stack_details['Outputs'], stack_param)
-
-            self._core_params = params
-
-        return self._core_params
+    PLUGIN_TYPES = [const.PLUGIN_TYPE_PLUGIN, const.PLUGIN_TYPE_CLUSTER]
 
     def update_core_params(self, new_params, param_prefix, add_madcore_prefix=True, prefix_to_upper=True,
                            param_to_upper=False):
@@ -473,7 +557,7 @@ class PluginsBase(JenkinsBase):
         new_params = dict(
             ('%s_%s' % (prefix, key.upper() if param_to_upper else key), value) for key, value in new_params.items())
 
-        self.madcore_plugin_parameters.update(new_params)
+        self.madcore_global_parameters.update(new_params)
 
     def load_plugin_index(self):
         plugin_index_path = os.path.join(self.config_path, 'plugins', 'plugins-index.json')
@@ -524,7 +608,7 @@ class PluginsBase(JenkinsBase):
         return next(i for i in param_list if i['name'] == param_name)
 
     def _render_jinja_for_parameter(self, param, context=None):
-        context = context or self.madcore_plugin_parameters
+        context = context or self.madcore_global_parameters
 
         if param['value']:
             try:
@@ -537,7 +621,7 @@ class PluginsBase(JenkinsBase):
     def _populate_core_parameters(self, params_list):
         """CHeck if there are any jinja template for parameters value and fill it with core params"""
 
-        context = self.madcore_plugin_parameters
+        context = self.madcore_global_parameters
 
         for param in params_list:
             self._render_jinja_for_parameter(param, context)
@@ -627,19 +711,21 @@ class PluginsBase(JenkinsBase):
         return OrderedDict(((job_param['name'], job_param['value']) for job_param in plugin_params))
 
     def ask_for_plugin_parameters(self, job_params, parsed_args):
+        # when we define parameters in argparse we set the destination: 'dest=_<param_name>'
+        # so, here we need to remove that trailing '_' via arg_param[1:]
         parsed_args_dict = dict(
             ((arg_param[1:], arg_value) for arg_param, arg_value in vars(parsed_args).items() if
              arg_param.startswith('_') and arg_value is not None))
 
-        # reset parameters with user cmd line input parameters
+        # reset parameters with user cmd line input values
         for job_param in job_params:
             if job_param['name'] in parsed_args_dict:
                 job_param['value'] = parsed_args_dict[job_param['name']]
 
-        input_params_selector = Questionnaire(self.madcore_plugin_parameters)
+        input_params_selector = Questionnaire(self.madcore_global_parameters)
 
         for job_param in job_params:
-            # TODO@geo if user already input params via cmd line args then skip to ask here
+            # if user already input params via cmd line args then skip to ask here
             # this mean that user already set this param via cmd line so, no need to confirm again
             if (not job_param.get('prompt', True)) or \
                     (job_param['name'] in parsed_args_dict) or \
@@ -703,17 +789,28 @@ class PluginsBase(JenkinsBase):
 
         config.set_plugin_job_params(plugin_name, plugin_job, job_type, config_params)
 
-    def remove_plugin_jobs_params_from_config(self, plugin_name, parsed_args, plugin_jobs=None, job_type='job'):
-
-        if not plugin_jobs:
-            plugin_jobs = self.get_plugin_extra_jobs(plugin_name) + self.PLUGIN_DEFAULT_JOBS
-
-        config.delete_plugin_job_params(plugin_name, plugin_jobs, job_type=job_type)
-
-    def get_plugin_template_file(self, plugin_name, template_file, plugin_type='cluster'):
+    def get_plugin_template_file(self, plugin_name, template_file, plugin_type=const.PLUGIN_TYPE_CLUSTER):
         with open(os.path.join(self.config_path, 'plugins', plugin_type, plugin_name, template_file)) as content_file:
             content = content_file.read()
         return content
+
+    def remove_plugin_jobs_params_from_config(self, plugin_name=None):
+
+        if plugin_name:
+            plugins = [plugin_name]
+        else:
+            plugins = self.get_plugin_names()
+
+        # invalidate plugins saved data
+        for plugin_name in plugins:
+            plugin_data = config.get_plugin_data(plugin_name)
+            for key, val in plugin_data.items():
+                for job_type in [const.PLUGIN_JENKINS_JOB_TYPE, const.PLUGIN_CLOUDFORMATION_JOB_TYPE]:
+                    if key.startswith(job_type):
+                        # remove all the saved plugin data if the core parameters are change. This wa we will
+                        # make sure that we are not using some old data
+                        # TODO@geo can we optimize this so that we can delete only that was changed??
+                        config.remove_option(plugin_name, key)
 
 
 class Stdout(object):
