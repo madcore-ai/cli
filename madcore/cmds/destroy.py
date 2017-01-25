@@ -15,23 +15,28 @@ class Destroy(StackManagement, Lister):
 
     def take_action(self, parsed_args):
         self.log_figlet("Destroy")
-        core_deleted = self.delete_stack_if_exists(const.STACK_CORE)
-        sgfm_deleted = self.delete_stack_if_exists(const.STACK_FOLLOWME)
-        network_deleted = self.delete_stack_if_exists(const.STACK_NETWORK)
-        # dns_deleted = self.delete_stack_if_exists('dns')
-        # for now we do not delete S3 because it may contain critical information like backups and other
-        # s3_deleted = self.delete_stack_if_exists('s3')
+        self.ask_question_and_continue_on_yes("Are you sure you want to destroy?", start_with_yes=False)
 
-        # keep track that it was deleted
-        config.set_user_data({'config_deleted': True})
+        all_stacks = self.cf_client.describe_stacks()
+
+        skip_remove_stack_names = [const.STACK_S3, const.STACK_DNS]
+
+        deleted_stacks = []
+
+        for stack_details in all_stacks['Stacks']:
+            stack_name = stack_details['StackName']
+            if stack_name not in skip_remove_stack_names:
+                deleted_stacks.append(
+                    (stack_name, self.delete_stack_if_exists(stack_name)))
+
+        if not deleted_stacks:
+            self.logger.info("Nothing to destroy.")
+
+        config.delete_global_params()
+        # remove all the data related to plugins
+        config.delete_plugins(self.get_plugin_names())
 
         return (
             ('StackName', 'Deleted'),
-            (
-                (const.STACK_CORE, core_deleted),
-                (const.STACK_FOLLOWME, sgfm_deleted),
-                (const.STACK_NETWORK, network_deleted),
-                (const.STACK_DNS, False),
-                (const.STACK_S3, False),
-            )
+            deleted_stacks
         )

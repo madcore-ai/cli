@@ -118,9 +118,10 @@ class PluginManagement(JenkinsBase, StackManagement):
 
         stack_name = job_definition['stack_name']
 
-        stack_deleted = self.delete_stack_if_exists(stack_name)
+        self.delete_stack_if_exists(stack_name)
 
-        return stack_deleted
+        # does's matter if stack already deleted, we still consider it as deleted
+        return True
 
     def execute_plugin_status_cloudformation_job(self, plugin_name, sequence, parsed_args):
         job_name = sequence['job_name']

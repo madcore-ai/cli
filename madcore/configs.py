@@ -89,6 +89,13 @@ class MadcoreConfig(object):
             except:
                 pass
 
+    def delete_global_params(self, section='global_params'):
+        self.remove_section(section)
+
+    def delete_plugins(self, plugins):
+        for plugin_name in plugins:
+            self.remove_section(plugin_name)
+
     def get_plugin_job_params(self, plugin_name, job_name, job_type):
         key_name = '{job_type}_{job_name}'.format(job_type=job_type, job_name=job_name)
         params = self.get_data(plugin_name, key_name)
@@ -130,6 +137,10 @@ class MadcoreConfig(object):
         self.config.remove_option(section, option)
         self.save_config()
 
+    def remove_section(self, section):
+        if self.config.remove_section(section):
+            self.save_config()
+
     def is_key_true(self, key, section):
         try:
             return self.config.getboolean(section, key)
@@ -137,10 +148,6 @@ class MadcoreConfig(object):
             pass
 
         return False
-
-    @property
-    def is_config_deleted(self):
-        return self.is_key_true('config_deleted', 'user')
 
     def is_plugin_installed(self, plugin_name):
         return self.is_key_true('installed', plugin_name)

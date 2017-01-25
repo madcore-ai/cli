@@ -384,9 +384,6 @@ class StackCreate(StackManagement, Command):
         dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists(const.STACK_DNS, dns_stack_template,
                                                                              dns_parameters)
 
-        # at this point we have cloudformation up and running so we can
-        config.set_user_data({'config_deleted': False})
-
         # save extra data related to cloudformation
         config.set_user_data({
             's3_bucket_name': s3_bucket_name
@@ -409,7 +406,6 @@ class StackCreate(StackManagement, Command):
             self.logger.error("DNS delegation error: %s", delegation_response)
             dns_delegation = False
 
-        config.set_user_data({'dns_delegation': dns_delegation})
         self.logger.info("DNS delegation end.")
 
         if not dns_delegation:
