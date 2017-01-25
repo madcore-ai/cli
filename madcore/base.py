@@ -101,6 +101,30 @@ class MadcoreBase(object):
     def get_endpoint_url(cls, endpoint):
         return 'https://%s.%s' % (endpoint, config.get_full_domain())
 
+    @classmethod
+    def raw_prompt(cls, key, description, **kwargs):
+        questionnaire = Questionnaire()
+        questionnaire.add_question(key, prompter=str('raw'), prompt=description, **kwargs)
+        return questionnaire.run()
+
+    @classmethod
+    def single_prompt(cls, key, options=None, prompt='', **kwargs):
+        questionnaire = Questionnaire()
+        questionnaire.add_question(key, prompter=str('single'), options=options, prompt=prompt, **kwargs)
+        return questionnaire.run()
+
+    def ask_question_and_continue_on_yes(self, question, start_with_yes=True):
+        options = ['no']
+
+        if start_with_yes:
+            options.insert(0, 'yes')
+        else:
+            options.append('yes')
+
+        answer = self.single_prompt('answer', options=options, prompt=question)
+        if answer['answer'] == 'no':
+            self.exit()
+
 
 class AwsBase(object):
     def get_aws_client(self, name, **kwargs):

@@ -15,23 +15,10 @@ from madcore.base import CloudFormationBase
 from madcore.configs import config
 from madcore.libs.aws import AwsLambda, AwsConfig
 from madcore.libs.bitbucket import Bitbucket, AuthError
-from madcore.libs.input_questions import Questionnaire
 
 
 class MadcoreConfigure(CloudFormationBase, Command):
     logger = logging.getLogger(__name__)
-
-    @classmethod
-    def raw_prompt(cls, key, description, **kwargs):
-        questionnaire = Questionnaire()
-        questionnaire.add_question(key, prompter=str('raw'), prompt=description, **kwargs)
-        return questionnaire.run()
-
-    @classmethod
-    def single_prompt(cls, key, options=None, prompt='', **kwargs):
-        questionnaire = Questionnaire()
-        questionnaire.add_question(key, prompter=str('single'), options=options, prompt=prompt, **kwargs)
-        return questionnaire.run()
 
     def get_ec2_key_pairs(self, region_name):
         client = self.get_aws_client('ec2', region_name=region_name)
@@ -322,10 +309,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
                 'email': user_email,
                 'password': user_password,
                 'created': False,
-                'verified': False,
-                'registration': False,
-                'dns_delegation': False,
-                'config_deleted': True
+                'verified': False
             }
             # set user data here so that we have the info in login
             config.set_user_data(user_data)
