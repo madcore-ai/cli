@@ -384,11 +384,6 @@ class StackCreate(StackManagement, Command):
         dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists(const.STACK_DNS, dns_stack_template,
                                                                              dns_parameters)
 
-        # save extra data related to cloudformation
-        config.set_user_data({
-            's3_bucket_name': s3_bucket_name
-        })
-
         self.log_figlet("DNS delegation")
         # TODO@geo run DNS relegation all the time to make sure that all is uptodate
         # if not dns_exists or dns_updated:
