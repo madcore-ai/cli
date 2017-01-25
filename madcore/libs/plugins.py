@@ -3,8 +3,8 @@ from __future__ import unicode_literals, print_function
 import logging
 
 from madcore import const
-from madcore.libs.cloudformation import StackManagement
 from madcore.base import JenkinsBase
+from madcore.libs.cloudformation import StackManagement
 
 logger = logging.getLogger(__name__)
 
@@ -139,8 +139,8 @@ class PluginManagement(JenkinsBase, StackManagement):
 
         return stack_details
 
-    def execute_plugin_job(self, plugin_name, job_name, parsed_args):
-        job_definition = self.get_plugin_job_definition(plugin_name, job_name)
+    def execute_plugin_job(self, plugin_name, current_job_name, parsed_args):
+        job_definition = self.get_plugin_job_definition(plugin_name, current_job_name)
 
         CF_ACTIONS = {
             'create': self.execute_plugin_create_cloudformation_job,
@@ -150,13 +150,13 @@ class PluginManagement(JenkinsBase, StackManagement):
         }
 
         # first of all check if current job does have parameters
-        job_parameters = self.get_plugin_job_final_params(plugin_name, job_name, const.PLUGIN_JENKINS_JOB_TYPE,
+        job_parameters = self.get_plugin_job_final_params(plugin_name, current_job_name, const.PLUGIN_JENKINS_JOB_TYPE,
                                                           parsed_args)
         if job_parameters:
             # make the input params available for alter use like
             # <JOB_NAME>_<PARAM_NAME>
-            self.update_core_params(self.list_params_to_dict(job_parameters), job_name, add_madcore_prefix=False,
-                                    param_to_upper=True)
+            self.update_core_params(self.list_params_to_dict(job_parameters), current_job_name,
+                                    add_madcore_prefix=False, param_to_upper=True)
 
         if 'sequence' in job_definition:
             _results = []
@@ -165,6 +165,10 @@ class PluginManagement(JenkinsBase, StackManagement):
                 self.logger.info(sequence['description'])
 
                 if sequence['type'] in ('job',):
+                    # don't send the parameters because it's different job
+                    if sequence['job_name'] != current_job_name:
+                        job_parameters = None
+
                     jenkins_job_result = self.execute_plugin_jenkins_job(plugin_name, sequence['job_name'], parsed_args,
                                                                          job_parameters)
                     _results.append(jenkins_job_result)
@@ -183,6 +187,6 @@ class PluginManagement(JenkinsBase, StackManagement):
 
             success = all(_results)
         else:
-            success = self.execute_plugin_jenkins_job(plugin_name, job_name, parsed_args, job_parameters)
+            success = self.execute_plugin_jenkins_job(plugin_name, current_job_name, parsed_args, job_parameters)
 
         return success
