@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 import json
 import logging
 import os
+import re
 import sys
 import time
 from collections import OrderedDict
@@ -475,12 +476,15 @@ class CloudFormationBase(MadcoreBase, AwsBase):
 
 
 class JenkinsBase(CloudFormationBase):
+    building_job_regex = re.compile(r"Starting building: (?P<job_name>.+?) #(?P<build_number>\d+)")
+
     @property
     def jenkins_endpoint(self):
         return self.get_endpoint_url('jenkins')
 
-    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1):
-        self.logger.info("Get console output for job: '%s'\n", job_name)
+    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1, child_job=False):
+        if not child_job:
+            self.logger.info("Get console output for job: '%s #%s'", job_name, build_number)
 
         # wait until job is queued to get the output
         while True:
@@ -499,7 +503,15 @@ class JenkinsBase(CloudFormationBase):
                 for line in text.split(os.linesep):
                     line = line.strip()
                     if line:
-                        self.logger.info(line.decode('utf-8'))
+                        log_line = line.decode('utf-8')
+                        if child_job:
+                            log_line = '    %s' % log_line
+                        self.logger.info(log_line)
+                        new_build_job = self.building_job_regex.search(line)
+                        if new_build_job:
+                            new_build_job = new_build_job.groupdict()
+                            self.show_job_console_output(jenkins_server, new_build_job['job_name'],
+                                                         int(new_build_job['build_number']), child_job=True)
 
             if not has_more_data:
                 break
