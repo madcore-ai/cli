@@ -29,7 +29,7 @@ class Configure(JenkinsBase, Lister):
         # TODO@geo maybe we should check if specific files exists in backup?
 
         s3_client = self.get_aws_client('s3')
-        s3_bucket_name = config.get_user_data('s3_bucket_name') or self.get_s3_bucket_name()
+        s3_bucket_name = self.get_s3_bucket_name()
 
         try:
             s3_objects = s3_client.list_objects(
@@ -94,7 +94,7 @@ class Configure(JenkinsBase, Lister):
         stack_create = StackCreate(self.app, self.app_args)
         stack_create.take_action(parsed_args)
 
-        s3_bucket_name = config.get_user_data('s3_bucket_name')
+        s3_bucket_name = self.get_s3_bucket_name()
         hostname = config.get_full_domain()
 
         # For now we disable ssl verification
