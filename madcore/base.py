@@ -793,6 +793,10 @@ class PluginsBase(CloudFormationBase):
 
         return {}
 
+    def is_plugin_job_private(self, plugin_name, job_name):
+        for plugin_def in self.get_plugin_job_definition(plugin_name, job_name):
+            return plugin_def.get('private', False)
+
     @classmethod
     def _get_parameters_name(cls, param_list):
         return [param['name'] for param in param_list]
@@ -851,12 +855,17 @@ class PluginsBase(CloudFormationBase):
                                   load_validators=True, check_config=True, render_core_params=False):
         plugin = self.get_plugin_by_name(plugin_name)
 
-        job_parameters = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type).get('parameters', [])
+        job_definition = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type)
+        job_parameters = job_definition.get('parameters', [])
 
         if job_type not in (const.PLUGIN_CLOUDFORMATION_JOB_TYPE,):
-            # for now we skip adding the plugin root params to the final params
-            plugin_parameters = plugin.get('parameters', [])
-            job_parameters = self.override_parameters_if_exists(plugin_parameters, job_parameters)
+            # for now allow only the public jobs to have plugin level parameters
+            # TODO@geo We may need to change this?
+            # We need to find a way to not send parent parameters to specific jobs. I guess
+            # we can have a simple option: "parent_params: false' which will do the trick
+            if not job_definition.get("private", False):
+                plugin_parameters = plugin.get('parameters', [])
+                job_parameters = self.override_parameters_if_exists(plugin_parameters, job_parameters)
 
         if render_core_params:
             job_parameters = self._populate_core_parameters(job_parameters)
