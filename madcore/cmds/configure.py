@@ -60,7 +60,8 @@ class Configure(JenkinsBase, Lister):
         self.log_figlet(msg)
         endpoint_up = self.wait_until_url_is_up(endpoint_url, log_msg=msg, max_timeout=60 * 10, verify=True)
         if endpoint_up:
-            self.logger.info("[%s] Endpoint is up, continue.", endpoint)
+            self.logger.info("[%s] Endpoint is up: %s.", endpoint, endpoint_url)
+            self.log_figlet("%s UP!", endpoint)
         else:
             self.logger.error("[%s] Error while waiting for endpoint.", endpoint)
 

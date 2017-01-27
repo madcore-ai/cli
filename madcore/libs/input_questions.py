@@ -38,7 +38,10 @@ class Questionnaire(questionnaire.Questionnaire):
     default_values_label = {}
 
     def __init__(self, madcore_jinja_params=None, show_answers=True):
-        self.madcore_jinja_params = madcore_jinja_params or {}
+        if madcore_jinja_params is not None:
+            self.madcore_jinja_params = madcore_jinja_params.copy()
+        else:
+            self.madcore_jinja_params = {}
         questionnaire.Questionnaire.__init__(self, show_answers=show_answers)
 
     @property
