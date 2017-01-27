@@ -1,6 +1,7 @@
 from __future__ import print_function, unicode_literals
 
 import logging
+import time
 
 import botocore.exceptions
 from cliff.command import Command
@@ -9,6 +10,7 @@ from madcore import const
 from madcore import utils
 from madcore.base import PluginsBase
 from madcore.configs import config
+from madcore.libs import timeouts
 from madcore.libs.aws import AwsLambda
 
 
@@ -406,15 +408,31 @@ class StackCreate(StackManagement, Command):
         if not dns_delegation:
             self.exit()
 
-        self.logger.info("Wait until DNS for domain '%s' is resolved...", config.get_full_domain())
-        domain_ip = utils.hostname_resolves(config.get_full_domain(), max_time=60 * 30)
+        domain_name = config.get_full_domain()
+
+        self.logger.info("Wait until DNS for domain '%s' is resolved...", domain_name)
+
+        slept_time = 0
+        sleep_time = 5
+        while True:
+            domain_ip = utils.hostname_resolves(config.get_full_domain(), max_time=timeouts.DNS_RESOLVE_TIMEOUT)
+
+            if domain_ip != core_public_ip:
+                self.logger.warn("Domain '%s' points to '%s' but should point to '%s'", config.get_full_domain(),
+                                 domain_ip, core_public_ip)
+
+                if slept_time > timeouts.DNS_UPDATE_TIMEOUT:
+                    self.logger.error("Error while waiting for DNS update, timeout: %s seconds",
+                                      timeouts.DNS_UPDATE_TIMEOUT)
+                    self.exit()
+
+                time.sleep(sleep_time)
+                slept_time += sleep_time
+            else:
+                break
 
         if domain_ip is None:
             self.logger.error("DNS not resolvable.")
-            self.exit()
-        elif domain_ip != core_public_ip:
-            self.logger.error("Domain '%s' points to '%s' but should point to '%s'", config.get_full_domain(),
-                              domain_ip, core_public_ip)
             self.exit()
         else:
             self.logger.info("DNS resolved.")
