@@ -13,9 +13,17 @@ class Destroy(StackManagement, Lister):
     logger = logging.getLogger(__name__)
     _description = "Destroy madcore"
 
+    def get_parser(self, prog_name):
+        parser = super(Destroy, self).get_parser(prog_name)
+
+        parser.add_argument('--force', default=False, action='store_true', dest='force',
+                            help="Destroy without confirmation.")
+        return parser
+
     def take_action(self, parsed_args):
         self.log_figlet("Destroy")
-        self.ask_question_and_continue_on_yes("Are you sure you want to destroy?", start_with_yes=False)
+        if not parsed_args.force:
+            self.ask_question_and_continue_on_yes("Are you sure you want to destroy?", start_with_yes=False)
 
         all_stacks = self.cf_client.describe_stacks()
 

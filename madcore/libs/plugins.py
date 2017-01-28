@@ -10,6 +10,29 @@ logger = logging.getLogger(__name__)
 
 
 class PluginManagement(JenkinsBase, StackManagement):
+    def get_scaled_instances_ips(self, scaled_instances):
+        """
+        Wait until instances are added/removed from cluster.
+
+        :param dict scaled_instances: Dict with the following for {"start": [instances], "terminate": [instances]}
+        :return:
+        """
+
+        ec2_cli = self.get_aws_client('ec2')
+
+        instance_ips = []
+
+        for action, instance_ids in scaled_instances.items():
+            if action in ('start',):
+                instance_details = ec2_cli.describe_instances(
+                    InstanceIds=instance_ids
+                )
+
+                for reservation in instance_details['Reservations']:
+                    instance_ips += [instance['PrivateIpAddress'] for instance in reservation['Instances']]
+
+        return instance_ips
+
     def execute_plugin_jenkins_job(self, plugin_name, job_name, parsed_args, job_params=None):
         job_type = const.PLUGIN_JENKINS_JOB_TYPE
 
@@ -35,6 +58,8 @@ class PluginManagement(JenkinsBase, StackManagement):
         stack_name = job_definition['stack_name']
         stack_details = self.get_stack(stack_name, debug=False)
 
+        asg_instance_ips = []
+
         if not stack_details or self.is_stack_create_failed(stack_details):
             job_params = self.get_plugin_job_final_params(plugin_name, job_name, job_type, parsed_args)
 
@@ -51,14 +76,17 @@ class PluginManagement(JenkinsBase, StackManagement):
             if (not exists or updated) and self.is_stack_create_complete(stack_details):
                 try:
                     asg_name = self.get_output_from_dict(stack_details['Outputs'], 'AutoScalingGroupName')
-                    self.wait_for_auto_scale_group_to_finish(asg_name)
+                    scaled_instances = self.wait_for_auto_scale_group_to_finish(asg_name)
+                    asg_instance_ips = self.get_scaled_instances_ips(scaled_instances)
                 except KeyError:
                     pass
 
-            self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, job_params, parsed_args)
+            self.update_core_params({'asg_instance_ips': asg_instance_ips}, param_prefix=job_name, prefix_to_upper=True,
+                                    add_madcore_prefix=False)
         else:
             self.logger.info("[%s] Stack already created with status: '%s'.", stack_name, stack_details['StackStatus'])
 
+        self.update_core_params({'asg_instance_ips': asg_instance_ips}, param_prefix=job_name, param_to_upper=True)
         self.update_core_params(self.stack_output_to_dict(stack_details), job_name, add_madcore_prefix=False)
 
         return True
@@ -90,6 +118,14 @@ class PluginManagement(JenkinsBase, StackManagement):
 
         stack_template_body = self.get_plugin_template_file(plugin_name, job_definition['template_file'])
 
+        # get the last activity from ASG so that we could track newly added ones
+        last_activity = None
+        try:
+            asg_name = self.get_output_from_dict(stack_details['Outputs'], 'AutoScalingGroupName')
+            last_activity = self.get_asg_last_activity(asg_name)
+        except KeyError:
+            pass
+
         updated = self.update_stack_if_changed(
             stack_name,
             stack_template_body,
@@ -100,12 +136,19 @@ class PluginManagement(JenkinsBase, StackManagement):
 
         stack_details = self.get_stack(stack_name, debug=False)
 
+        asg_instance_ips = []
+
         if updated and self.is_stack_update_complete(stack_details):
             try:
                 asg_name = self.get_output_from_dict(stack_details['Outputs'], 'AutoScalingGroupName')
-                self.wait_for_auto_scale_group_to_finish(asg_name)
+                scaled_instances = self.wait_for_auto_scale_group_to_finish(asg_name, last_activity)
+                asg_instance_ips = self.get_scaled_instances_ips(scaled_instances)
+
             except KeyError:
                 pass
+
+        self.update_core_params({'asg_instance_ips': asg_instance_ips}, param_prefix=job_name, param_to_upper=True,
+                                add_madcore_prefix=False)
 
         self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, sequence_params, parsed_args)
 
@@ -152,6 +195,9 @@ class PluginManagement(JenkinsBase, StackManagement):
         # first of all check if current job does have parameters
         job_parameters = self.get_plugin_job_final_params(plugin_name, current_job_name, const.PLUGIN_JENKINS_JOB_TYPE,
                                                           parsed_args)
+
+        job_parameters = job_parameters or []
+
         if job_parameters:
             # make the input params available for alter use like
             # <JOB_NAME>_<PARAM_NAME>
@@ -167,7 +213,15 @@ class PluginManagement(JenkinsBase, StackManagement):
                 if sequence['type'] in ('job',):
                     # don't send the parameters because it's different job
                     if sequence['job_name'] != current_job_name:
-                        job_parameters = None
+                        job_parameters = []
+
+                    # TODO@geo We need to move this into unified place where we get parameters for all type of jobs
+                    # including sequence
+                    sequence_params = sequence.get('parameters', [])
+                    if sequence_params:
+                        sequence_params = self.load_plugin_job_validators(sequence['parameters'])
+                        sequence_params = self.ask_for_plugin_parameters(sequence_params, parsed_args)
+                        job_parameters = self.override_parameters_if_exists(sequence_params, job_parameters)
 
                     jenkins_job_result = self.execute_plugin_jenkins_job(plugin_name, sequence['job_name'], parsed_args,
                                                                          job_parameters)

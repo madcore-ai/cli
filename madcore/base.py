@@ -7,6 +7,7 @@ import re
 import sys
 import time
 from collections import OrderedDict
+from collections import defaultdict
 
 import boto3
 import botocore.exceptions
@@ -16,6 +17,7 @@ import urllib3
 from cliff.formatters.table import TableFormatter
 
 from madcore import const
+from madcore import exceptions
 from madcore import utils
 from madcore.configs import config
 from madcore.libs.figlet import figlet
@@ -114,7 +116,7 @@ class MadcoreBase(object):
         questionnaire.add_question(key, prompter=str('single'), options=options, prompt=prompt, **kwargs)
         return questionnaire.run()
 
-    def ask_question_and_continue_on_yes(self, question, start_with_yes=True):
+    def ask_question_and_continue_on_yes(self, question, start_with_yes=True, exit=True):
         options = ['no']
 
         if start_with_yes:
@@ -124,10 +126,19 @@ class MadcoreBase(object):
 
         answer = self.single_prompt('answer', options=options, prompt=question)
         if answer['answer'] == 'no':
-            self.exit()
+            if exit:
+                self.exit()
+            return False
+
+        return True
 
 
 class AwsBase(object):
+    logger = logging.getLogger(__name__)
+
+    re_spot_instance_req_id = re.compile(r'Placed Spot instance request: (?P<sir_id>sir-.+?)\.')
+    re_instance_id = re.compile(r'(?P<action>Terminating|Launching).+?EC2 instance:\s*(?P<instance_id>i-\w+)')
+
     def get_aws_client(self, name, **kwargs):
         params = self.get_aws_connection_params.copy()
         params.update(kwargs)
@@ -194,65 +205,206 @@ class AwsBase(object):
 
         return data['SpotPriceHistory']
 
-    def wait_for_auto_scale_group_to_finish(self, asg_name):
-        self.logger.info("Wait for AutoScaleGroup to finish activity '%s'", asg_name)
+    def get_spot_request_instance_id_from_text(self, text):
+        res = self.re_spot_instance_req_id.search(text)
 
+        if res:
+            return res.groupdict()['sir_id']
+
+        return None
+
+    def describe_spot_instance_requests(self, spot_inst_req_id):
+        ec2_cli = self.get_aws_client('ec2')
+        data = ec2_cli.describe_spot_instance_requests(
+            SpotInstanceRequestIds=[spot_inst_req_id],
+        )
+
+        return data['SpotInstanceRequests'][0]
+
+    def cancel_spot_instance_requests(self, spot_inst_req_id):
+        self.logger.debug("Cancel spot request instance: %s", spot_inst_req_id)
+        ec2_cli = self.get_aws_client('ec2')
+        data = ec2_cli.cancel_spot_instance_requests(
+            SpotInstanceRequestIds=[spot_inst_req_id],
+        )
+
+        cancel_response = data['CancelledSpotInstanceRequests'][0]
+        cancelled = cancel_response['State'] == 'cancelled'
+
+        return cancelled
+
+    def get_asg_last_activity(self, asg_name):
+        asg_client = self.get_aws_client('autoscaling')
+
+        asg_response = asg_client.describe_scaling_activities(
+            AutoScalingGroupName=asg_name,
+            MaxRecords=1
+        )
+
+        last_activity = None
+
+        if asg_response['Activities']:
+            last_activity = asg_response['Activities'][0]
+
+        return last_activity
+
+    def get_instance_action_from_activity_description(self, description):
+        re_obj = self.re_instance_id.search(description)
+
+        if re_obj:
+            result = re_obj.groupdict()
+            if result['action'] in ('Launching',):
+                result['action'] = 'start'
+            elif result['action'] in ('Terminating',):
+                result['action'] = 'terminate'
+
+            return result
+
+        return None
+
+    def wait_for_asg_activity_to_finish(self, asg_name, activity):
         asg_client = self.get_aws_client('autoscaling')
 
         first_time = True
+        no_activities_sleep = 5
+        consecutive_status_count = 10
+        consecutive_status_max_count = 100
+
+        activities_progress = defaultdict(int)
+        spot_instance_req_id = None
+        spot_instance_response = None
+        instance_action = None
+
+        while True:
+            try:
+                asg_response = asg_client.describe_scaling_activities(
+                    AutoScalingGroupName=asg_name,
+                    ActivityIds=[activity['ActivityId']]
+                )
+                activity = asg_response['Activities'][0]
+
+                if first_time:
+                    self.logger.debug("[%s] %s", activity['StatusCode'], activity['Description'])
+                    first_time = False
+
+                self.logger.info("[%s] Progress: %s", activity['StatusCode'], activity['Progress'])
+
+                activities_progress[activity['StatusCode']] += 1
+
+                if not spot_instance_req_id:
+                    spot_instance_req_id = self.get_spot_request_instance_id_from_text(activity['Description'])
+
+                if spot_instance_req_id:
+                    spot_instance_response = self.describe_spot_instance_requests(spot_instance_req_id)
+
+                if activities_progress[activity['StatusCode']] % consecutive_status_count == 0:
+                    self.logger.debug("[%s] %s", activity['StatusCode'], activity['Description'])
+
+                    if spot_instance_response:
+                        if spot_instance_response['State'] in ('open',):
+                            self.logger.debug('[%s] %s', spot_instance_response['Status']['Code'],
+                                              spot_instance_response['Status']['Message'])
+                if not instance_action:
+                    instance_action = self.get_instance_action_from_activity_description(activity['Description'])
+
+                if activities_progress[activity['StatusCode']] >= consecutive_status_max_count:
+                    self.logger.warn("Activity stuck with status: '%s', continue.", activity['StatusCode'])
+                    break
+
+                if activity['Progress'] == 100:
+                    self.logger.info("Status: %s", activity.get('StatusMessage', activity.get('StatusCode', 'OK')))
+                    break
+
+                time.sleep(no_activities_sleep)
+            except KeyboardInterrupt:
+                self.logger.info("Stop waiting for activity to finish.")
+                break
+
+        return instance_action
+
+    def wait_for_auto_scale_group_to_finish(self, asg_name, last_old_activity=None):
+        self.logger.info("Wait for AutoScaleGroup to finish activities.")
+
+        asg_client = self.get_aws_client('autoscaling')
+        ec2_client = self.get_aws_client('ec2')
+
         max_no_activities_count = 5
         no_activities_count = 0
         no_activities_sleep = 5
+        scaled_instances = defaultdict(list)
 
-        in_progress = False
+        processed_activities = []
 
         while True:
-            asg_response = asg_client.describe_scaling_activities(
-                AutoScalingGroupName=asg_name,
-                MaxRecords=1
-            )
+            try:
+                asg_response = asg_client.describe_scaling_activities(
+                    AutoScalingGroupName=asg_name
+                )
 
-            if asg_response['Activities']:
-                last_activity = asg_response['Activities'][0]
-                if not in_progress:
-                    in_progress_status = (
-                        'PendingSpotBidPlacement',
-                        'WaitingForSpotInstanceRequestId',
-                        'WaitingForSpotInstanceId',
-                        'WaitingForInstanceId',
-                        'PreInService',
-                        'InProgress',
-                        'WaitingForELBConnectionDraining',
-                        'MidLifecycleAction',
-                        'WaitingForInstanceWarmup',
-                    )
-                    if last_activity['StatusCode'] not in in_progress_status:
-                        # if last activity is not yet in progress then we need to wait because ASG did not put the
-                        # activity in queue
-                        time.sleep(no_activities_sleep)
-                        continue
-                    else:
-                        in_progress = True
+                process_activity = None
 
-                if first_time:
-                    self.logger.info(last_activity['Description'])
-                    # self.logger.debug(last_activity['Cause'])
+                if asg_response['Activities']:
 
-                    first_time = False
+                    # get last unprocessed activity
+                    queue_activities = 0
+                    for act_idx, activity in enumerate(asg_response['Activities']):
+                        queue_activities += 1
+                        if last_old_activity is None:
+                            # get oldest activity to make sure we do not skip any activity
+                            last_old_activity = asg_response['Activities'][-1]
+                        if activity['ActivityId'] == last_old_activity['ActivityId']:
+                            if act_idx > 0:
+                                # get next activity from the list which is basically a FILO queue
+                                activity_idx = act_idx - 1
+                            else:
+                                # if it's the first activity of the activity already been processed
+                                if not processed_activities or activity['ActivityId'] in processed_activities:
+                                    break
+                                # get the top activity from the list, which mean that we are processing last activity
+                                # for current loop
+                                activity_idx = 0
 
-                self.logger.info("Progress: %s", last_activity['Progress'])
+                            queue_activities -= 1
+                            process_activity = asg_response['Activities'][activity_idx]
+                            break
 
-                if last_activity['Progress'] == 100:
-                    self.logger.info("StatusMessage: %s", last_activity['StatusMessage'])
-                    break
+                    if not process_activity:
+                        raise exceptions.AutoScaleGroupNoActivities("No activities, wait until queued.")
 
-                time.sleep(no_activities_sleep)
-            else:
-                # if there are no activities wait a little try again
+                    self.logger.debug("Activities in queue: %s", queue_activities)
+
+                    instance = self.wait_for_asg_activity_to_finish(asg_name, process_activity)
+                    if instance:
+                        scaled_instances[instance['action']].append(instance['instance_id'])
+
+                    last_old_activity = process_activity
+                    processed_activities.append(process_activity['ActivityId'])
+                else:
+                    raise exceptions.AutoScaleGroupNoActivities("No activities, wait until new are queued.")
+            except KeyboardInterrupt:
+                self.logger.info("Stop waiting for activities to finish.")
+                break
+            except exceptions.AutoScaleGroupNoActivities as e:
+                self.logger.error(e)
                 no_activities_count += 1
                 if no_activities_count > max_no_activities_count:
+                    self.logger.info("No activities for AutoScaleGroup.")
+                    self.logger.info("Give up retry.")
                     break
                 time.sleep(no_activities_sleep)
+
+        # wait until instances are properly started/terminated
+        for action, instance_ids in scaled_instances.items():
+            if action in ('terminate',):
+                ec2_client.get_waiter('instance_terminated').wait(
+                    InstanceIds=instance_ids
+                )
+            elif action in ('start',):
+                ec2_client.get_waiter('instance_running').wait(
+                    InstanceIds=instance_ids
+                )
+
+        return scaled_instances
 
 
 class CloudFormationBase(MadcoreBase, AwsBase):
@@ -533,6 +685,7 @@ class JenkinsBase(CloudFormationBase):
             self.logger.debug("[%s] Job does not have input parameters.", job_name)
 
         retry_time = 0
+        retry_sleep = 5
         while True:
             try:
                 jenkins_server = self.create_jenkins_server()
@@ -555,12 +708,17 @@ class JenkinsBase(CloudFormationBase):
                 job_info = jenkins_server.get_job_info(job_name)
 
                 return job_info['lastSuccessfulBuild']['number'] == build_number
-
+            except KeyboardInterrupt:
+                if self.ask_question_and_continue_on_yes("Cancel job: '%s' ?" % job_name):
+                    jenkins_server.stop_build(job_name, build_number)
+                    self.logger.warn("[%s] Canceled.", job_name)
+                    break
             except JenkinsException as jenkins_error:
                 retry_time += 1
                 if retry_time > max_retry_times:
                     break
                 self.logger.error("[%s] %s. Retry: %s", job_name, jenkins_error, retry_time)
+                time.sleep(retry_sleep)
 
         self.logger.error("[%s] Error while trying to run jenkins job.", job_name)
 
@@ -635,6 +793,10 @@ class PluginsBase(CloudFormationBase):
 
         return {}
 
+    def is_plugin_job_private(self, plugin_name, job_name):
+        for plugin_def in self.get_plugin_job_definition(plugin_name, job_name):
+            return plugin_def.get('private', False)
+
     @classmethod
     def _get_parameters_name(cls, param_list):
         return [param['name'] for param in param_list]
@@ -693,12 +855,17 @@ class PluginsBase(CloudFormationBase):
                                   load_validators=True, check_config=True, render_core_params=False):
         plugin = self.get_plugin_by_name(plugin_name)
 
-        job_parameters = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type).get('parameters', [])
+        job_definition = self.get_plugin_job_definition(plugin_name, job_name, job_type=job_type)
+        job_parameters = job_definition.get('parameters', [])
 
         if job_type not in (const.PLUGIN_CLOUDFORMATION_JOB_TYPE,):
-            # for now we skip adding the plugin root params to the final params
-            plugin_parameters = plugin.get('parameters', [])
-            job_parameters = self.override_parameters_if_exists(plugin_parameters, job_parameters)
+            # for now allow only the public jobs to have plugin level parameters
+            # TODO@geo We may need to change this?
+            # We need to find a way to not send parent parameters to specific jobs. I guess
+            # we can have a simple option: "parent_params: false' which will do the trick
+            if not job_definition.get("private", False):
+                plugin_parameters = plugin.get('parameters', [])
+                job_parameters = self.override_parameters_if_exists(plugin_parameters, job_parameters)
 
         if render_core_params:
             job_parameters = self._populate_core_parameters(job_parameters)

@@ -10,6 +10,7 @@ from madcore.base import JenkinsBase
 from madcore.configs import config
 from madcore.configure import MadcoreConfigure
 from madcore.const import DOMAIN_REGISTRATION
+from madcore.libs import timeouts
 from madcore.libs.cloudformation import StackCreate
 
 
@@ -58,9 +59,11 @@ class Configure(JenkinsBase, Lister):
         endpoint_url = self.get_endpoint_url(endpoint)
 
         self.log_figlet(msg)
-        endpoint_up = self.wait_until_url_is_up(endpoint_url, log_msg=msg, max_timeout=60 * 10, verify=True)
+        endpoint_up = self.wait_until_url_is_up(endpoint_url, log_msg=msg, max_timeout=timeouts.ENDPOINT_UP_TIMEOUT,
+                                                verify=True)
         if endpoint_up:
-            self.logger.info("[%s] Endpoint is up, continue.", endpoint)
+            self.logger.info("[%s] Endpoint is up: %s.", endpoint, endpoint_url)
+            self.log_figlet("%s UP!", endpoint)
         else:
             self.logger.error("[%s] Error while waiting for endpoint.", endpoint)
 

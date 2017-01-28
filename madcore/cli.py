@@ -52,6 +52,13 @@ class MadcoreCli(App):
         self.plugin_loader.load_installed_plugins_commands()
         self.load_extra_commands()
 
+    def build_option_parser(self, description, version,
+                            argparse_kwargs=None):
+        parser = super(MadcoreCli, self).build_option_parser(description, version, argparse_kwargs=argparse_kwargs)
+        # we add here custom args
+
+        return parser
+
     def configure_logging(self):
         self.LOG = logging.getLogger('madcore')
 
