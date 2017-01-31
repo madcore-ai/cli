@@ -22,7 +22,7 @@ Install
    pip install madcore
 
 Runtime Prerequesites
-------------------
+---------------------
 
  * Create AWS IAM User
  * Run “aws configure” to setup key, secret and default region will be used by madcore
@@ -49,7 +49,7 @@ Madcore-Core       Core Instance, t2.small or m3.medium
 ================  =====
 
 Automated Installation and Configuration
------------------
+----------------------------------------
 
 With exception of few initial questions, entire process is fully automated. At the end Madcore will reconfigure HAproxy 443 (SSL) entry point and run first jenkins job (madcore.registration) which will obtain Let's Encrypt certificate and connect everything together. Installation takes about 20 minutes. End result is you having your own, fully private (only from your ip) access to the following:
 
@@ -66,12 +66,12 @@ Above is a list of exposed endpoints only.
 
 
 CLI Command: configure
------------------
+----------------------
 
 Configure is triggered when you first time run "madcore"  it starts by creating ~/.madcore folder and config file that stores information used for auto configuration. Configure builds network, storage, dns and core instance as described above. It also registers ssl certificate or restores existing certificate. When configure was run before and Core was terminated with Destroy command, configure will run unattended (because config has all the answers)
 
 CLI Command: destroy
------------------
+--------------------
 
 Core installation is done through CloudFormation stacks mentioned above so can be completely removed when not required. Two stacks survive destructions, DNS and S3.  Dns is valid delegated subdomain. S3 bucket is used for ssl certificates and redis backup/restore. 
 
@@ -91,7 +91,7 @@ CLI Command: ssh
 Automatically connects to core instance. Uses private key path you specified during configure step. And core should have been created using matching public EC2 key selected during configure step.
 
 CLI Command: plugin list
------------------
+------------------------
 
 List currently available community Madcore plugins. 
 
@@ -106,23 +106,23 @@ gpu            Amazon Ai AMI's running Cuda7 Nvidia GPU framework, DeepLearning4
 =============  =====
 
 CLI Command: plugin install <name>
------------------
+----------------------------------
 
 Extends your existing Core with functionality described by the plugin.
 
 
 CLI Command: plugin delete <name>
------------------
+---------------------------------
 
 Removes plugin and all traces of clusters from the Core (with exception of data saved to madcore private S3 bucket directly from instance/node/pod)
 
 CLI Commands added by plugin
------------------
+----------------------------
 
 Each plugin can (but doesn't have to) extend CLI with new commands. For example in case of spark it can be either python or java spark code that will perform functions specific to spark cluster.
 
 Chat with us on Gitter
------------------
+----------------------
 
 If you want to try Madcore, make sure you join us on Gitter. We are now focused on building Machine Learning and Ai plugins as well as building Ingress listeners for social media and queueing mechanisms in Spark and Kafka.  All based on Kubernetes. Chat with us now: https://gitter.im/madcore-ai/core
 
