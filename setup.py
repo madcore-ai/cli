@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 PROJECT = 'madcore'
 
-VERSION = '0.3.7'
+VERSION = '0.4'
 
 
 def format_version(version):
