@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 PROJECT = 'madcore'
 
-VERSION = '0.4.1'
+VERSION = '0.4.2'
 
 
 def format_version(version):
@@ -70,6 +70,7 @@ setup(
         'requests==2.12.5',
         'questionnaire==1.1.0',
         'pyfiglet==0.7.5',
+        'Pygments==2.2.0',
         'jinja2==2.9.4'
     ],
 
