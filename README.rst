@@ -7,6 +7,12 @@ Deep Learning & Machine Intelligence Infrastructure Controller
 
 .. image:: https://travis-ci.org/madcore-ai/cli.svg?branch=master
 
+What is Madcore
+------------------
+
+Madcore CLI is a tool for auto-configuration of deployment of Madcore Core. A small, private instance in AWS where you can experiment with Kubernetes, Auto Scaling Groups based on Spot Instances, Spark, Cuda7, Deep Learning and AI frameworks.
+
+It allows you quickly run data mining and data processing tasks, scale clusters as needed, auto-save config and data. Destroy everything when not used (small backup saved on S3), restore when you're back to working mood. Utilizing Auto Scaling Groups and Spot Instances so you can work at fraction of Amazon AWS on-demend pricing. Madcore is perfect choice if you want to forget about setting up containerized infrastructure and just focus on your work.
 
 Install
 ------------------
@@ -125,5 +131,13 @@ Mailing List
 
 Visit https://madcore.ai to sign up for weekly newsletter on Machine Learning and AI simulations that are now possible with Madcore
 
+Credits
+-----------------
 
+We will be adding a formal Credits file into this project. For now just want to make clear that all registered brands remain property of their respective owners.
+
+License
+-----------------
+
+Madcore Project is distributed on MIT License (c) 2016-2017 Madcore Ltd (London, UK)
 
