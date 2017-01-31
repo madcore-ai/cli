@@ -20,6 +20,7 @@ from madcore import const
 from madcore import exceptions
 from madcore import utils
 from madcore.configs import config
+from madcore.libs import timeouts
 from madcore.libs.figlet import figlet
 from madcore.libs.input_questions import Questionnaire
 from madcore.libs.jenkins_server import JenkinsException
@@ -57,21 +58,15 @@ class MadcoreBase(object):
 
     @classmethod
     def list_diff(cls, list1, list2):
-        return [x for x in list1 if x not in list2]
+        return [item for item in list1 if item not in list2]
 
-    def get_json_from_url(self, url=None):
-        try:
-            return requests.get(url).json()
-        except requests.exceptions.HTTPError as http_error:
-            self.logger.error("Error downloading url from: '%s'", url)
-            raise http_error
+    def get_allowed_domains(self):
+        domain_index_path = os.path.join(self.config_path, 'plugins', 'domain-index.json')
 
-    def get_allowed_domains(self, url=None):
-        try:
-            url = url or 'https://raw.githubusercontent.com/madcore-ai/plugins/master/domain-index.json'
-            return self.get_json_from_url(url)
-        except requests.exceptions.HTTPError:
-            self.logger.error("Error downloading domain from: '%s'", url)
+        if os.path.exists(domain_index_path):
+            with open(domain_index_path, 'r') as content_file:
+                index_content = content_file.read()
+                return json.loads(index_content)
 
     def log_figlet(self, msg, *args):
         if args:
@@ -83,18 +78,18 @@ class MadcoreBase(object):
         self.logger.info("EXIT")
         sys.exit(1)
 
-    def wait_until_url_is_up(self, url, log_msg=None, verify=False, max_timeout=600, sleep_time=10):
+    def wait_until_url_is_up(self, url, log_msg=None, verify=False, timeout=600, sleep_time=10):
         elapsed_sec = 0
         while True:
             try:
-                response = requests.get(url, verify=verify, timeout=max_timeout)
+                response = requests.get(url, verify=verify, timeout=timeout)
                 response.raise_for_status()
                 return True
             except Exception:
                 if log_msg:
                     self.logger.info(log_msg)
                 elapsed_sec += sleep_time
-                if elapsed_sec > max_timeout:
+                if elapsed_sec > timeout:
                     break
                 time.sleep(sleep_time)
 
@@ -116,7 +111,7 @@ class MadcoreBase(object):
         questionnaire.add_question(key, prompter=str('single'), options=options, prompt=prompt, **kwargs)
         return questionnaire.run()
 
-    def ask_question_and_continue_on_yes(self, question, start_with_yes=True, exit=True):
+    def ask_question_and_continue_on_yes(self, question_text, start_with_yes=True, exit_after=True):
         options = ['no']
 
         if start_with_yes:
@@ -124,9 +119,9 @@ class MadcoreBase(object):
         else:
             options.append('yes')
 
-        answer = self.single_prompt('answer', options=options, prompt=question)
+        answer = self.single_prompt('answer', options=options, prompt=question_text)
         if answer['answer'] == 'no':
-            if exit:
+            if exit_after:
                 self.exit()
             return False
 
@@ -221,18 +216,6 @@ class AwsBase(object):
 
         return data['SpotInstanceRequests'][0]
 
-    def cancel_spot_instance_requests(self, spot_inst_req_id):
-        self.logger.debug("Cancel spot request instance: %s", spot_inst_req_id)
-        ec2_cli = self.get_aws_client('ec2')
-        data = ec2_cli.cancel_spot_instance_requests(
-            SpotInstanceRequestIds=[spot_inst_req_id],
-        )
-
-        cancel_response = data['CancelledSpotInstanceRequests'][0]
-        cancelled = cancel_response['State'] == 'cancelled'
-
-        return cancelled
-
     def get_asg_last_activity(self, asg_name):
         asg_client = self.get_aws_client('autoscaling')
 
@@ -268,7 +251,7 @@ class AwsBase(object):
         first_time = True
         no_activities_sleep = 5
         consecutive_status_count = 10
-        consecutive_status_max_count = 100
+        consecutive_status_max_count = 50
 
         activities_progress = defaultdict(int)
         spot_instance_req_id = None
@@ -471,7 +454,7 @@ class CloudFormationBase(MadcoreBase, AwsBase):
     def maintain_loop(cls, response, last_event_id, event_type):
         events = sorted(response['StackEvents'], key=lambda x: x['Timestamp'], reverse=True)
         event = events[0]
-        # this can be one of: update, create
+        # this can be one of: update, create, delete
         event_type = event_type.upper()
 
         if (event['EventId'] != last_event_id) and \
@@ -541,9 +524,9 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         dns_stack = self.get_stack(const.STACK_CORE)
         return self.get_output_from_dict(dns_stack['Outputs'], 'MadCorePublicIp')
 
-    def wait_until_domain_is_encrypted(self, timeout=30):
+    def wait_until_domain_is_encrypted(self, timeout=timeouts.DOMAIN_HAS_SSL_CERTIFICATE_TIMEOUT):
         url = 'https://%s' % config.get_full_domain()
-        return self.wait_until_url_is_up(url, verify=True, max_timeout=timeout, sleep_time=5)
+        return self.wait_until_url_is_up(url, verify=True, timeout=timeout, sleep_time=5)
 
     def get_core_instance_data(self):
         core_stack_details = self.get_stack(const.STACK_CORE, debug=False)
@@ -707,9 +690,9 @@ class JenkinsBase(CloudFormationBase):
                 # get the job SUCCESS status
                 job_info = jenkins_server.get_job_info(job_name)
 
-                return job_info['lastSuccessfulBuild']['number'] == build_number
+                return job_info.get('lastSuccessfulBuild', {}).get('number', None) == build_number
             except KeyboardInterrupt:
-                if self.ask_question_and_continue_on_yes("Cancel job: '%s' ?" % job_name):
+                if self.ask_question_and_continue_on_yes("Cancel job: '%s' ?" % job_name, exit_after=False):
                     jenkins_server.stop_build(job_name, build_number)
                     self.logger.warn("[%s] Canceled.", job_name)
                     break
@@ -725,7 +708,8 @@ class JenkinsBase(CloudFormationBase):
         return False
 
     def wait_until_jenkins_is_up(self, log_msg='Waiting until Jenkins is up...'):
-        return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False, max_timeout=60 * 60)
+        return self.wait_until_url_is_up(self.jenkins_endpoint, log_msg=log_msg, verify=False,
+                                         timeout=timeouts.MADCORE_UP_TIMEOUT)
 
 
 class PluginsBase(CloudFormationBase):
