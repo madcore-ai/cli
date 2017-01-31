@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 PROJECT = 'madcore'
 
-VERSION = '0.4'
+VERSION = '0.4.1'
 
 
 def format_version(version):
@@ -32,7 +32,7 @@ def get_git_version():
 get_git_version()
 
 try:
-    long_description = open('README.md', 'rt').read()
+    long_description = open('README.rst', 'rt').read()
 except IOError:
     long_description = ''
 
@@ -48,7 +48,7 @@ setup(
 
     url='https://github.com/madcore-ai/cli',
     download_url='https://github.com/madcore-ai/cli/tarball/master',
-    keywords=['aws', 'infrastructure'],
+    keywords=['aws', 'infrastructure', 'kubernetes', 'cluster', 'machine learning', 'gpu'],
     classifiers=['Development Status :: 3 - Alpha',
                  'License :: OSI Approved :: MIT License',
                  'Programming Language :: Python :: 2.7',
