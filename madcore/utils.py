@@ -1,6 +1,7 @@
 from __future__ import unicode_literals, print_function
 
 import os
+import re
 import socket
 import time
 
@@ -50,3 +51,17 @@ def hostname_resolves(hostname, max_time=700):
 def get_version():
     dist = pkg_resources.get_distribution("madcore")
     return dist.version
+
+
+def str_to_domain_name(string):
+    """
+    Convert a string into a proper domain name: RFC 1034 standard
+
+    :param str string: Input string to convert
+    :return: str
+    """
+
+    if not string:
+        return string
+
+    return '-'.join(filter(None, re.sub(r'[\W+_]', '-', string).split('-')))

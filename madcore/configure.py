@@ -11,6 +11,7 @@ import botocore.exceptions
 from cliff.command import Command
 
 from madcore import const
+from madcore import utils
 from madcore.base import CloudFormationBase
 from madcore.configs import config
 from madcore.libs.aws import AwsLambda, AwsConfig
@@ -332,7 +333,11 @@ class MadcoreConfigure(CloudFormationBase, Command):
                 selected_domain = self.single_prompt('domain', options=self.get_allowed_domains(),
                                                      prompt='Select madcore domain')
 
-                user_sub_domain = '{team}.{domain}'.format(team=selected_team['team'], domain=selected_domain['domain'])
+                team_name = utils.str_to_domain_name(selected_team['team'])
+                if team_name != selected_team['team']:
+                    self.logger.info("Team name was converted into proper domain name: '%s'", team_name)
+
+                user_sub_domain = '{team_name}.{domain}'.format(team_name=team_name, domain=selected_domain['domain'])
 
                 self.logger.info("The following domain will be configured: '%s'", user_sub_domain)
 
@@ -343,7 +348,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
                     user_data.update({
                         'domain': selected_domain['domain'],
-                        'sub_domain': selected_team['team'],
+                        'sub_domain': team_name,
                         'created': True
                     })
                     # at this point we save data into config because we know that user already created on madcore part
