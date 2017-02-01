@@ -690,7 +690,10 @@ class JenkinsBase(CloudFormationBase):
                 # get the job SUCCESS status
                 job_info = jenkins_server.get_job_info(job_name)
 
-                return job_info.get('lastSuccessfulBuild', {}).get('number', None) == build_number
+                if job_info:
+                    return job_info.get('lastSuccessfulBuild', {}).get('number', None) == build_number
+
+                return False
             except KeyboardInterrupt:
                 if self.ask_question_and_continue_on_yes("Cancel job: '%s' ?" % job_name, exit_after=False):
                     jenkins_server.stop_build(job_name, build_number)
