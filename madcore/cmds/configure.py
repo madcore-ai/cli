@@ -6,6 +6,7 @@ import ssl
 import botocore.exceptions
 from cliff.lister import Lister
 
+from madcore import const
 from madcore.base import JenkinsBase
 from madcore.configs import config
 from madcore.configure import MadcoreConfigure
@@ -17,6 +18,14 @@ from madcore.libs.cloudformation import StackCreate
 class Configure(JenkinsBase, Lister):
     _description = "Configure madcore"
     logger = logging.getLogger(__name__)
+
+    def get_parser(self, prog_name):
+        parser = super(Configure, self).get_parser(prog_name)
+
+        envs = [const.ENVIRONMENT_PROD, const.ENVIRONMENT_DEV]
+        parser.add_argument('env', nargs='?', default=const.ENVIRONMENT_PROD, choices=envs,
+                            help="Select the env used to build the project.")
+        return parser
 
     @classmethod
     def enable_ssl(cls):
@@ -90,6 +99,8 @@ class Configure(JenkinsBase, Lister):
         return results
 
     def take_action(self, parsed_args):
+        config.set_env(parsed_args.env)
+
         configure = MadcoreConfigure(self.app, self.app_args)
         configure.take_action(parsed_args)
 

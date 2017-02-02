@@ -48,3 +48,19 @@ PLUGIN_JENKINS_JOB_TYPE = 'jobs'
 
 PLUGIN_TYPE_CLUSTER = 'cluster'
 PLUGIN_TYPE_PLUGIN = 'plugin'
+
+ENVIRONMENT_PROD = 'prod'
+ENVIRONMENT_DEV = 'dev'
+
+ENVIRONMENT_BRANCH = {
+    'prod': 'master',
+    'dev': 'development'
+}
+
+REPO_MAIN_URL = 'https://github.com/madcore-ai'
+REPO_CLONE = [
+    'core',
+    'plugins',
+    'cloudformation',
+    'containers'
+]

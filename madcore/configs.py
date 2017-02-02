@@ -78,6 +78,16 @@ class MadcoreConfig(object):
         key_name = '{job_type}_{job_name}'.format(job_type=job_type, job_name=job_name)
         self.set_plugin_data({key_name: json.dumps(params)}, plugin_name)
 
+    def set_env(self, env, section='env'):
+        self.set_data({'env': env}, section)
+
+    def set_repo_config(self, repo_name, repo_data, prefix='repo'):
+        section = repo_name
+        if prefix:
+            section = '%s_%s' % (prefix, section)
+
+        self.set_data(repo_data, section)
+
     def delete_plugin_job_params(self, plugin_name, job_names, job_type):
         if not isinstance(job_names, list):
             job_names = [job_names]
@@ -117,6 +127,14 @@ class MadcoreConfig(object):
         return self.get_data(plugin_name)
 
     def get_data(self, section, key=None, keys_to_upper=False):
+        """
+        Get data from specific section as dict. Empty dict if no data.
+        :param section: Section name
+        :param key: Key name to extract if specified
+        :param keys_to_upper: Whether to convert keys to upper
+        :return: dict Dict with results
+        """
+
         try:
             data = dict((key.upper() if keys_to_upper else key, val) for key, val in self.config.items(section))
             if key:
@@ -132,6 +150,16 @@ class MadcoreConfig(object):
 
     def get_full_domain(self):
         return '{sub_domain}.{domain}'.format(**self.get_user_data())
+
+    def get_env(self, section='env'):
+        return self.get_data(section, 'env')
+
+    def get_repo_config(self, repo_name, prefix='repo'):
+        section = repo_name
+        if prefix:
+            section = '%s_%s' % (prefix, section)
+
+        return self.get_data(section)
 
     def remove_option(self, section, option):
         self.config.remove_option(section, option)
