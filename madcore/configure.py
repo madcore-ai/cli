@@ -3,7 +3,6 @@ from __future__ import print_function, unicode_literals
 import getpass
 import logging
 import os
-import subprocess
 import sys
 
 import boto3
@@ -26,34 +25,34 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
         return [key['KeyName'] for key in client.describe_key_pairs()['KeyPairs']]
 
-    def run_cmd(self, cmd, debug=True, cwd=None):
-        if debug:
-            self.logger.info("Running cmd: %s", cmd)
+    def clone_repo(self, repo_name):
+        self.log_figlet("Clone '%s'", repo_name)
+        branch = self.env_branch
 
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, cwd=cwd)
-        out, err = process.communicate()
-
-        if err:
-            self.logger.error("ERROR: %s", err)
-        else:
-            if debug:
-                self.logger.info('OK')
-
-        return out.strip()
-
-    def clone_repo(self, repo_url):
-        repo_folder = os.path.basename(repo_url).split('.')[0]
-
-        repo_path = os.path.join(self.config_path, repo_folder)
+        repo_url = os.path.join(const.REPO_MAIN_URL, '%s.git' % repo_name)
+        repo_path = os.path.join(self.config_path, repo_name)
 
         if not os.path.exists(repo_path):
-            self.run_cmd('git clone %s' % repo_url, cwd=self.config_path)
+            self.run_cmd('git clone -b %s %s' % (branch, repo_url), cwd=self.config_path, log_prefix=repo_name)
         else:
-            self.run_cmd('git pull origin master', cwd=repo_path)
+            self.logger.info("[%s] Repo already exists, update the latest version.", repo_name)
+            self.run_git_cmd('git fetch', repo_name)
+            self.run_git_cmd('git checkout {branch}'.format(branch=branch), repo_name)
+            self.run_git_cmd('git pull origin {branch}'.format(branch=branch), repo_name)
 
-        repo_version = self.run_cmd('git describe --tags', cwd=repo_path, debug=False)
+        self.logger.info("[%s] Last commit on branch '%s'.", repo_name, branch)
+        self.logger_file_simple.info(self.run_git_cmd('git --no-pager log -1', repo_name))
 
-        return repo_version
+        self.logger.info("[%s] Save latest commit in config.", repo_name)
+        latest_commit_id = self.run_git_cmd('git rev-parse HEAD', repo_name, debug=False)
+        last_version = self.run_git_cmd('git describe --tags --always', repo_name, debug=False)
+
+        repo_data = {
+            'branch': branch,
+            'commit': latest_commit_id,
+            'version': last_version
+        }
+        config.set_repo_config(repo_name, repo_data)
 
     def configure_ssh_public_key(self):
         """Ask user to upload an ssh key to ec2"""
@@ -367,23 +366,10 @@ class MadcoreConfigure(CloudFormationBase, Command):
     def configure_repos(self):
         self.logger.info("Start cloning all required repos.")
 
-        cf_version = self.clone_repo('https://github.com/madcore-ai/cloudformation.git')
-        plugins_version = self.clone_repo('https://github.com/madcore-ai/plugins.git')
-        containers_version = self.clone_repo('https://github.com/madcore-ai/containers.git')
-
-        columns = (
-            'Project',
-            'Version'
-        )
-        data = (
-            ('Cloudformation', cf_version),
-            ('Plugins', plugins_version),
-            ('Containers', containers_version),
-        )
+        for repo_name in const.REPO_CLONE:
+            self.clone_repo(repo_name)
 
         self.logger.info("End cloning all required repos.")
-
-        return columns, data
 
     def take_action(self, parsed_args):
         self.log_figlet("Configuration")
@@ -400,6 +386,6 @@ class MadcoreConfigure(CloudFormationBase, Command):
         self.configure_aws()
 
         self.log_figlet("Clone repos")
-        columns, data = self.configure_repos()
+        self.configure_repos()
 
-        self.show_table_output(columns, data)
+        self.app.run_subcommand(['status'])

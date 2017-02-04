@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import subprocess
 import sys
 import time
 from collections import OrderedDict
@@ -126,6 +127,37 @@ class MadcoreBase(object):
             return False
 
         return True
+
+    @property
+    def env_branch(self):
+        return const.ENVIRONMENT_BRANCH[self.env]
+
+    @property
+    def env(self):
+        return config.get_env()
+
+    def run_cmd(self, cmd, debug=True, verbose=False, cwd=None, log_prefix=None):
+        if log_prefix:
+            log_prefix = '[%s] ' % log_prefix
+
+        if debug:
+            msg = '%s%s' if not verbose else "%sRunning cmd: %s"
+            self.logger.info(msg, log_prefix, cmd)
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, cwd=cwd)
+        out, err = process.communicate()
+
+        if err:
+            self.logger.error("%sRunning cmd error: %s, %s", log_prefix, cmd, err)
+        else:
+            if debug and verbose:
+                self.logger.info('%sOK', log_prefix)
+
+        return out.strip()
+
+    def run_git_cmd(self, cmd, repo_name, **kwargs):
+        repo_path = os.path.join(self.config_path, repo_name)
+        return self.run_cmd(cmd, cwd=repo_path, log_prefix=repo_name, **kwargs)
 
 
 class AwsBase(object):
@@ -583,9 +615,17 @@ class CloudFormationBase(MadcoreBase, AwsBase):
             }
         }
 
+        core_repo_config = config.get_repo_config('core')
+        plugins_repo_config = config.get_repo_config('plugins')
+
         params = {
+            "MADCORE_ENV": self.env_branch,
             "MADCORE_KEY_NAME": config.get_aws_data('key_name'),
             "MADCORE_INSTANCE_TYPE": config.get_aws_data('instance_type'),
+            "MADCORE_BRANCH": core_repo_config['branch'],
+            "MADCORE_COMMIT": core_repo_config['commit'],
+            "MADCORE_PLUGINS_BRANCH": plugins_repo_config['branch'],
+            "MADCORE_PLUGINS_COMMIT": plugins_repo_config['commit'],
         }
 
         for stack_name, params_mapping in madcore_params_mapping.items():
