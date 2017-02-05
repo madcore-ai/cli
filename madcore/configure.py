@@ -15,6 +15,7 @@ from madcore.base import CloudFormationBase
 from madcore.configs import config
 from madcore.libs.aws import AwsLambda, AwsConfig
 from madcore.libs.bitbucket import Bitbucket, AuthError
+from builtins import input
 
 
 class MadcoreConfigure(CloudFormationBase, Command):
@@ -378,7 +379,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
         if not os.path.exists(self.config_path):
             inp = "Madcore will now create ~/.madcore folder to store configuration settings. " \
                   "Press enter to begin configuration "
-            raw_input(inp)
+            input(inp)
 
         self.log_figlet("User Registration")
         self.configure_user_registration()
