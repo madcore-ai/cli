@@ -397,8 +397,6 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         super(CloudFormationBase, self).__init__(app, app_args, cmd_name=cmd_name)
 
         self.formatter = TableFormatter()
-        self._session = None
-        self._cf_client = None
         self._core_params = {}
 
     def show_table_output(self, column_names, data):
@@ -408,18 +406,8 @@ class CloudFormationBase(MadcoreBase, AwsBase):
         self.formatter.emit_list(column_names, data, Stdout(), parsed_args)
 
     @property
-    def session(self):
-        if self._session is None:
-            self._session = boto3.Session(**self.get_aws_connection_params)
-
-        return self._session
-
-    @property
     def cf_client(self):
-        if self._cf_client is None:
-            self._cf_client = self.session.client('cloudformation')
-
-        return self._cf_client
+        return self.get_aws_client('cloudformation')
 
     def get_stack(self, stack_name, debug=True):
         try:
