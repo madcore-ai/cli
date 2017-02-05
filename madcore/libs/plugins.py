@@ -76,7 +76,8 @@ class PluginManagement(JenkinsBase, StackManagement):
             if (not exists or updated) and self.is_stack_create_complete(stack_details):
                 try:
                     asg_name = self.get_output_from_dict(stack_details['Outputs'], 'AutoScalingGroupName')
-                    scaled_instances = self.wait_for_auto_scale_group_to_finish(asg_name)
+                    desired_capacity = self.get_output_from_dict(stack_details['Outputs'], 'DesiredCapacity')
+                    scaled_instances = self.wait_for_auto_scale_group_to_finish(asg_name, desired_capacity)
                     asg_instance_ips = self.get_scaled_instances_ips(scaled_instances)
                 except KeyError:
                     pass
@@ -141,7 +142,8 @@ class PluginManagement(JenkinsBase, StackManagement):
         if updated and self.is_stack_update_complete(stack_details):
             try:
                 asg_name = self.get_output_from_dict(stack_details['Outputs'], 'AutoScalingGroupName')
-                scaled_instances = self.wait_for_auto_scale_group_to_finish(asg_name, last_activity)
+                desired_capacity = self.get_output_from_dict(stack_details['Outputs'], 'DesiredCapacity')
+                scaled_instances = self.wait_for_auto_scale_group_to_finish(asg_name, desired_capacity, last_activity)
                 asg_instance_ips = self.get_scaled_instances_ips(scaled_instances)
 
             except KeyError:
@@ -221,10 +223,10 @@ class PluginManagement(JenkinsBase, StackManagement):
                     if sequence_params:
                         sequence_params = self.load_plugin_job_validators(sequence['parameters'])
                         sequence_params = self.ask_for_plugin_parameters(sequence_params, parsed_args)
-                        job_parameters = self.override_parameters_if_exists(sequence_params, job_parameters)
+                        sequence_params = self.override_parameters_if_exists(job_parameters, sequence_params)
 
                     jenkins_job_result = self.execute_plugin_jenkins_job(plugin_name, sequence['job_name'], parsed_args,
-                                                                         job_parameters)
+                                                                         sequence_params or job_parameters)
                     _results.append(jenkins_job_result)
                 elif sequence['type'] in ('cloudformation',):
                     executor = CF_ACTIONS.get(sequence['action'], None)

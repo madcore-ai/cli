@@ -2,6 +2,7 @@ from __future__ import print_function, unicode_literals
 
 import logging
 import time
+from collections import OrderedDict
 
 import botocore.exceptions
 from cliff.command import Command
@@ -324,21 +325,21 @@ class StackCreate(StackManagement, Command):
         if 'dev' in self.env_branch:
             env += 'dev'
 
-        network_parameters = {
-            'Type': self.env.title(),
-            'Env': env,
-            'VPCCIDRBlock': '10.99.0.0/16'
-        }
+        network_parameters = OrderedDict((
+            ('Type', self.env.title()),
+            ('Env', env),
+            ('VPCCIDRBlock', '10.99.0.0/16')
+        ))
         network_stack_template = self.get_cf_template_local('network.json')
         network_stack, network_exists, _ = self.create_stack_if_not_exists(const.STACK_NETWORK, network_stack_template,
                                                                            network_parameters)
 
         self.log_figlet("STACK %s", const.STACK_FOLLOWME)
         # create SGFM
-        sgfm_parameters = {
-            'FollowMeIpAddress': self.get_ipv4(),
-            'VpcId': self.get_output_from_dict(network_stack['Outputs'], 'VpcId')
-        }
+        sgfm_parameters = OrderedDict((
+            ('FollowMeIpAddress', self.get_ipv4()),
+            ('VpcId', self.get_output_from_dict(network_stack['Outputs'], 'VpcId'))
+        ))
         sgfm_stack_template = self.get_cf_template_local('sgfm.json')
         sgfm_stack, sgfm_exists, _ = self.create_stack_if_not_exists(const.STACK_FOLLOWME, sgfm_stack_template,
                                                                      sgfm_parameters)
@@ -349,17 +350,17 @@ class StackCreate(StackManagement, Command):
         core_repo_config = config.get_repo_config('core')
         plugins_repo_config = config.get_repo_config('plugins')
 
-        core_parameters = {
-            'FollowmeSecurityGroup': self.get_output_from_dict(sgfm_stack['Outputs'], 'FollowmeSgId'),
-            'PublicNetZoneA': self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA'),
-            'S3BucketName': s3_bucket_name,
-            'InstanceType': aws_config['instance_type'],
-            'KeyName': aws_config['key_name'],
-            'BranchName': core_repo_config['branch'],
-            'CommitID': core_repo_config['commit'],
-            'PluginsBranchName': plugins_repo_config['branch'],
-            'PluginsCommitID': plugins_repo_config['commit'],
-        }
+        core_parameters = OrderedDict((
+            ('FollowmeSecurityGroup', self.get_output_from_dict(sgfm_stack['Outputs'], 'FollowmeSgId')),
+            ('PublicNetZoneA', self.get_output_from_dict(network_stack['Outputs'], 'PublicNetZoneA')),
+            ('S3BucketName', s3_bucket_name),
+            ('InstanceType', aws_config['instance_type']),
+            ('KeyName', aws_config['key_name']),
+            ('BranchName', core_repo_config['branch']),
+            ('CommitID', core_repo_config['commit']),
+            ('PluginsBranchName', plugins_repo_config['branch']),
+            ('PluginsCommitID', plugins_repo_config['commit']),
+        ))
         core_capabilities = ["CAPABILITY_IAM"]
 
         core_stack = self.get_stack(const.STACK_CORE, debug=False)
@@ -390,11 +391,11 @@ class StackCreate(StackManagement, Command):
         self.log_figlet("STACK %s", const.STACK_DNS)
         # create DNS
         user_config = config.get_user_data()
-        dns_parameters = {
-            'DomainName': user_config['domain'],
-            'SubDomainName': user_config['sub_domain'],
-            'EC2PublicIP': core_public_ip,
-        }
+        dns_parameters = OrderedDict((
+            ('DomainName', user_config['domain']),
+            ('SubDomainName', user_config['sub_domain']),
+            ('EC2PublicIP', core_public_ip)
+        ))
         dns_stack_template = self.get_cf_template_local('dns.json')
         dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists(const.STACK_DNS, dns_stack_template,
                                                                              dns_parameters)
