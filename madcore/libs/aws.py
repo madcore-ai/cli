@@ -1,4 +1,5 @@
-import ConfigParser
+from __future__ import unicode_literals
+
 import json
 import logging
 import os
@@ -6,6 +7,7 @@ import time
 
 import boto3
 import botocore.exceptions
+import configparser
 from botocore import UNSIGNED
 from botocore.client import Config
 
@@ -22,7 +24,7 @@ class AwsConfig(object):
     @classmethod
     def load_config(cls, config_path=None):
         config_path = config_path or os.path.join(os.path.expanduser("~"), '.aws/config')
-        cfg = ConfigParser.ConfigParser()
+        cfg = configparser.ConfigParser()
         cfg.read(config_path)
 
         return cfg

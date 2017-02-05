@@ -1,6 +1,5 @@
 from __future__ import unicode_literals, print_function
-
-import ConfigParser
+import configparser
 import json
 import os
 
@@ -10,7 +9,7 @@ from madcore import utils
 class MadcoreConfig(object):
     def __init__(self):
         self.config_file_path = utils.config_file_path()
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
 
         self._load_config()
 
@@ -20,11 +19,11 @@ class MadcoreConfig(object):
             if os.path.exists(self.config_file_path):
                 self.config.read(self.config_file_path)
             else:
-                with open(self.config_file_path, 'wb') as configfile:
+                with open(self.config_file_path, 'w') as configfile:
                     configfile.write('')
 
     def save_config(self):
-        with open(self.config_file_path, 'wb') as configfile:
+        with open(self.config_file_path, 'w') as configfile:
             self.config.write(configfile)
 
     def add_section_if_not_exists(self, section):
@@ -34,7 +33,7 @@ class MadcoreConfig(object):
     def get_aws_identity_id(self, section='aws'):
         try:
             return self.config.get(section, 'identity_id')
-        except ConfigParser.Error:
+        except configparser.Error:
             pass
 
         return None
@@ -140,7 +139,7 @@ class MadcoreConfig(object):
             if key:
                 return data.get(key, None)
             return data
-        except ConfigParser.Error:
+        except configparser.Error:
             pass
 
         return {}
@@ -172,7 +171,7 @@ class MadcoreConfig(object):
     def is_key_true(self, key, section):
         try:
             return self.config.getboolean(section, key)
-        except ConfigParser.Error:
+        except configparser.Error:
             pass
 
         return False

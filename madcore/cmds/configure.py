@@ -25,6 +25,9 @@ class Configure(JenkinsBase, Lister):
         envs = [const.ENVIRONMENT_PROD, const.ENVIRONMENT_DEV]
         parser.add_argument('env', nargs='?', default=const.ENVIRONMENT_PROD, choices=envs,
                             help="Select the env used to build the project.")
+        parser.add_argument('--no-clone', default=False, action='store_true', dest='no_clone',
+                            help="Do not clone/update any repos.")
+
         return parser
 
     @classmethod

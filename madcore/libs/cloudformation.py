@@ -224,7 +224,7 @@ class StackManagement(PluginsBase):
         if not dict_params:
             cf_params.append({})
         else:
-            for param_key, param_value in dict_params.iteritems():
+            for param_key, param_value in dict_params.items():
                 cf_param = {
                     'ParameterKey': param_key,
                     'ParameterValue': str(param_value)

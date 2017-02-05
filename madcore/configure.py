@@ -52,6 +52,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
             'commit': latest_commit_id,
             'version': last_version
         }
+
         config.set_repo_config(repo_name, repo_data)
 
     def configure_ssh_public_key(self):
@@ -385,7 +386,10 @@ class MadcoreConfigure(CloudFormationBase, Command):
         self.log_figlet("AWS Configuration")
         self.configure_aws()
 
-        self.log_figlet("Clone repos")
-        self.configure_repos()
+        if not parsed_args.no_clone:
+            self.log_figlet("Clone repos")
+            self.configure_repos()
+        else:
+            self.log_figlet("Repos not cloned")
 
         self.app.run_subcommand(['status'])

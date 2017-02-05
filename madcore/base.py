@@ -7,11 +7,11 @@ import re
 import subprocess
 import sys
 import time
-from Queue import Empty
 from collections import OrderedDict
 from collections import defaultdict
 from multiprocessing import Process, Queue
 
+from queue import Empty
 import boto3
 import botocore.exceptions
 import requests
@@ -56,7 +56,7 @@ class MadcoreBase(object):
         response = http.request('GET', 'http://ipv4.icanhazip.com/')
         if response.status is not 200:
             raise RuntimeError('No Internet')
-        return response.data.strip()
+        return response.data.decode("utf-8").strip()
         # return '8.8.8.8'
 
     @classmethod
@@ -155,7 +155,7 @@ class MadcoreBase(object):
             if debug and verbose:
                 self.logger.info('%sOK', log_prefix)
 
-        return out.strip()
+        return out.decode("utf-8").strip()
 
     def run_git_cmd(self, cmd, repo_name, **kwargs):
         repo_path = os.path.join(self.config_path, repo_name)
@@ -705,7 +705,7 @@ class JenkinsBase(CloudFormationBase):
                 for line in text.split(os.linesep):
                     line = line.strip()
                     if line:
-                        log_line = line.decode('utf-8')
+                        log_line = line
                         if child_job:
                             log_line = '    %s' % log_line
                         self.logger.info(log_line)

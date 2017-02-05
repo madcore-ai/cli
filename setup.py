@@ -65,6 +65,8 @@ setup(
     provides=[],
     install_requires=[
         'six>=1.9.0',
+        'future==0.16.0',
+        'configparser==3.5.0',
         'cliff==2.4.0',
         'boto3==1.4.4',
         'urllib3==1.20',
