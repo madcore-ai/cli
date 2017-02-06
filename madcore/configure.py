@@ -62,6 +62,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
         repo_url = os.path.join(const.REPO_MAIN_URL, '%s.git' % repo_name)
         repo_path = os.path.join(self.config_path, repo_name)
 
+        update_repo = parsed_args.update.get(repo_name, {})
         repo_config = config.get_repo_config(repo_name)
 
         if parsed_args.force:
@@ -72,10 +73,14 @@ class MadcoreConfigure(CloudFormationBase, Command):
             branch = repo_config.get('branch', self.env_branch)
             commit = repo_config.get('commit', '') or 'FETCH_HEAD'
 
+            # check if we have input data for update and use that
+            branch = update_repo.get('branch', branch)
+            commit = update_repo.get('commit', commit)
+
         remote_version, remote_commit_id = self.clone_repo_latest_version(repo_name, branch)
         upgrade_repo = False
 
-        if not parsed_args.force and parsed_args.upgrade:
+        if not parsed_args.force and not update_repo and parsed_args.upgrade:
             if remote_commit_id != commit:
                 self.logger.info("[%s][%s] There is a new updates on remote branch.", repo_name, branch)
                 self.logger.info("[%s][%s] Local commit '%s', remote commit '%s'.", repo_name, branch,
