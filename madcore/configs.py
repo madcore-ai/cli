@@ -1,7 +1,9 @@
 from __future__ import unicode_literals, print_function
-import configparser
+
 import json
 import os
+
+import configparser
 
 from madcore import utils
 
@@ -48,6 +50,8 @@ class MadcoreConfig(object):
                 val = str(val).lower()
             elif isinstance(val, (int, float)):
                 val = str(val)
+
+            val = val.encode("utf-8")
             self.config.set(section, key, val)
 
         self.save_config()

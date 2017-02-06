@@ -7,6 +7,7 @@ import sys
 
 import boto3
 import botocore.exceptions
+from builtins import input
 from cliff.command import Command
 
 from madcore import const
@@ -15,7 +16,6 @@ from madcore.base import CloudFormationBase
 from madcore.configs import config
 from madcore.libs.aws import AwsLambda, AwsConfig
 from madcore.libs.bitbucket import Bitbucket, AuthError
-from builtins import input
 
 
 class MadcoreConfigure(CloudFormationBase, Command):
@@ -26,23 +26,84 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
         return [key['KeyName'] for key in client.describe_key_pairs()['KeyPairs']]
 
-    def clone_repo(self, repo_name):
+    def clone_repo_latest_version(self, repo_name, branch):
+        config_path = os.path.join(self.config_path, '.latest_repos')
+
+        repo_url = os.path.join(const.REPO_MAIN_URL, '%s.git' % repo_name)
+        repo_path = os.path.join(config_path, repo_name)
+
+        debug = False
+        quiet = '-q'
+
+        if not os.path.exists(repo_path):
+            os.makedirs(repo_path)
+            self.run_cmd(
+                'git clone -b {branch} {repo_url} {quiet}'.format(branch=branch, repo_url=repo_url, quiet=quiet),
+                cwd=config_path, debug=debug)
+        else:
+            self.run_cmd('git checkout {branch} {quiet}'.format(branch=branch, quiet=quiet), cwd=repo_path,
+                         debug=debug)
+            self.run_cmd('git fetch {quiet}'.format(quiet=quiet), cwd=repo_path, debug=debug)
+            self.run_cmd('git reset --hard origin/{branch} {quiet}'.format(branch=branch, quiet=quiet), cwd=repo_path,
+                         debug=debug)
+
+        latest_version = self.run_cmd('git describe --tags --always', cwd=repo_path,
+                                      debug=debug)
+        latest_commit_id = self.run_cmd('git rev-parse HEAD', cwd=repo_path, debug=debug)
+
+        return latest_version, latest_commit_id
+
+    def get_repo_latest_version(self, repo_name, branch):
+        pass
+
+    def clone_repo(self, repo_name, parsed_args):
         self.log_figlet("Clone '%s'", repo_name)
-        branch = self.env_branch
 
         repo_url = os.path.join(const.REPO_MAIN_URL, '%s.git' % repo_name)
         repo_path = os.path.join(self.config_path, repo_name)
 
+        repo_config = config.get_repo_config(repo_name)
+
+        if parsed_args.force:
+            # force automatically get the branch from env
+            branch = self.env_branch
+            commit = 'FETCH_HEAD'
+        else:
+            branch = repo_config.get('branch', self.env_branch)
+            commit = repo_config.get('commit', '') or 'FETCH_HEAD'
+
+        remote_version, remote_commit_id = self.clone_repo_latest_version(repo_name, branch)
+        upgrade_repo = False
+
+        if not parsed_args.force and parsed_args.upgrade:
+            if remote_commit_id != commit:
+                self.logger.info("[%s][%s] There is a new updates on remote branch.", repo_name, branch)
+                self.logger.info("[%s][%s] Local commit '%s', remote commit '%s'.", repo_name, branch,
+                                 commit, remote_commit_id)
+                question_text = "[%s] New updates found on branch: '%s'\n" % (repo_name, branch)
+                question_text += "[%s] Local commit '%s', remote commit '%s', upgrade?" % (repo_name, commit,
+                                                                                           remote_commit_id)
+
+                upgrade_repo = self.ask_question_and_continue_on_yes(question_text, exit_after=False)
+
         if not os.path.exists(repo_path):
             self.run_cmd('git clone -b %s %s' % (branch, repo_url), cwd=self.config_path, log_prefix=repo_name)
         else:
-            self.logger.info("[%s] Repo already exists, update the latest version.", repo_name)
-            self.run_git_cmd('git fetch', repo_name)
+            self.logger.info("[%s] Repo already exists.", repo_name)
+
+        if not parsed_args.force and not upgrade_repo and repo_config:
+            self.logger.info("[%s] Reset repos to version defined in config.", repo_name)
             self.run_git_cmd('git checkout {branch}'.format(branch=branch), repo_name)
-            self.run_git_cmd('git pull origin {branch}'.format(branch=branch), repo_name)
+            self.run_git_cmd('git fetch', repo_name)
+            self.run_git_cmd('git --no-pager log -50 --pretty=oneline', repo_name, log_result=True)
+            self.run_git_cmd('git reset --hard {commit}'.format(commit=commit), repo_name, log_result=True)
+        else:
+            self.logger.info("[%s] Get latest version from branch '%s'.", repo_name, branch)
+            self.run_git_cmd('git checkout {branch}'.format(branch=branch), repo_name, log_result=True)
+            self.run_git_cmd('git reset --hard origin/{branch}'.format(branch=branch), repo_name, log_result=True)
 
         self.logger.info("[%s] Last commit on branch '%s'.", repo_name, branch)
-        self.logger_file_simple.info(self.run_git_cmd('git --no-pager log -1', repo_name))
+        self.run_git_cmd('git --no-pager log -1', repo_name, log_result=True)
 
         self.logger.info("[%s] Save latest commit in config.", repo_name)
         latest_commit_id = self.run_git_cmd('git rev-parse HEAD', repo_name, debug=False)
@@ -51,7 +112,8 @@ class MadcoreConfigure(CloudFormationBase, Command):
         repo_data = {
             'branch': branch,
             'commit': latest_commit_id,
-            'version': last_version
+            'version': last_version,
+            'latest_version': remote_version
         }
 
         config.set_repo_config(repo_name, repo_data)
@@ -305,7 +367,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
             user_email = bitbucket.user.get_primary_email()
 
             self.logger.info("Check if madcore user already exists: '%s'", user_email)
-            user_password = getpass.getpass('Input madcore password: ')
+            user_password = getpass.getpass('Input madcore password: ').decode("utf-8")
 
             user_data = {
                 'email': user_email,
@@ -365,11 +427,11 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
         self.logger.info("End user registration.")
 
-    def configure_repos(self):
+    def configure_repos(self, parsed_args):
         self.logger.info("Start cloning all required repos.")
 
         for repo_name in const.REPO_CLONE:
-            self.clone_repo(repo_name)
+            self.clone_repo(repo_name, parsed_args)
 
         self.logger.info("End cloning all required repos.")
 
@@ -387,10 +449,7 @@ class MadcoreConfigure(CloudFormationBase, Command):
         self.log_figlet("AWS Configuration")
         self.configure_aws()
 
-        if not parsed_args.no_clone:
-            self.log_figlet("Clone repos")
-            self.configure_repos()
-        else:
-            self.log_figlet("Repos not cloned")
+        self.log_figlet("Clone repos")
+        self.configure_repos(parsed_args)
 
         self.app.run_subcommand(['status'])

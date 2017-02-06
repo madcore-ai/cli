@@ -25,8 +25,10 @@ class Configure(JenkinsBase, Lister):
         envs = [const.ENVIRONMENT_PROD, const.ENVIRONMENT_DEV]
         parser.add_argument('env', nargs='?', default=const.ENVIRONMENT_PROD, choices=envs,
                             help="Select the env used to build the project.")
-        parser.add_argument('--no-clone', default=False, action='store_true', dest='no_clone',
-                            help="Do not clone/update any repos.")
+        parser.add_argument('--force', default=False, action='store_true', dest='force',
+                            help="Apply for to running the command.")
+        parser.add_argument('--upgrade', default=False, action='store_true', dest='upgrade',
+                            help="Upgrade repo if local version is different from remote.")
 
         return parser
 

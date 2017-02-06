@@ -11,13 +11,13 @@ from collections import OrderedDict
 from collections import defaultdict
 from multiprocessing import Process, Queue
 
-from queue import Empty
 import boto3
 import botocore.exceptions
 import requests
 import requests.exceptions
 import urllib3
 from cliff.formatters.table import TableFormatter
+from queue import Empty
 
 from madcore import const
 from madcore import exceptions
@@ -138,7 +138,7 @@ class MadcoreBase(object):
     def env(self):
         return config.get_env()
 
-    def run_cmd(self, cmd, debug=True, verbose=False, cwd=None, log_prefix=None):
+    def run_cmd(self, cmd, debug=True, verbose=False, cwd=None, log_prefix=''):
         if log_prefix:
             log_prefix = '[%s] ' % log_prefix
 
@@ -157,9 +157,12 @@ class MadcoreBase(object):
 
         return out.decode("utf-8").strip()
 
-    def run_git_cmd(self, cmd, repo_name, **kwargs):
+    def run_git_cmd(self, cmd, repo_name, log_result=False, **kwargs):
         repo_path = os.path.join(self.config_path, repo_name)
-        return self.run_cmd(cmd, cwd=repo_path, log_prefix=repo_name, **kwargs)
+        result = self.run_cmd(cmd, cwd=repo_path, log_prefix=repo_name, **kwargs)
+        if log_result:
+            self.logger_file_simple.info(result)
+        return result
 
 
 class AwsBase(object):
