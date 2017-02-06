@@ -1,6 +1,7 @@
 from __future__ import unicode_literals, print_function
 
 from madcore.exceptions import ParameterValidationError
+import json
 
 
 class BaseValidator(object):
@@ -76,6 +77,17 @@ class IntegerGtZeroValidator(BaseValidator):
             if val <= 0:
                 raise
             return val
+        except Exception:
+            self._raise_error(val)
+
+
+class JsonValidator(BaseValidator):
+    def __str__(self):
+        return "json"
+
+    def validate(self, val):
+        try:
+            return json.loads(val)
         except Exception:
             self._raise_error(val)
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import unicode_literals, print_function
+
 from subprocess import check_output
 
 from setuptools import setup, find_packages
@@ -63,6 +65,8 @@ setup(
     provides=[],
     install_requires=[
         'six>=1.9.0',
+        'future==0.16.0',
+        'configparser==3.5.0',
         'cliff==2.4.0',
         'boto3==1.4.4',
         'urllib3==1.20',
@@ -94,6 +98,7 @@ setup(
             'up = madcore.cmds.up:MadcoreUp',
             'halt = madcore.cmds.halt:MadcoreHalt',
             'ssh = madcore.cmds.ssh:MadcoreSSH',
+            'status = madcore.cmds.status:Status',
             'plugin list = madcore.cmds.plugins.list:PluginList',
             'plugin install = madcore.cmds.plugins.install:PluginInstall',
             'plugin remove = madcore.cmds.plugins.remove:PluginRemove',

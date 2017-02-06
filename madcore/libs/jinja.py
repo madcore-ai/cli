@@ -2,6 +2,7 @@ from __future__ import unicode_literals, print_function
 
 from jinja2 import Environment
 from jinja2.defaults import VARIABLE_START_STRING
+from past.builtins import basestring
 
 ENV = Environment()
 

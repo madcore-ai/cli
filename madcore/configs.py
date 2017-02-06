@@ -1,8 +1,9 @@
 from __future__ import unicode_literals, print_function
 
-import ConfigParser
 import json
 import os
+
+import configparser
 
 from madcore import utils
 
@@ -10,7 +11,7 @@ from madcore import utils
 class MadcoreConfig(object):
     def __init__(self):
         self.config_file_path = utils.config_file_path()
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = configparser.ConfigParser()
 
         self._load_config()
 
@@ -20,11 +21,11 @@ class MadcoreConfig(object):
             if os.path.exists(self.config_file_path):
                 self.config.read(self.config_file_path)
             else:
-                with open(self.config_file_path, 'wb') as configfile:
+                with open(self.config_file_path, 'w') as configfile:
                     configfile.write('')
 
     def save_config(self):
-        with open(self.config_file_path, 'wb') as configfile:
+        with open(self.config_file_path, 'w') as configfile:
             self.config.write(configfile)
 
     def add_section_if_not_exists(self, section):
@@ -34,7 +35,7 @@ class MadcoreConfig(object):
     def get_aws_identity_id(self, section='aws'):
         try:
             return self.config.get(section, 'identity_id')
-        except ConfigParser.Error:
+        except configparser.Error:
             pass
 
         return None
@@ -49,6 +50,8 @@ class MadcoreConfig(object):
                 val = str(val).lower()
             elif isinstance(val, (int, float)):
                 val = str(val)
+
+            val = val.encode("utf-8")
             self.config.set(section, key, val)
 
         self.save_config()
@@ -77,6 +80,16 @@ class MadcoreConfig(object):
     def set_plugin_job_params(self, plugin_name, job_name, job_type, params):
         key_name = '{job_type}_{job_name}'.format(job_type=job_type, job_name=job_name)
         self.set_plugin_data({key_name: json.dumps(params)}, plugin_name)
+
+    def set_env(self, env, section='env'):
+        self.set_data({'env': env}, section)
+
+    def set_repo_config(self, repo_name, repo_data, prefix='repo'):
+        section = repo_name
+        if prefix:
+            section = '%s_%s' % (prefix, section)
+
+        self.set_data(repo_data, section)
 
     def delete_plugin_job_params(self, plugin_name, job_names, job_type):
         if not isinstance(job_names, list):
@@ -117,12 +130,20 @@ class MadcoreConfig(object):
         return self.get_data(plugin_name)
 
     def get_data(self, section, key=None, keys_to_upper=False):
+        """
+        Get data from specific section as dict. Empty dict if no data.
+        :param section: Section name
+        :param key: Key name to extract if specified
+        :param keys_to_upper: Whether to convert keys to upper
+        :return: dict Dict with results
+        """
+
         try:
             data = dict((key.upper() if keys_to_upper else key, val) for key, val in self.config.items(section))
             if key:
                 return data.get(key, None)
             return data
-        except ConfigParser.Error:
+        except configparser.Error:
             pass
 
         return {}
@@ -132,6 +153,16 @@ class MadcoreConfig(object):
 
     def get_full_domain(self):
         return '{sub_domain}.{domain}'.format(**self.get_user_data())
+
+    def get_env(self, section='env'):
+        return self.get_data(section, 'env')
+
+    def get_repo_config(self, repo_name, prefix='repo'):
+        section = repo_name
+        if prefix:
+            section = '%s_%s' % (prefix, section)
+
+        return self.get_data(section)
 
     def remove_option(self, section, option):
         self.config.remove_option(section, option)
@@ -144,7 +175,7 @@ class MadcoreConfig(object):
     def is_key_true(self, key, section):
         try:
             return self.config.getboolean(section, key)
-        except ConfigParser.Error:
+        except configparser.Error:
             pass
 
         return False

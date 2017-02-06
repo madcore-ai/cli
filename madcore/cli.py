@@ -11,6 +11,7 @@ from madcore import utils
 from madcore.base import Stdout, PluginsBase
 from madcore.cmds import configure
 from madcore.cmds import destroy
+from madcore.cmds import status
 from madcore.configs import config
 from madcore.libs.input_questions import Questionnaire
 from madcore.libs.plugins_loader import PluginLoader
@@ -91,7 +92,7 @@ class MadcoreCli(App):
     def prepare_to_run_command(self, cmd):
         self.LOG.debug('prepare_to_run_command %s', cmd.__class__.__name__)
 
-        if not isinstance(cmd, (configure.Configure, destroy.Destroy, PluginsBase)):
+        if not isinstance(cmd, (configure.Configure, destroy.Destroy, PluginsBase, status.Status)):
             self.trigger_configuration()
 
     def clean_up(self, cmd, result, err):

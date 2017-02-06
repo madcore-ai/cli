@@ -4,10 +4,12 @@ import json
 import logging
 import os
 import re
+import subprocess
 import sys
 import time
 from collections import OrderedDict
 from collections import defaultdict
+from multiprocessing import Process, Queue
 
 import boto3
 import botocore.exceptions
@@ -15,6 +17,7 @@ import requests
 import requests.exceptions
 import urllib3
 from cliff.formatters.table import TableFormatter
+from queue import Empty
 
 from madcore import const
 from madcore import exceptions
@@ -53,7 +56,7 @@ class MadcoreBase(object):
         response = http.request('GET', 'http://ipv4.icanhazip.com/')
         if response.status is not 200:
             raise RuntimeError('No Internet')
-        return response.data.strip()
+        return response.data.decode("utf-8").strip()
         # return '8.8.8.8'
 
     @classmethod
@@ -126,6 +129,40 @@ class MadcoreBase(object):
             return False
 
         return True
+
+    @property
+    def env_branch(self):
+        return const.ENVIRONMENT_BRANCH[self.env]
+
+    @property
+    def env(self):
+        return config.get_env()
+
+    def run_cmd(self, cmd, debug=True, verbose=False, cwd=None, log_prefix=''):
+        if log_prefix:
+            log_prefix = '[%s] ' % log_prefix
+
+        if debug:
+            msg = '%s%s' if not verbose else "%sRunning cmd: %s"
+            self.logger.info(msg, log_prefix, cmd)
+
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True, cwd=cwd)
+        out, err = process.communicate()
+
+        if err:
+            self.logger.error("%sRunning cmd error: %s, %s", log_prefix, cmd, err)
+        else:
+            if debug and verbose:
+                self.logger.info('%sOK', log_prefix)
+
+        return out.decode("utf-8").strip()
+
+    def run_git_cmd(self, cmd, repo_name, log_result=False, **kwargs):
+        repo_path = os.path.join(self.config_path, repo_name)
+        result = self.run_cmd(cmd, cwd=repo_path, log_prefix=repo_name, **kwargs)
+        if log_result:
+            self.logger_file_simple.info(result)
+        return result
 
 
 class AwsBase(object):
@@ -245,7 +282,7 @@ class AwsBase(object):
 
         return None
 
-    def wait_for_asg_activity_to_finish(self, asg_name, activity):
+    def wait_for_asg_activity_to_finish(self, asg_name, activity, results_queue=None):
         asg_client = self.get_aws_client('autoscaling')
 
         first_time = True
@@ -258,6 +295,7 @@ class AwsBase(object):
         spot_instance_response = None
         instance_action = None
 
+        activity_id = activity['ActivityId']
         while True:
             try:
                 asg_response = asg_client.describe_scaling_activities(
@@ -267,10 +305,10 @@ class AwsBase(object):
                 activity = asg_response['Activities'][0]
 
                 if first_time:
-                    self.logger.debug("[%s] %s", activity['StatusCode'], activity['Description'])
+                    self.logger.debug("[%s][%s] %s", activity_id, activity['StatusCode'], activity['Description'])
                     first_time = False
 
-                self.logger.info("[%s] Progress: %s", activity['StatusCode'], activity['Progress'])
+                self.logger.info("[%s][%s] Progress: %s", activity_id, activity['StatusCode'], activity['Progress'])
 
                 activities_progress[activity['StatusCode']] += 1
 
@@ -281,42 +319,51 @@ class AwsBase(object):
                     spot_instance_response = self.describe_spot_instance_requests(spot_instance_req_id)
 
                 if activities_progress[activity['StatusCode']] % consecutive_status_count == 0:
-                    self.logger.debug("[%s] %s", activity['StatusCode'], activity['Description'])
+                    self.logger.debug("[%s][%s] %s", activity_id, activity['StatusCode'], activity['Description'])
 
                     if spot_instance_response:
                         if spot_instance_response['State'] in ('open',):
-                            self.logger.debug('[%s] %s', spot_instance_response['Status']['Code'],
+                            self.logger.debug('[%s][%s] %s', activity_id, spot_instance_response['Status']['Code'],
                                               spot_instance_response['Status']['Message'])
                 if not instance_action:
                     instance_action = self.get_instance_action_from_activity_description(activity['Description'])
 
                 if activities_progress[activity['StatusCode']] >= consecutive_status_max_count:
-                    self.logger.warn("Activity stuck with status: '%s', continue.", activity['StatusCode'])
+                    self.logger.warn("[%s] Activity stuck with status: '%s', continue.", activity_id,
+                                     activity['StatusCode'])
                     break
 
                 if activity['Progress'] == 100:
-                    self.logger.info("Status: %s", activity.get('StatusMessage', activity.get('StatusCode', 'OK')))
+                    self.logger.info("[%s] Status: %s", activity_id, activity.get('StatusMessage', activity.get(
+                        'StatusCode', 'OK')))
                     break
 
                 time.sleep(no_activities_sleep)
             except KeyboardInterrupt:
-                self.logger.info("Stop waiting for activity to finish.")
+                self.logger.info("[%s] Stop waiting for activity to finish.", activity_id)
                 break
+
+        if results_queue:
+            results_queue.put(instance_action)
 
         return instance_action
 
-    def wait_for_auto_scale_group_to_finish(self, asg_name, last_old_activity=None):
+    def wait_for_auto_scale_group_to_finish(self, asg_name, desired_capacity=None, last_old_activity=None):
         self.logger.info("Wait for AutoScaleGroup to finish activities.")
+
+        scaled_instances = defaultdict(list)
 
         asg_client = self.get_aws_client('autoscaling')
         ec2_client = self.get_aws_client('ec2')
 
-        max_no_activities_count = 5
+        max_no_activities_count = 10
         no_activities_count = 0
         no_activities_sleep = 5
-        scaled_instances = defaultdict(list)
 
-        processed_activities = []
+        processed_activities_id = []
+
+        processes = []
+        results_queue = Queue()
 
         while True:
             try:
@@ -329,9 +376,9 @@ class AwsBase(object):
                 if asg_response['Activities']:
 
                     # get last unprocessed activity
-                    queue_activities = 0
+                    queued_activities = 0
                     for act_idx, activity in enumerate(asg_response['Activities']):
-                        queue_activities += 1
+                        queued_activities += 1
                         if last_old_activity is None:
                             # get oldest activity to make sure we do not skip any activity
                             last_old_activity = asg_response['Activities'][-1]
@@ -341,27 +388,30 @@ class AwsBase(object):
                                 activity_idx = act_idx - 1
                             else:
                                 # if it's the first activity of the activity already been processed
-                                if not processed_activities or activity['ActivityId'] in processed_activities:
+                                if not processed_activities_id or activity['ActivityId'] in processed_activities_id:
                                     break
                                 # get the top activity from the list, which mean that we are processing last activity
                                 # for current loop
                                 activity_idx = 0
 
-                            queue_activities -= 1
+                            queued_activities -= 1
                             process_activity = asg_response['Activities'][activity_idx]
                             break
 
                     if not process_activity:
                         raise exceptions.AutoScaleGroupNoActivities("No activities, wait until queued.")
 
-                    self.logger.debug("Activities in queue: %s", queue_activities)
+                    self.logger.debug("Activities in queue: %s", queued_activities)
 
-                    instance = self.wait_for_asg_activity_to_finish(asg_name, process_activity)
-                    if instance:
-                        scaled_instances[instance['action']].append(instance['instance_id'])
+                    # because we can have lots of activities we will start a process for each so that we could see
+                    # the progress for all
+                    process = Process(target=self.wait_for_asg_activity_to_finish, name=process_activity['ActivityId'],
+                                      args=(asg_name, process_activity, results_queue))
+                    process.start()
+                    processes.append(process)
 
                     last_old_activity = process_activity
-                    processed_activities.append(process_activity['ActivityId'])
+                    processed_activities_id.append(process_activity['ActivityId'])
                 else:
                     raise exceptions.AutoScaleGroupNoActivities("No activities, wait until new are queued.")
             except KeyboardInterrupt:
@@ -375,6 +425,18 @@ class AwsBase(object):
                     self.logger.info("Give up retry.")
                     break
                 time.sleep(no_activities_sleep)
+
+        # wait for all processes to finish
+        for process in processes:
+            process.join()
+
+        while True:
+            # get all results from queue
+            try:
+                instance = results_queue.get(False, timeout=1)
+                scaled_instances[instance['action']].append(instance['instance_id'])
+            except Empty:
+                break
 
         # wait until instances are properly started/terminated
         for action, instance_ids in scaled_instances.items():
@@ -583,9 +645,17 @@ class CloudFormationBase(MadcoreBase, AwsBase):
             }
         }
 
+        core_repo_config = config.get_repo_config('core')
+        plugins_repo_config = config.get_repo_config('plugins')
+
         params = {
+            "MADCORE_ENV": self.env_branch,
             "MADCORE_KEY_NAME": config.get_aws_data('key_name'),
             "MADCORE_INSTANCE_TYPE": config.get_aws_data('instance_type'),
+            "MADCORE_BRANCH": core_repo_config['branch'],
+            "MADCORE_COMMIT": core_repo_config['commit'],
+            "MADCORE_PLUGINS_BRANCH": plugins_repo_config['branch'],
+            "MADCORE_PLUGINS_COMMIT": plugins_repo_config['commit'],
         }
 
         for stack_name, params_mapping in madcore_params_mapping.items():
@@ -638,7 +708,7 @@ class JenkinsBase(CloudFormationBase):
                 for line in text.split(os.linesep):
                     line = line.strip()
                     if line:
-                        log_line = line.decode('utf-8')
+                        log_line = line
                         if child_job:
                             log_line = '    %s' % log_line
                         self.logger.info(log_line)
@@ -819,7 +889,7 @@ class PluginsBase(CloudFormationBase):
             set(self._get_parameters_name(params_list_base)) - set(self._get_parameters_name(param_list_override)))
 
         for new_job_param in params_diff:
-            # add new parameter at the top of the override list because plugins level params are important
+            # add new parameter at the top of the override list because plugins level params are more important
             param_list_override.insert(0, self._get_parameter_definition(new_job_param, params_list_base))
 
         return param_list_override
