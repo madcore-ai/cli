@@ -6,17 +6,35 @@ import ssl
 import botocore.exceptions
 from cliff.lister import Lister
 
+from madcore import const
 from madcore.base import JenkinsBase
 from madcore.configs import config
 from madcore.configure import MadcoreConfigure
 from madcore.const import DOMAIN_REGISTRATION
 from madcore.libs import timeouts
 from madcore.libs.cloudformation import StackCreate
+from madcore.libs.validators import JsonValidator
 
 
 class Configure(JenkinsBase, Lister):
     _description = "Configure madcore"
     logger = logging.getLogger(__name__)
+
+    def get_parser(self, prog_name):
+        parser = super(Configure, self).get_parser(prog_name)
+
+        envs = [const.ENVIRONMENT_PROD, const.ENVIRONMENT_DEV]
+        parser.add_argument('env', nargs='?', default=const.ENVIRONMENT_PROD, choices=envs,
+                            help="Select the env used to build the project.")
+        parser.add_argument('--force', default=False, action='store_true', dest='force',
+                            help="Apply for to running the command.")
+        parser.add_argument('--upgrade', default=False, action='store_true', dest='upgrade',
+                            help="Upgrade repos if there is new changes on remote.")
+        parser.add_argument('--update', default={}, dest='update', type=JsonValidator(),
+                            help="Upgrade repo with specified values(Input json as {'repo_name': {'branch': "
+                                 "'<branch_name>', 'commit': '<commit_id>'}, ...})")
+
+        return parser
 
     @classmethod
     def enable_ssl(cls):
@@ -90,6 +108,8 @@ class Configure(JenkinsBase, Lister):
         return results
 
     def take_action(self, parsed_args):
+        config.set_env(parsed_args.env)
+
         configure = MadcoreConfigure(self.app, self.app_args)
         configure.take_action(parsed_args)
 

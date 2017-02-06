@@ -21,13 +21,13 @@ class JenkinsServer(jenkins.Jenkins):
 
             response_info = response.info()
 
-            new_start = response_info.getheaders('X-Text-Size')
+            new_start = response_info.get('X-Text-Size')
             if new_start:
                 new_start = new_start[0]
 
-            has_more_data = bool(response_info.getheaders('X-More-Data'))
+            has_more_data = bool(response_info.get('X-More-Data'))
 
-            text = response.read()
+            text = response.read().decode("utf-8")
 
             return new_start, has_more_data, text
 
