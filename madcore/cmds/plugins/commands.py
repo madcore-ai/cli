@@ -11,46 +11,40 @@ logger = logging.getLogger(__name__)
 
 class PluginCustomCommands(PluginManagement, BasePluginCommand):
     _description = "Run specific plugin command"
+    _plugin_name = None
+    _plugin_job = None
 
     @property
     def plugin_name(self):
-        return self.cmd_name.split()[0]
+        if not self._plugin_name:
+            self._plugin_name = self.get_raw_cmd_args()[0]
+        return self._plugin_name
 
     @property
-    def plugin_command_name(self):
-        return self.cmd_name.split()[-1]
+    def plugin_job(self):
+        if not self._plugin_job:
+            self._plugin_job = self.get_raw_cmd_args()[1]
+        return self._plugin_job
 
     def get_parser(self, prog_name):
         parser = super(PluginCustomCommands, self).get_parser(prog_name)
 
-        plugin_command_params = self.get_plugin_job_parameters(self.plugin_name, self.plugin_command_name,
-                                                               check_config=False)
-
-        # TODO@geo change help here to param description
-        # Here we save all the user input params with '_' prefix to not get conflicted with the cli defined ones
-        for job_param in plugin_command_params:
-            parser.add_argument(
-                '--%s' % job_param['name'],
-                dest='_%s' % job_param['name'],
-                type=job_param['validator'],
-                help=job_param['description'],
-            )
+        if self.plugin_name in self.get_plugin_names():
+            params = self.get_plugin_job_all_params(self.plugin_name, self.plugin_job)
+            parser = self.add_params_to_arg_parser(parser, params)
 
         return parser
 
     def take_action(self, parsed_args):
-        plugin_name = self.plugin_name
-        plugin_command_name = self.plugin_command_name
-
-        if not config.is_plugin_installed(plugin_name):
-            self.logger.info("[%s] Install plugin first.", plugin_name)
+        if not config.is_plugin_installed(self.plugin_name):
+            self.logger.info("[%s] Install plugin first.", self.plugin_name)
             return 0
 
-        command_run = self.execute_plugin_job(plugin_name, plugin_command_name, parsed_args)
+        command_run = self.execute_plugin_job(self.plugin_name, self.plugin_job, parsed_args)
 
         if command_run:
-            self.logger.info("[%s][%s] OK.", plugin_name, plugin_command_name)
+            self.logger.info("[%s][%s] OK.", self.plugin_name, self.plugin_job)
         else:
-            self.logger.error("[%s][%s] Error running plugin command.", plugin_name, plugin_command_name)
+            self.logger.error("[%s][%s] Error running plugin command.", self.plugin_name, self.plugin_job)
 
         return 0
