@@ -69,7 +69,12 @@ class MadcoreBase(object):
         if os.path.exists(domain_index_path):
             with open(domain_index_path, 'r') as content_file:
                 index_content = content_file.read()
-                return json.loads(index_content)
+                domains = json.loads(index_content)
+        else:
+            domains_url = 'https://raw.githubusercontent.com/madcore-ai/plugins/master/domain-index.json'
+            domains = requests.get(domains_url).json()
+
+        return domains
 
     def log_figlet(self, msg, *args):
         if args:
