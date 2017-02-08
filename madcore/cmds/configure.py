@@ -13,7 +13,6 @@ from madcore.configure import MadcoreConfigure
 from madcore.const import DOMAIN_REGISTRATION
 from madcore.libs import timeouts
 from madcore.libs.cloudformation import StackCreate
-from madcore.libs.validators import JsonValidator
 
 
 class Configure(JenkinsBase, Lister):
@@ -27,12 +26,9 @@ class Configure(JenkinsBase, Lister):
         parser.add_argument('env', nargs='?', default=const.ENVIRONMENT_PROD, choices=envs,
                             help="Select the env used to build the project.")
         parser.add_argument('--force', default=False, action='store_true', dest='force',
-                            help="Apply for to running the command.")
-        parser.add_argument('--upgrade', default=False, action='store_true', dest='upgrade',
-                            help="Upgrade repos if there is new changes on remote.")
-        parser.add_argument('--update', default={}, dest='update', type=JsonValidator(),
-                            help="Upgrade repo with specified values(Input json as {'repo_name': {'branch': "
-                                 "'<branch_name>', 'commit': '<commit_id>'}, ...})")
+                            help="Skip input prompt, use defaults.")
+        parser.add_argument('--reset', default=False, action='store_true', dest='reset',
+                            help="Reset config.")
 
         return parser
 
