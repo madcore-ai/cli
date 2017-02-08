@@ -184,4 +184,22 @@ class MadcoreConfig(object):
         return self.is_key_true('installed', plugin_name)
 
 
+class OpensslConfig(object):
+    def __init__(self):
+        self.config = configparser.ConfigParser()
+
+    def from_string(self, cnf_string):
+        self.config.read_string(cnf_string.decode('utf-8'))
+
+    def get_main_domain_name(self):
+        domain = None
+
+        try:
+            domain = self.config.get(' req_distinguished_name ', 'commonName_default')
+        except configparser.Error:
+            pass
+
+        return domain
+
+
 config = MadcoreConfig()
