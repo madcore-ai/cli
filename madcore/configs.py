@@ -164,6 +164,13 @@ class MadcoreConfig(object):
 
         return self.get_data(section)
 
+    def remove_repo(self, repo_name, prefix='repo'):
+        section = repo_name
+        if prefix:
+            section = '%s_%s' % (prefix, section)
+
+        return self.remove_section(section)
+
     def remove_option(self, section, option):
         self.config.remove_option(section, option)
         self.save_config()

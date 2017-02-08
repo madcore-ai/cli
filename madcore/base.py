@@ -169,6 +169,11 @@ class MadcoreBase(object):
             self.logger_file_simple.info(result)
         return result
 
+    @classmethod
+    def clear_config_repo_data(cls):
+        for repo_name in const.REPO_CLONE:
+            config.remove_repo(repo_name)
+
 
 class AwsBase(object):
     logger = logging.getLogger(__name__)

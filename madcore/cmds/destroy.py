@@ -44,6 +44,9 @@ class Destroy(StackManagement, Lister):
         # remove all the data related to plugins
         config.delete_plugins(self.get_plugin_names())
 
+        # remove all data related to repos
+        self.clear_config_repo_data()
+
         return (
             ('StackName', 'Deleted'),
             deleted_stacks
