@@ -347,8 +347,8 @@ class StackCreate(StackManagement, Command):
         self.log_figlet("STACK %s", const.STACK_CORE)
         # create Core
         aws_config = config.get_aws_data()
-        core_repo_config = config.get_repo_config('core')
-        plugins_repo_config = config.get_repo_config('plugins')
+        core_repo_config = self.get_repo_info('core', include_remote=False)
+        plugins_repo_config = self.get_repo_info('plugins', include_remote=False)
 
         core_parameters = OrderedDict((
             ('FollowmeSecurityGroup', self.get_output_from_dict(sgfm_stack['Outputs'], 'FollowmeSgId')),
@@ -356,10 +356,10 @@ class StackCreate(StackManagement, Command):
             ('S3BucketName', s3_bucket_name),
             ('InstanceType', aws_config['instance_type']),
             ('KeyName', aws_config['key_name']),
-            ('BranchName', core_repo_config['branch']),
-            ('CommitID', core_repo_config['commit']),
-            ('PluginsBranchName', plugins_repo_config['branch']),
-            ('PluginsCommitID', plugins_repo_config['commit']),
+            ('BranchName', core_repo_config['local_branch']),
+            ('CommitID', core_repo_config['local_commit']),
+            ('PluginsBranchName', plugins_repo_config['local_branch']),
+            ('PluginsCommitID', plugins_repo_config['local_commit']),
         ))
         core_capabilities = ["CAPABILITY_IAM"]
 
