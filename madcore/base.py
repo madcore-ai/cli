@@ -30,6 +30,7 @@ from madcore.libs.jenkins_server import JenkinsException
 from madcore.libs.jenkins_server import JenkinsServer
 from madcore.libs.jinja import jinja_render_string
 from madcore.libs.validators import get_validator
+from madcore.util.memoize import memoized
 
 
 class MadcoreBase(object):
@@ -593,6 +594,7 @@ class CloudFormationBase(MadcoreBase, AwsBase):
 
         return {}
 
+    @memoized
     def get_s3_bucket_name(self):
         stack = self.get_stack(const.STACK_S3, debug=False)
         if stack is not None:
