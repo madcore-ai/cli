@@ -162,13 +162,13 @@ class MadcoreBase(object):
 
         return out.decode("utf-8").strip()
 
-    @classmethod
-    def clear_config_repo_data(cls):
-        for repo_name in const.REPO_CLONE:
-            config.remove_repo(repo_name)
-
 
 class RepoBase(MadcoreBase):
+    @classmethod
+    def reset_config_repo_data(cls):
+        for repo_name in const.REPO_CLONE:
+            config.reset_repo(repo_name)
+
     def get_repo_path(self, remote=False):
         paths = [self.config_path]
         if remote:

@@ -135,6 +135,7 @@ class RepoConfigure(RepoBase, Command):
 
         config_branch = repo_config.get('branch', '')
         config_commit = repo_config.get('commit', '')
+        is_repo_config_set = config.is_repo_config_set(repo_name)
 
         if not parsed_args.force:
             if self.env in (const.ENVIRONMENT_DEV,):
@@ -154,9 +155,9 @@ class RepoConfigure(RepoBase, Command):
             self.logger.info("[%s] Repo already exists.", repo_name)
 
         if not parsed_args.force:
-            if parsed_args.reset or (not config_branch and not config_commit):
+            if parsed_args.reset or not is_repo_config_set or (not config_branch and not config_commit):
                 branch, commit = self.ask_for_repo_inputs(repo_name, branch, commit)
-                config.set_repo_config(repo_name, {'branch': branch, 'commit': commit})
+                config.set_repo_config(repo_name, {'branch': branch, 'commit': commit, 'set': True})
 
         if parsed_args.force:
             self.repo_pull_latest_version(repo_name, branch)

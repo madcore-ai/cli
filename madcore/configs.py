@@ -28,6 +28,13 @@ class MadcoreConfig(object):
         with open(self.config_file_path, 'w') as configfile:
             self.config.write(configfile)
 
+    def _get_repo_section(self, repo_name, prefix='repo'):
+        section = repo_name
+        if prefix:
+            section = '%s_%s' % (prefix, section)
+
+        return section
+
     def add_section_if_not_exists(self, section):
         if not self.config.has_section(section):
             self.config.add_section(section)
@@ -84,12 +91,8 @@ class MadcoreConfig(object):
     def set_env(self, env, section='env'):
         self.set_data({'env': env}, section)
 
-    def set_repo_config(self, repo_name, repo_data, prefix='repo'):
-        section = repo_name
-        if prefix:
-            section = '%s_%s' % (prefix, section)
-
-        self.set_data(repo_data, section)
+    def set_repo_config(self, repo_name, repo_data):
+        self.set_data(repo_data, self._get_repo_section(repo_name))
 
     def delete_plugin_job_params(self, plugin_name, job_names, job_type):
         if not isinstance(job_names, list):
@@ -157,19 +160,11 @@ class MadcoreConfig(object):
     def get_env(self, section='env'):
         return self.get_data(section, 'env')
 
-    def get_repo_config(self, repo_name, prefix='repo'):
-        section = repo_name
-        if prefix:
-            section = '%s_%s' % (prefix, section)
+    def get_repo_config(self, repo_name):
+        return self.get_data(self._get_repo_section(repo_name))
 
-        return self.get_data(section)
-
-    def remove_repo(self, repo_name, prefix='repo'):
-        section = repo_name
-        if prefix:
-            section = '%s_%s' % (prefix, section)
-
-        return self.remove_section(section)
+    def reset_repo(self, repo_name):
+        return self.set_repo_config(repo_name, {'set': False})
 
     def remove_option(self, section, option):
         self.config.remove_option(section, option)
@@ -189,6 +184,9 @@ class MadcoreConfig(object):
 
     def is_plugin_installed(self, plugin_name):
         return self.is_key_true('installed', plugin_name)
+
+    def is_repo_config_set(self, repo_name):
+        return self.is_key_true('set', self._get_repo_section(repo_name))
 
 
 config = MadcoreConfig()
