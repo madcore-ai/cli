@@ -761,7 +761,8 @@ class JenkinsBase(CloudFormationBase):
     def jenkins_endpoint(self):
         return self.get_endpoint_url('jenkins')
 
-    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1, child_job=False):
+    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1, child_job=False,
+                                results={}):
         if not child_job:
             self.logger.info("Get console output for job: '%s #%s'", job_name, build_number)
 
@@ -790,9 +791,18 @@ class JenkinsBase(CloudFormationBase):
                         if new_build_job:
                             new_build_job = new_build_job.groupdict()
                             self.show_job_console_output(jenkins_server, new_build_job['job_name'],
-                                                         int(new_build_job['build_number']), child_job=True)
+                                                         int(new_build_job['build_number']), child_job=True,
+                                                         results=results)
 
             if not has_more_data:
+                # check jobs finish status
+                success = False
+
+                job_info = jenkins_server.get_job_info(job_name)
+                if job_info:
+                    success = job_info.get('lastSuccessfulBuild', {}).get('number', None) == build_number
+
+                results[job_name] = success
                 break
 
             time.sleep(sleep_time)
@@ -829,15 +839,12 @@ class JenkinsBase(CloudFormationBase):
                     jenkins_server.build_job(job_name, parameters=parameters)
                     self.logger.info("[%s] Build job.", job_name)
 
-                self.show_job_console_output(jenkins_server, job_name, build_number, sleep_time=sleep_time)
+                jobs_results = OrderedDict()
+                self.show_job_console_output(jenkins_server, job_name, build_number, sleep_time=sleep_time,
+                                             results=jobs_results)
 
-                # get the job SUCCESS status
-                job_info = jenkins_server.get_job_info(job_name)
+                return all(jobs_results.values())
 
-                if job_info:
-                    return job_info.get('lastSuccessfulBuild', {}).get('number', None) == build_number
-
-                return False
             except KeyboardInterrupt:
                 if self.ask_question_and_continue_on_yes("Cancel job: '%s' ?" % job_name, exit_after=False):
                     jenkins_server.stop_build(job_name, build_number)
