@@ -163,12 +163,94 @@ class MadcoreBase(object):
 
         return out.decode("utf-8").strip()
 
+
+class RepoBase(MadcoreBase):
+    @classmethod
+    def reset_config_repo_data(cls):
+        for repo_name in const.REPO_CLONE:
+            config.reset_repo(repo_name)
+
+    def get_repo_path(self, remote=False):
+        paths = [self.config_path]
+        if remote:
+            paths.append('.latest_repos')
+
+        repo_path = os.path.join(*paths)
+
+        return repo_path
+
     def run_git_cmd(self, cmd, repo_name, log_result=False, **kwargs):
         repo_path = os.path.join(self.config_path, repo_name)
         result = self.run_cmd(cmd, cwd=repo_path, log_prefix=repo_name, **kwargs)
         if log_result:
             self.logger_file_simple.info(result)
         return result
+
+    def clone_repo_latest_version(self, repo_name, branch=None, remote=True):
+        config_path = self.get_repo_path(remote=remote)
+
+        branch = branch or self.env_branch
+        repo_url = os.path.join(const.REPO_MAIN_URL, '%s.git' % repo_name)
+        repo_path = os.path.join(config_path, repo_name)
+
+        debug = False
+        quiet = '-q'
+
+        if not os.path.exists(repo_path):
+            os.makedirs(repo_path)
+            self.run_cmd(
+                'git clone -b {branch} {repo_url} {quiet}'.format(branch=branch, repo_url=repo_url, quiet=quiet),
+                cwd=config_path, debug=debug)
+        else:
+            self.run_cmd('git checkout {branch} {quiet}'.format(branch=branch, quiet=quiet), cwd=repo_path,
+                         debug=debug)
+            self.run_cmd('git fetch {quiet}'.format(quiet=quiet), cwd=repo_path, debug=debug)
+            self.run_cmd('git reset --hard origin/{branch} {quiet}'.format(branch=branch, quiet=quiet), cwd=repo_path,
+                         debug=debug)
+
+        latest_version = self.get_repo_version(repo_path)
+
+        return latest_version
+
+    def get_repo_version(self, repo_path):
+        latest_version = self.run_cmd('git describe --tags --always', cwd=repo_path, debug=False)
+
+        # Check if the current version is generated because of --always tag
+        last_commit = self.run_cmd('git rev-parse HEAD', cwd=repo_path, debug=False)
+        if not last_commit.startswith(latest_version):
+            return latest_version
+
+        return ''
+
+    def get_repo_last_commit(self, repo_name, branch):
+        config_path = self.get_repo_path(remote=False)
+        repo_path = os.path.join(config_path, repo_name)
+
+        self.run_cmd('git checkout {branch} -q'.format(branch=branch), cwd=repo_path, debug=False)
+
+        remote_commit = self.run_cmd('git rev-parse origin/{branch}'.format(branch=branch), cwd=repo_path, debug=False)
+        local_commit = self.run_cmd('git rev-parse HEAD', cwd=repo_path, debug=False)
+
+        return local_commit, remote_commit
+
+    def get_repo_info(self, repo_name, include_remote=True):
+        repo_path = os.path.join(self.get_repo_path(remote=False), repo_name)
+        info = {}
+        local_branch = self.run_cmd('git rev-parse --abbrev-ref HEAD', cwd=repo_path, debug=False)
+        local_version = self.get_repo_version(repo_path)
+        local_commit, remote_commit = self.get_repo_last_commit(repo_name, local_branch)
+
+        info['local_branch'] = local_branch
+        info['local_commit'] = local_commit
+        info['local_version'] = local_version
+
+        if include_remote:
+            remote_version = self.clone_repo_latest_version(repo_name, local_branch)
+            info['remote_branch'] = local_branch
+            info['remote_commit'] = remote_commit
+            info['remote_version'] = remote_version
+
+        return info
 
 
 class AwsBase(object):
@@ -458,7 +540,7 @@ class AwsBase(object):
         return scaled_instances
 
 
-class CloudFormationBase(MadcoreBase, AwsBase):
+class CloudFormationBase(RepoBase, AwsBase):
     def __init__(self, app, app_args, cmd_name=None):
         # make sure you define parameters here by name and not using *args, **kwargs
         # because inspect.getargspec will give false results in cliff
@@ -640,16 +722,16 @@ class CloudFormationBase(MadcoreBase, AwsBase):
             }
         }
 
-        core_repo_config = config.get_repo_config('core')
-        plugins_repo_config = config.get_repo_config('plugins')
+        core_repo_config = self.get_repo_info('core', include_remote=False)
+        plugins_repo_config = self.get_repo_info('plugins', include_remote=False)
         params = {
             "MADCORE_ENV": self.env_branch,
             "MADCORE_KEY_NAME": config.get_aws_data('key_name'),
             "MADCORE_INSTANCE_TYPE": config.get_aws_data('instance_type'),
-            "MADCORE_BRANCH": core_repo_config['branch'],
-            "MADCORE_COMMIT": core_repo_config['commit'],
-            "MADCORE_PLUGINS_BRANCH": plugins_repo_config['branch'],
-            "MADCORE_PLUGINS_COMMIT": plugins_repo_config['commit'],
+            "MADCORE_BRANCH": core_repo_config['local_branch'],
+            "MADCORE_COMMIT": core_repo_config['local_commit'],
+            "MADCORE_PLUGINS_BRANCH": plugins_repo_config['local_branch'],
+            "MADCORE_PLUGINS_COMMIT": plugins_repo_config['local_commit'],
         }
 
         for stack_name, params_mapping in madcore_params_mapping.items():
@@ -681,7 +763,8 @@ class JenkinsBase(CloudFormationBase):
     def jenkins_endpoint(self):
         return self.get_endpoint_url('jenkins')
 
-    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1, child_job=False):
+    def show_job_console_output(self, jenkins_server, job_name, build_number, sleep_time=1, child_job=False,
+                                results={}):
         if not child_job:
             self.logger.info("Get console output for job: '%s #%s'", job_name, build_number)
 
@@ -710,9 +793,18 @@ class JenkinsBase(CloudFormationBase):
                         if new_build_job:
                             new_build_job = new_build_job.groupdict()
                             self.show_job_console_output(jenkins_server, new_build_job['job_name'],
-                                                         int(new_build_job['build_number']), child_job=True)
+                                                         int(new_build_job['build_number']), child_job=True,
+                                                         results=results)
 
             if not has_more_data:
+                # check jobs finish status
+                success = False
+
+                job_info = jenkins_server.get_job_info(job_name)
+                if job_info:
+                    success = job_info.get('lastSuccessfulBuild', {}).get('number', None) == build_number
+
+                results[job_name] = success
                 break
 
             time.sleep(sleep_time)
@@ -749,15 +841,12 @@ class JenkinsBase(CloudFormationBase):
                     jenkins_server.build_job(job_name, parameters=parameters)
                     self.logger.info("[%s] Build job.", job_name)
 
-                self.show_job_console_output(jenkins_server, job_name, build_number, sleep_time=sleep_time)
+                jobs_results = OrderedDict()
+                self.show_job_console_output(jenkins_server, job_name, build_number, sleep_time=sleep_time,
+                                             results=jobs_results)
 
-                # get the job SUCCESS status
-                job_info = jenkins_server.get_job_info(job_name)
+                return all(jobs_results.values())
 
-                if job_info:
-                    return job_info.get('lastSuccessfulBuild', {}).get('number', None) == build_number
-
-                return False
             except KeyboardInterrupt:
                 if self.ask_question_and_continue_on_yes("Cancel job: '%s' ?" % job_name, exit_after=False):
                     jenkins_server.stop_build(job_name, build_number)

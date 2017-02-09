@@ -23,7 +23,7 @@ class JenkinsServer(jenkins.Jenkins):
 
             new_start = response_info.get('X-Text-Size')
             if new_start:
-                new_start = new_start[0]
+                new_start = int(new_start)
 
             has_more_data = bool(response_info.get('X-More-Data'))
 
