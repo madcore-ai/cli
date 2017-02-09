@@ -38,8 +38,14 @@ class MadcoreCli(App):
             deferred_help=False
         )
 
+        self.raw_cmd_args = None
+
         self.plugin_loader = PluginLoader(command_manager)
         self.reload_commands()
+
+    def run_subcommand(self, argv):
+        self.raw_cmd_args = argv
+        return super(MadcoreCli, self).run_subcommand(argv)
 
     def load_extra_commands(self):
         # load other extra commands here

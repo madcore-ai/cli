@@ -640,7 +640,6 @@ class CloudFormationBase(MadcoreBase, AwsBase):
 
         core_repo_config = config.get_repo_config('core')
         plugins_repo_config = config.get_repo_config('plugins')
-
         params = {
             "MADCORE_ENV": self.env_branch,
             "MADCORE_KEY_NAME": config.get_aws_data('key_name'),
@@ -881,11 +880,11 @@ class PluginsBase(CloudFormationBase):
         params_diff = list(
             set(self._get_parameters_name(params_list_base)) - set(self._get_parameters_name(param_list_override)))
 
+        new_items = []
         for new_job_param in params_diff:
-            # add new parameter at the top of the override list because plugins level params are more important
-            param_list_override.insert(0, self._get_parameter_definition(new_job_param, params_list_base))
+            new_items.append(self._get_parameter_definition(new_job_param, params_list_base))
 
-        return param_list_override
+        return new_items + param_list_override
 
     @classmethod
     def override_parameters_from_dict_if_exists(cls, params_dict_base, param_list_override):
@@ -897,7 +896,7 @@ class PluginsBase(CloudFormationBase):
 
     @classmethod
     def params_to_jenkins_format(cls, params_list):
-        # convert parameters to jenkins format. Jus a simple dict with all param names as keys and
+        # convert parameters to jenkins format. Just a simple dict with all param names as keys and
         # uppercase
         return OrderedDict([(job_param['name'].upper(), job_param['value']) for job_param in params_list])
 
@@ -920,15 +919,28 @@ class PluginsBase(CloudFormationBase):
         if render_core_params:
             job_parameters = self._populate_core_parameters(job_parameters)
 
-        if check_config:
-            # load data from config and populate the parameters
-            dict_job_params = config.get_plugin_job_params(plugin_name, job_name, job_type) or {}
-            job_parameters = self.override_parameters_from_dict_if_exists(dict_job_params, job_parameters)
+        # TODO#geo For now we disabled check config  feature. Need to properly fix saving params into config and restore
+        # and after that we will enable
+        # if check_config:
+        #     # load data from config and populate the parameters
+        #     dict_job_params = config.get_plugin_job_params(plugin_name, job_name, job_type) or {}
+        #     job_parameters = self.override_parameters_from_dict_if_exists(dict_job_params, job_parameters)
 
         if load_validators:
             job_parameters = self.load_plugin_job_validators(job_parameters)
 
         return job_parameters or []
+
+    def get_plugin_job_sequence_parameters(self, sequence, load_validators=True, render_core_params=False):
+        sequence_params = sequence.get('parameters', [])
+
+        if render_core_params:
+            sequence_params = self._populate_core_parameters(sequence_params)
+
+        if load_validators:
+            sequence_params = self.load_plugin_job_validators(sequence_params)
+
+        return sequence_params
 
     @classmethod
     def load_plugin_job_validators(cls, job_params):
@@ -963,6 +975,10 @@ class PluginsBase(CloudFormationBase):
     def list_params_to_dict(cls, plugin_params):
         return OrderedDict(((job_param['name'], job_param['value']) for job_param in plugin_params))
 
+    @classmethod
+    def ignore_parameters_with_no_prompt(cls, params_list):
+        return [param for param in params_list if param.get('prompt', True)]
+
     def ask_for_plugin_parameters(self, job_params, parsed_args):
         # when we define parameters in argparse we set the destination: 'dest=_<param_name>'
         # so, here we need to remove that trailing '_' via arg_param[1:]
@@ -971,11 +987,12 @@ class PluginsBase(CloudFormationBase):
              arg_param.startswith('_') and arg_value is not None))
 
         # reset parameters with user cmd line input values
-        for job_param in job_params:
-            if job_param['name'] in parsed_args_dict:
-                job_param['value'] = parsed_args_dict[job_param['name']]
+        self.override_parameters_from_dict_if_exists(parsed_args_dict, job_params)
 
-        input_params_selector = Questionnaire(self.madcore_global_parameters)
+        # Questionnaire should know all the params that we currently have
+        questionnaire_params = self.madcore_global_parameters.copy()
+        questionnaire_params.update(parsed_args_dict)
+        input_params_selector = Questionnaire(questionnaire_params)
 
         for job_param in job_params:
             # if user already input params via cmd line args then skip to ask here
@@ -1020,7 +1037,7 @@ class PluginsBase(CloudFormationBase):
 
         return job_params
 
-    def get_plugin_job_final_params(self, plugin_name, plugin_job, job_type, parsed_args):
+    def get_plugin_job_final_params(self, plugin_name, plugin_job, job_type, parsed_args, sequence=None):
         """Get the final parameters. Any other logic related to params should be added here
         """
         check_config = True
@@ -1028,8 +1045,11 @@ class PluginsBase(CloudFormationBase):
         if parsed_args.reset_params:
             check_config = False
 
-        job_params = self.get_plugin_job_parameters(plugin_name, plugin_job, job_type=job_type,
-                                                    check_config=check_config)
+        if sequence:
+            job_params = self.get_plugin_job_sequence_parameters(sequence)
+        else:
+            job_params = self.get_plugin_job_parameters(plugin_name, plugin_job, job_type=job_type,
+                                                        check_config=check_config)
         job_params = self.ask_for_plugin_parameters(job_params, parsed_args)
 
         return job_params
@@ -1039,6 +1059,8 @@ class PluginsBase(CloudFormationBase):
         plugin_params = [param for param in plugin_params if param.get('cache', True)]
 
         config_params = self.list_params_to_dict(plugin_params)
+
+        self.logger.info("save into config: %s", config_params)
 
         config.set_plugin_job_params(plugin_name, plugin_job, job_type, config_params)
 
@@ -1064,6 +1086,33 @@ class PluginsBase(CloudFormationBase):
                         # make sure that we are not using some old data
                         # TODO@geo can we optimize this so that we can delete only that was changed??
                         config.remove_option(plugin_name, key)
+
+    def get_plugin_job_all_params(self, plugin_name, job_name):
+        """
+        Get all parameters for specific job name. This include also all input parameters for sequences.
+        """
+
+        job_definition = self.get_plugin_job_definition(plugin_name, job_name,
+                                                        job_type=const.PLUGIN_JENKINS_JOB_TYPE)
+
+        job_params = job_definition.get('parameters', [])
+        job_params = self.ignore_parameters_with_no_prompt(job_params)
+
+        for sequence in job_definition.get('sequence', []):
+            sequence_params = sequence.get('parameters', [])
+
+            if sequence['type'] in ('cloudformation',):
+                if sequence['action'] == 'create':
+                    cf_job = self.get_plugin_job_definition(plugin_name, sequence['job_name'],
+                                                            job_type=const.PLUGIN_CLOUDFORMATION_JOB_TYPE)
+                    sequence_params = cf_job.get('parameters', [])
+
+            sequence_params = self.ignore_parameters_with_no_prompt(sequence_params)
+            job_params = self.override_parameters_if_exists(job_params, sequence_params)
+
+        job_params = self.load_plugin_job_validators(job_params)
+
+        return job_params
 
 
 class Stdout(object):

@@ -45,8 +45,9 @@ class PluginManagement(JenkinsBase, StackManagement):
 
         job_success = self.jenkins_run_job_show_output(jenkins_job_name, parameters=jenkins_params)
 
-        if job_success:
-            self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, job_params, parsed_args)
+        # TODO@geo For now we disable saving jobs params to config
+        # if job_success:
+        #     self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, job_params, parsed_args)
 
         return job_success
 
@@ -60,7 +61,7 @@ class PluginManagement(JenkinsBase, StackManagement):
 
         asg_instance_ips = []
 
-        if not stack_details or self.is_stack_create_failed(stack_details):
+        if not stack_details or not self.is_stack_create_complete(stack_details):
             job_params = self.get_plugin_job_final_params(plugin_name, job_name, job_type, parsed_args)
 
             stack_template_body = self.get_plugin_template_file(plugin_name, job_definition['template_file'])
@@ -81,13 +82,12 @@ class PluginManagement(JenkinsBase, StackManagement):
                     asg_instance_ips = self.get_scaled_instances_ips(scaled_instances)
                 except KeyError:
                     pass
-
-            self.update_core_params({'asg_instance_ips': asg_instance_ips}, param_prefix=job_name, prefix_to_upper=True,
-                                    add_madcore_prefix=False)
         else:
             self.logger.info("[%s] Stack already created with status: '%s'.", stack_name, stack_details['StackStatus'])
 
-        self.update_core_params({'asg_instance_ips': asg_instance_ips}, param_prefix=job_name, param_to_upper=True)
+        # Make this parameters available to other sequences
+        self.update_core_params({'asg_instance_ips': asg_instance_ips}, param_prefix=job_name, param_to_upper=True,
+                                add_madcore_prefix=False)
         self.update_core_params(self.stack_output_to_dict(stack_details), job_name, add_madcore_prefix=False)
 
         return True
@@ -104,18 +104,14 @@ class PluginManagement(JenkinsBase, StackManagement):
             self.logger.error("Cluster not created.")
             self.exit()
         elif self.is_stack_create_failed(stack_details):
-            self.logger.error("Cluster created by failed.")
+            self.logger.error("Cluster created but failed.")
             self.exit()
 
         self.update_core_params(self.stack_output_to_dict(stack_details), job_name, add_madcore_prefix=False)
 
-        sequence_params = []
-
-        # TODO@geo we need to fix this and make sure we get from configs parameters
-        # ask for sequence parameters
-        if sequence.get('parameters', None):
-            sequence_params = self.load_plugin_job_validators(sequence['parameters'])
-            sequence_params = self.ask_for_plugin_parameters(sequence_params, parsed_args)
+        sequence_params = self.get_plugin_job_final_params(plugin_name, sequence['job_name'],
+                                                           sequence['type'], parsed_args,
+                                                           sequence)
 
         stack_template_body = self.get_plugin_template_file(plugin_name, job_definition['template_file'])
 
@@ -149,10 +145,12 @@ class PluginManagement(JenkinsBase, StackManagement):
             except KeyError:
                 pass
 
+        # Make this parameters available to other sequences
         self.update_core_params({'asg_instance_ips': asg_instance_ips}, param_prefix=job_name, param_to_upper=True,
                                 add_madcore_prefix=False)
 
-        self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, sequence_params, parsed_args)
+        # TODO@geo For now we disable saving jobs params to config
+        # self.save_plugin_jobs_params_to_config(plugin_name, job_name, job_type, sequence_params, parsed_args)
 
         return updated
 
@@ -201,8 +199,8 @@ class PluginManagement(JenkinsBase, StackManagement):
         job_parameters = job_parameters or []
 
         if job_parameters:
-            # make the input params available for alter use like
-            # <JOB_NAME>_<PARAM_NAME>
+            # make the plugin job input params available for later use in sequences.
+            # We can access it like: <JOB_NAME>_<PARAM_NAME>
             self.update_core_params(self.list_params_to_dict(job_parameters), current_job_name,
                                     add_madcore_prefix=False, param_to_upper=True)
 
@@ -216,14 +214,9 @@ class PluginManagement(JenkinsBase, StackManagement):
                     # don't send the parameters because it's different job
                     if sequence['job_name'] != current_job_name:
                         job_parameters = []
-
-                    # TODO@geo We need to move this into unified place where we get parameters for all type of jobs
-                    # including sequence
-                    sequence_params = sequence.get('parameters', [])
-                    if sequence_params:
-                        sequence_params = self.load_plugin_job_validators(sequence['parameters'])
-                        sequence_params = self.ask_for_plugin_parameters(sequence_params, parsed_args)
-                        sequence_params = self.override_parameters_if_exists(job_parameters, sequence_params)
+                    sequence_params = self.get_plugin_job_final_params(plugin_name, sequence['job_name'],
+                                                                       sequence['type'], parsed_args,
+                                                                       sequence)
 
                     jenkins_job_result = self.execute_plugin_jenkins_job(plugin_name, sequence['job_name'], parsed_args,
                                                                          sequence_params or job_parameters)

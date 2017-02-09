@@ -18,6 +18,48 @@ class BasePluginCommand(Command):
                             help="Ignore previous states and rerun the command.")
         return parser
 
+    @classmethod
+    def add_params_to_arg_parser(cls, parser, params):
+        # Here we save all the user input params with '_' prefix to not get conflicted with the cli defined ones
+        for job_param in params:
+            arg_params = {
+                'dest': '_%s' % job_param['name'],
+                'type': job_param['validator'],
+                'help': job_param['description']
+            }
+            if 'allowed' in job_param:
+                arg_params['choices'] = job_param['allowed']
+
+            parser.add_argument(
+                '--%s' % job_param['name'],
+                **arg_params
+            )
+
+        return parser
+
+    def get_raw_cmd_args(self):
+        # at this stage we don't have the plugin name we want to install
+        # so, we are using some hack to get it
+        raw_cmd_args = self.app.raw_cmd_args[:]
+
+        if raw_cmd_args[0] == 'help':
+            del raw_cmd_args[0]
+
+        return raw_cmd_args
+
+    def get_plugin_name_from_input_args(self):
+        plugin_name = None
+
+        try:
+            raw_cmd_args = self.get_raw_cmd_args()
+            subcommand = self.app.command_manager.find_command(raw_cmd_args)
+            _, _, sub_argv = subcommand
+            plugin_name = sub_argv[0]
+        except Exception:
+            pass
+
+        return plugin_name
+
 
 class PluginCommand(BasePluginCommand):
     def get_parser(self, prog_name):
