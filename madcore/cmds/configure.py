@@ -8,6 +8,7 @@ from cliff.lister import Lister
 
 from madcore import const
 from madcore.base import JenkinsBase
+from madcore import configs
 from madcore.configs import config
 from madcore.configure import MadcoreConfigure
 from madcore.const import DOMAIN_REGISTRATION
@@ -64,6 +65,32 @@ class Configure(JenkinsBase, Lister):
 
         return False
 
+    def read_domain_from_backup(self):
+        s3_client = self.get_aws_client('s3')
+        s3_bucket_name = self.get_s3_bucket_name()
+
+        list_response = s3_client.list_objects(
+            Bucket=s3_bucket_name,
+            Prefix='backup/certs/openssl.cnf',
+            MaxKeys=1
+        )
+
+        if list_response.get('Contents', None):
+            list_response = list_response['Contents'][0]
+            s3_object = s3_client.get_object(
+                Bucket=s3_bucket_name,
+                IfMatch=list_response['ETag'],
+                Key=list_response['Key']
+            )
+
+            if s3_object.get('Body', None):
+                cnf = configs.OpensslConfig()
+                cnf.from_string(s3_object['Body'].read())
+
+                return cnf.get_main_domain_name()
+
+        return None
+
     def wait_until_madcore_is_up(self):
         self.log_figlet("Wait until madcore is up")
         if self.wait_until_jenkins_is_up(log_msg='Wait until madcore is up...'):
@@ -118,7 +145,7 @@ class Configure(JenkinsBase, Lister):
         stack_create.take_action(parsed_args)
 
         s3_bucket_name = self.get_s3_bucket_name()
-        hostname = config.get_full_domain()
+        current_hostname = config.get_full_domain()
 
         # For now we disable ssl verification
         self.disable_ssl()
@@ -126,15 +153,22 @@ class Configure(JenkinsBase, Lister):
         self.wait_until_madcore_is_up()
 
         self.log_figlet("Registering let's encrypt ssl")
-        self.logger.info("[%s] Check if domain is already encrypted...", hostname)
+        self.logger.info("[%s] Check if domain is already encrypted...", current_hostname)
         is_domain_encrypted = self.wait_until_domain_is_encrypted()
-        self.logger.info("[%s] Domain certificate found: %s", hostname, is_domain_encrypted)
+        self.logger.info("[%s] Domain certificate found: %s", current_hostname, is_domain_encrypted)
 
         if is_domain_encrypted:
             config.set_user_data({"registration": True})
-            self.logger.info("[%s] Domain already registered.", hostname)
+            self.logger.info("[%s] Domain already registered.", current_hostname)
         else:
             if self.is_backup_found():
+                backup_hostname = self.read_domain_from_backup()
+
+                if backup_hostname and backup_hostname != current_hostname:
+                    self.logger.error("We have backup for domain: '%s'", backup_hostname)
+                    self.logger.error("Current domain is: '%s'", current_hostname)
+                    self.exit()
+
                 self.log_figlet("Madcore Backup")
                 backup_success = self.jenkins_run_job_show_output('madcore.restore',
                                                                   parameters={'S3BucketName': s3_bucket_name})
@@ -144,21 +178,21 @@ class Configure(JenkinsBase, Lister):
                     self.logger.error("Error while trying to restore madcore.")
                     self.exit()
             else:
-                self.logger.info("[%s] Start domain registration.", hostname)
+                self.logger.info("[%s] Start domain registration.", current_hostname)
 
                 job_name = 'madcore.registration'
                 parameters = DOMAIN_REGISTRATION.copy()
-                parameters['Hostname'] = hostname
+                parameters['Hostname'] = current_hostname
                 parameters['Email'] = config.get_user_data('email')
                 parameters['S3BucketName'] = s3_bucket_name
 
                 success = self.jenkins_run_job_show_output(job_name, parameters=parameters)
 
                 if success:
-                    self.logger.info("[%s] Successfully run domain registration.", hostname)
+                    self.logger.info("[%s] Successfully run domain registration.", current_hostname)
                     config.set_user_data({"registration": True})
                 else:
-                    self.logger.error("[%s] Error while executing domain registration.", hostname)
+                    self.logger.error("[%s] Error while executing domain registration.", current_hostname)
                     config.set_user_data({"registration": False})
                     self.exit()
 
