@@ -724,10 +724,14 @@ class CloudFormationBase(RepoBase, AwsBase):
 
         core_repo_config = self.get_repo_info('core', include_remote=False)
         plugins_repo_config = self.get_repo_info('plugins', include_remote=False)
+        user_data = config.get_user_data()
+
         params = {
             "MADCORE_ENV": self.env_branch,
             "MADCORE_KEY_NAME": config.get_aws_data('key_name'),
             "MADCORE_INSTANCE_TYPE": config.get_aws_data('instance_type'),
+            "MADCORE_DOMAIN": user_data['domain'],
+            "MADCORE_SUB_DOMAIN": user_data['sub_domain'],
             "MADCORE_BRANCH": core_repo_config['local_branch'],
             "MADCORE_COMMIT": core_repo_config['local_commit'],
             "MADCORE_PLUGINS_BRANCH": plugins_repo_config['local_branch'],
