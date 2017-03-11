@@ -52,6 +52,7 @@ def get_version():
     dist = pkg_resources.get_distribution("madcore")
     return dist.version
 
+
 def str_to_domain_name(string):
     """
     Convert a string into a proper domain name: RFC 1034 standard
