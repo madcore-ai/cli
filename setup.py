@@ -70,7 +70,7 @@ setup(
         'cliff==2.4.0',
         'boto3==1.4.4',
         'urllib3==1.20',
-        'python-jenkins==0.4.13',
+        'python-jenkins==0.4.14',
         'requests==2.12.5',
         'questionnaire==1.1.0',
         'pyfiglet==0.7.5',
