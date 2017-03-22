@@ -116,6 +116,7 @@ class RepoConfigure(RepoBase, Command):
     def repo_pull_latest_version(self, repo_name, branch):
         self.logger.info("[%s] Get latest version from branch '%s'.", repo_name, branch)
         self.run_git_cmd('git checkout {branch}'.format(branch=branch), repo_name, log_result=True)
+        self.run_git_cmd('git fetch origin', repo_name, log_result=True)
         self.run_git_cmd('git reset --hard origin/{branch}'.format(branch=branch), repo_name, log_result=True)
 
         self.logger.info("[%s] Last commit on branch '%s'.", repo_name, branch)
