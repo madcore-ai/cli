@@ -806,7 +806,8 @@ class JenkinsBase(CloudFormationBase):
 
                 job_info = jenkins_server.get_job_info(job_name)
                 if job_info:
-                    success = job_info.get('lastSuccessfulBuild', {}).get('number', None) == build_number
+                    last_successful_build = job_info.get('lastSuccessfulBuild', None) or {}
+                    success = last_successful_build.get('number', None) == build_number
 
                 results[job_name] = success
                 break
@@ -971,7 +972,8 @@ class PluginsBase(CloudFormationBase):
         return params_list
 
     def override_parameters_if_exists(self, params_list_base, param_list_override):
-        # Check the parameters that are present in base list and not in
+        """Check the parameters that are present in base list and not in override list"""
+
         params_diff = list(
             set(self._get_parameters_name(params_list_base)) - set(self._get_parameters_name(param_list_override)))
 
@@ -1072,6 +1074,8 @@ class PluginsBase(CloudFormationBase):
 
     @classmethod
     def ignore_parameters_with_no_prompt(cls, params_list):
+        if not params_list:
+            return []
         return [param for param in params_list if param.get('prompt', True)]
 
     def ask_for_plugin_parameters(self, job_params, parsed_args):
@@ -1187,11 +1191,17 @@ class PluginsBase(CloudFormationBase):
         Get all parameters for specific job name. This include also all input parameters for sequences.
         """
 
+        # Get the parameters that are defined at the plugin level
+        plugin_definition = self.get_plugin_by_name(plugin_name)
+        plugin_params = plugin_definition.get('parameters', [])
+        plugin_params = self.ignore_parameters_with_no_prompt(plugin_params)
+
         job_definition = self.get_plugin_job_definition(plugin_name, job_name,
                                                         job_type=const.PLUGIN_JENKINS_JOB_TYPE)
 
         job_params = job_definition.get('parameters', [])
         job_params = self.ignore_parameters_with_no_prompt(job_params)
+        job_params = self.override_parameters_if_exists(plugin_params, job_params)
 
         for sequence in job_definition.get('sequence', []):
             sequence_params = sequence.get('parameters', [])
