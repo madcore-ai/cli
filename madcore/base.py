@@ -879,17 +879,18 @@ class PluginsBase(CloudFormationBase):
     PLUGIN_DEFAULT_JOBS = ['deploy', 'delete', 'status']
     PLUGIN_TYPES = [const.PLUGIN_TYPE_PLUGIN, const.PLUGIN_TYPE_CLUSTER]
 
-    def update_core_params(self, new_params, param_prefix, add_madcore_prefix=True, prefix_to_upper=True,
+    def update_core_params(self, new_params, param_prefix=None, add_madcore_prefix=True, prefix_to_upper=True,
                            param_to_upper=False):
         key_format = []
 
         if add_madcore_prefix:
             key_format.append('MADCORE')
 
-        if prefix_to_upper:
+        if prefix_to_upper and param_prefix:
             param_prefix = param_prefix.upper()
 
-        key_format.append(param_prefix)
+        if param_prefix:
+            key_format.append(param_prefix)
 
         prefix = '_'.join(key_format)
 
