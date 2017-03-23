@@ -3,6 +3,7 @@ from __future__ import print_function, unicode_literals
 import logging
 
 from madcore.configs import config
+from madcore.const import PLUGIN_NAME_INGRESS
 from madcore.libs.mixins import PluginCommand
 from madcore.libs.plugins import PluginManagement
 
@@ -27,14 +28,28 @@ class PluginInstall(PluginManagement, PluginCommand):
             params = self.get_plugin_job_all_params(self.plugin_name, self.plugin_job)
             parser = self.add_params_to_arg_parser(parser, params)
 
+        if self.plugin_name not in (PLUGIN_NAME_INGRESS, ):
+            parser.add_argument('--ingress', default=False, action='store_true',
+                                dest='ingress_flag',
+                                help="Set to install plugin as ingress.")
         return parser
+
+    def should_install_ingress_plugin(self, parsed_args):
+        ingress_flag = getattr(parsed_args, 'ingress_flag', None)
+        if ingress_flag and not config.is_plugin_installed(PLUGIN_NAME_INGRESS):
+            return True
+
+        return False
 
     def take_action(self, parsed_args):
         plugin_name = parsed_args.plugin_name
 
-        # after plugin was installed. Currently we need to exit the cli interactive mode to see the new commands
         if not parsed_args.force and config.is_plugin_installed(plugin_name):
             self.logger.info("[%s] Plugin already installed.", plugin_name)
+            return 0
+        elif self.should_install_ingress_plugin(parsed_args):
+            self.logger.info("[%s] You need to install ingress plugin first when using "
+                             "'--ingress' option.", plugin_name)
             return 0
 
         plugin_installed = self.execute_plugin_job(plugin_name, self.plugin_job, parsed_args)

@@ -64,3 +64,5 @@ REPO_CLONE = [
     'cloudformation',
     'containers'
 ]
+
+PLUGIN_NAME_INGRESS = 'ingress'
