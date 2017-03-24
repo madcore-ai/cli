@@ -183,6 +183,8 @@ class PluginManagement(JenkinsBase, StackManagement):
         return stack_details
 
     def execute_plugin_job(self, plugin_name, current_job_name, parsed_args):
+        self.update_core_params({'ingress_flag': getattr(parsed_args, 'ingress_flag', False)}, param_to_upper=True)
+
         job_definition = self.get_plugin_job_definition(plugin_name, current_job_name)
 
         CF_ACTIONS = {
