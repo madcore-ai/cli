@@ -6,4 +6,4 @@ import logging
 class TestMadcoreCli(MadcoreTestCase):
     def test_init(self):
         logging.disable(logging.NOTSET)
-        MadcoreCli()
+        MadcoreCli(load_plugins=False)

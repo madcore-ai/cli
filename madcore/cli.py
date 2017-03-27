@@ -14,7 +14,8 @@ from madcore.cmds import destroy
 from madcore.cmds import status
 from madcore.configs import config
 from madcore.libs.input_questions import Questionnaire
-from madcore.libs.plugins_loader import PluginLoader
+from madcore.libs.plugins_cmd_loader import PluginCommandsLoader
+from madcore.libs.plugins_loader import plugins_loader
 
 
 class MadcoreCommandManager(CommandManager):
@@ -27,7 +28,7 @@ class MadcoreCommandManager(CommandManager):
 
 
 class MadcoreCli(App):
-    def __init__(self):
+    def __init__(self, load_plugins=True):
         command_manager = MadcoreCommandManager('madcorecli.app')
         super(MadcoreCli, self).__init__(
             description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller'
@@ -39,8 +40,9 @@ class MadcoreCli(App):
         )
 
         self.raw_cmd_args = None
-
-        self.plugin_loader = PluginLoader(command_manager)
+        if load_plugins:
+            plugins_loader.load(check_exists=False)
+        self.plugin_cmd_loader = PluginCommandsLoader(command_manager)
         self.reload_commands()
 
     def run_subcommand(self, argv):
@@ -56,7 +58,7 @@ class MadcoreCli(App):
             self.command_manager.add_command(command_name, command_class)
 
     def reload_commands(self):
-        self.plugin_loader.load_installed_plugins_commands()
+        self.plugin_cmd_loader.load_installed_plugins_commands()
         self.load_extra_commands()
 
     def build_option_parser(self, description, version,

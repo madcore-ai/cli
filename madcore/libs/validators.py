@@ -14,6 +14,9 @@ class BaseValidator(object):
     def _raise_error(self, val):
         raise ParameterValidationError("'%s' has invalid type, should be '%s'" % (val, self))
 
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
+
 
 class BoolValidator(BaseValidator):
     allowed_values_true = [True, 'yes', 'true', 'TRUE', 'True', '1']
