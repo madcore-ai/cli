@@ -20,6 +20,14 @@ class Configure(JenkinsBase, Lister):
     _description = "Configure madcore"
     logger = logging.getLogger(__name__)
 
+    @classmethod
+    def add_repos_params(cls, parser):
+        for repo in const.REPO_CLONE:
+            for option in ['branch', 'commit']:
+                cmd = "--%s_%s" % (option, repo)
+                hlp = "Set %s %s" % (repo, option)
+                parser.add_argument(cmd, required=False,  default=None, help=hlp)
+
     def get_parser(self, prog_name):
         parser = super(Configure, self).get_parser(prog_name)
 
@@ -30,6 +38,8 @@ class Configure(JenkinsBase, Lister):
                             help="Skip input prompt, use defaults.")
         parser.add_argument('--reset', default=False, action='store_true', dest='reset',
                             help="Reset config.")
+
+        self.add_repos_params(parser=parser)
 
         return parser
 
