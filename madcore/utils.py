@@ -8,8 +8,8 @@ import time
 import pkg_resources
 
 
-def project_config_dir(*dirs):
-    return os.path.join(os.path.expanduser("~"), '.madcore', *dirs)
+def project_config_dir():
+    return os.path.join(os.path.expanduser("~"), '.madcore')
 
 
 def config_file_path():

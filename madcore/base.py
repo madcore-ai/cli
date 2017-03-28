@@ -31,7 +31,6 @@ from madcore.libs.jenkins_server import JenkinsServer
 from madcore.libs.jinja import jinja_render_string
 from madcore.libs.validators import get_validator
 from madcore.util.memoize import memoized
-from madcore.libs.plugins_loader import plugins_loader
 
 
 class MadcoreBase(object):
@@ -875,7 +874,10 @@ class JenkinsBase(CloudFormationBase):
 
 
 class PluginsBase(CloudFormationBase):
+    _plugins = None
+
     PLUGIN_DEFAULT_JOBS = ['deploy', 'delete', 'status']
+    PLUGIN_TYPES = [const.PLUGIN_TYPE_PLUGIN, const.PLUGIN_TYPE_CLUSTER]
 
     def update_core_params(self, new_params, param_prefix=None, add_madcore_prefix=True, prefix_to_upper=True,
                            param_to_upper=False):
@@ -897,25 +899,49 @@ class PluginsBase(CloudFormationBase):
 
         self.madcore_global_parameters.update(new_params)
 
-    @classmethod
-    def get_plugins(cls):
-        return plugins_loader.plugins.values()
+    def load_plugin_index(self):
+        plugin_index_path = os.path.join(self.config_path, 'plugins', 'plugins-index.json')
 
-    @classmethod
-    def get_plugin_names(cls):
-        return plugins_loader.plugins.keys()
+        if os.path.exists(plugin_index_path):
+            with open(plugin_index_path, 'r') as content_file:
+                index_content = content_file.read()
+                return json.loads(index_content)
 
-    @classmethod
-    def get_plugin_by_name(cls, plugin_name):
-        return plugins_loader.plugins[plugin_name]
+        return {}
+
+    def get_plugins(self, reload_plugin=False):
+        if reload_plugin or not self._plugins:
+            plugins = []
+            for product in self.load_plugin_index().get('products', []):
+                if product['type'] in self.PLUGIN_TYPES:
+                    plugins.append(product)
+            self._plugins = plugins
+
+        return self._plugins
+
+    def get_plugin_names(self):
+        return [plugin['id'] for plugin in self.get_plugins()]
+
+    def get_plugin_by_name(self, plugin_name):
+        plugin_id = self.get_plugin_id(plugin_name)
+
+        for plugin in self.get_plugins():
+            if plugin['id'] == plugin_id:
+                return plugin
 
     def get_plugin_job_definition(self, plugin_name, job_name, job_type=const.PLUGIN_JENKINS_JOB_TYPE):
-        plugin = self.get_plugin_by_name(plugin_name)
-        return plugin.get_jobs_by_type(job_type).get(job_name, {})
+        plugin_data = self.get_plugin_by_name(plugin_name)
+
+        if plugin_data:
+            for job in plugin_data.get(job_type, []):
+                if job['name'] == job_name:
+                    return job
+
+        return {}
 
     def is_plugin_job_private(self, plugin_name, job_name):
-        job_def = self.get_plugin_job_definition(plugin_name, job_name)
-        return job_def.get('private', False)
+        for plugin_def in self.get_plugin_job_definition(plugin_name, job_name):
+            return plugin_def.get('private', False)
 
     @classmethod
     def _get_parameters_name(cls, param_list):
@@ -985,7 +1011,7 @@ class PluginsBase(CloudFormationBase):
             # We need to find a way to not send parent parameters to specific jobs. I guess
             # we can have a simple option: "parent_params: false' which will do the trick
             if not job_definition.get("private", False):
-                plugin_parameters = plugin.plugin_level_parameters
+                plugin_parameters = plugin.get('parameters', [])
                 job_parameters = self.override_parameters_if_exists(plugin_parameters, job_parameters)
 
         if render_core_params:
@@ -1025,16 +1051,20 @@ class PluginsBase(CloudFormationBase):
     def get_plugin_extra_jobs(self, plugin_name):
         plugin = self.get_plugin_by_name(plugin_name)
 
-        extra_jobs = []
-        for job in plugin.public_jobs_list:
-            if job['name'] not in self.PLUGIN_DEFAULT_JOBS:
-                extra_jobs.append(job['name'])
+        job_names = []
+        for job in plugin.get(const.PLUGIN_JENKINS_JOB_TYPE, []):
+            if job['name'] not in self.PLUGIN_DEFAULT_JOBS and not job.get('private', False):
+                job_names.append(job['name'])
 
-        return extra_jobs
+        return job_names
 
     @classmethod
     def get_plugin_jobs_prefix(cls):
         return 'madcore.plugin'
+
+    @classmethod
+    def get_plugin_id(cls, plugin_name):
+        return plugin_name
 
     def get_plugin_jenkins_job_name(self, plugin_name, job_name):
         return '.'.join((self.get_plugin_jobs_prefix(), plugin_name, job_name))
@@ -1134,8 +1164,8 @@ class PluginsBase(CloudFormationBase):
 
         config.set_plugin_job_params(plugin_name, plugin_job, job_type, config_params)
 
-    def get_plugin_template_file(self, plugin_name, template_file):
-        with open(os.path.join(self.config_path, 'plugins', plugin_name, template_file)) as content_file:
+    def get_plugin_template_file(self, plugin_name, template_file, plugin_type=const.PLUGIN_TYPE_CLUSTER):
+        with open(os.path.join(self.config_path, 'plugins', plugin_type, plugin_name, template_file)) as content_file:
             content = content_file.read()
         return content
 
@@ -1164,7 +1194,7 @@ class PluginsBase(CloudFormationBase):
 
         # Get the parameters that are defined at the plugin level
         plugin_definition = self.get_plugin_by_name(plugin_name)
-        plugin_params = plugin_definition.plugin_level_parameters
+        plugin_params = plugin_definition.get('parameters', [])
         plugin_params = self.ignore_parameters_with_no_prompt(plugin_params)
 
         job_definition = self.get_plugin_job_definition(plugin_name, job_name,

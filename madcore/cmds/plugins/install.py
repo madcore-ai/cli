@@ -34,8 +34,7 @@ class PluginInstall(PluginManagement, PluginCommand):
                                 help="Set to install plugin as ingress.")
         return parser
 
-    @classmethod
-    def should_install_ingress_plugin(cls, parsed_args):
+    def should_install_ingress_plugin(self, parsed_args):
         ingress_flag = getattr(parsed_args, 'ingress_flag', None)
         if ingress_flag and not config.is_plugin_installed(PLUGIN_NAME_INGRESS):
             return True
@@ -57,7 +56,7 @@ class PluginInstall(PluginManagement, PluginCommand):
         config.set_plugin_installed(plugin_name, plugin_installed)
 
         if parsed_args.force or plugin_installed:
-            self.app.plugin_cmd_loader.load_installed_plugins_commands(plugin_name)
+            self.app.plugin_loader.load_installed_plugins_commands(plugin_name)
             self.logger.info("[%s] Successfully installed plugin.", plugin_name)
         else:
             self.logger.error("[%s] Error installing plugin.", plugin_name)

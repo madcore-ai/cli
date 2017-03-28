@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 
+import logging
 import time
 from collections import OrderedDict
 
@@ -15,6 +16,8 @@ from madcore.libs.aws import AwsLambda
 
 
 class StackManagement(PluginsBase):
+    logger = logging.getLogger(__name__)
+
     def stack_show_output_parameters(self, stack_details):
         def show_output(results_key, column_names):
             data = []

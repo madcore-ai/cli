@@ -10,4 +10,3 @@ questionnaire==1.1.0
 pyfiglet==0.7.5
 jinja2==2.9.4
 Pygments==2.2.0
-cerberus==1.1

@@ -41,7 +41,7 @@ class PluginRemove(PluginManagement, PluginCommand):
 
         if parsed_args.force or plugin_deleted:
             self.remove_plugin_jobs_params_from_config(plugin_name)
-            self.app.plugin_cmd_loader.unload_removed_plugins_commands(plugin_name)
+            self.app.plugin_loader.unload_removed_plugins_commands(plugin_name)
             self.logger.info("[%s] Successfully deleted plugin.", plugin_name)
         else:
             self.logger.error("[%s] Error deleting plugin.", plugin_name)
