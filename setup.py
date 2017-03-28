@@ -75,7 +75,8 @@ setup(
         'questionnaire==1.1.0',
         'pyfiglet==0.7.5',
         'Pygments==2.2.0',
-        'jinja2==2.9.4'
+        'jinja2==2.9.4',
+        'cerberus==1.1'
     ],
 
     namespace_packages=[],

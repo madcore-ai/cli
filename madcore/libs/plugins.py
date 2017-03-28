@@ -197,7 +197,6 @@ class PluginManagement(JenkinsBase, StackManagement):
         # first of all check if current job does have parameters
         job_parameters = self.get_plugin_job_final_params(plugin_name, current_job_name, const.PLUGIN_JENKINS_JOB_TYPE,
                                                           parsed_args)
-
         job_parameters = job_parameters or []
 
         if job_parameters:
