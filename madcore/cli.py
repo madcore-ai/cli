@@ -41,7 +41,7 @@ class MadcoreCli(App):
 
         self.raw_cmd_args = None
         if load_plugins:
-            plugins_loader.load(check_exists=False)
+            plugins_loader.load()
         self.plugin_cmd_loader = PluginCommandsLoader(command_manager)
         self.reload_commands()
 
