@@ -293,21 +293,21 @@ class PluginsLoader(object):
             plugin_config_path = os.path.join(plugin_path, config_file_name)
 
             if not os.path.exists(plugin_config_path):
-                logger.error("[%s] Error loading plugin, %s config not found, skip.", plugin_name, config_file_name)
+                logger.warn("[%s] Error loading plugin, %s config not found, skip.", plugin_name, config_file_name)
                 continue
 
             with open(plugin_config_path, 'r') as plugin_file:
                 try:
                     plugin = MadcorePluginDefinition(yaml.load(plugin_file))
                 except Exception as e:
-                    logger.error("[%s] Error loading %s, invalid file.", plugin_name, config_file_name)
-                    logger.error(e)
+                    logger.warn("[%s] Error loading %s, invalid file.", plugin_name, config_file_name)
+                    logger.warn(e)
                     continue
                 if plugin.is_valid:
                     self._plugins[plugin.plugin_name] = plugin
                 else:
-                    logger.error("[%s] Validation errors:", plugin_name)
-                    logger.error("[%s] %s", plugin_name, pprint.pformat(plugin.validation_error))
+                    logger.warn("[%s] Validation errors:", plugin_name)
+                    logger.warn("[%s] %s", plugin_name, pprint.pformat(plugin.validation_error))
 
     @property
     def plugins(self):
