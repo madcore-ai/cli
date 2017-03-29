@@ -43,7 +43,7 @@ class Followme(StackManagement, ShowOne):
         ipv4_previous = self.get_param_from_dict(previous_parameters, 'FollowMeIpAddress')
         if ipv4 == ipv4_previous:
             self.logger.info("No need to update.")
-            self.exit()
+            self.exit(code=0)
 
         self.logger.info("Updating '%s' Stack...", STACK_FOLLOWME)
         self.followme_stack_update(ipv4)
