@@ -3,7 +3,6 @@ from __future__ import unicode_literals, print_function
 import logging
 import os
 import pprint
-import sys
 from collections import OrderedDict
 
 import yaml
@@ -275,12 +274,13 @@ class PluginsLoader(object):
 
     def check_plugins_dir_exists(self):
         if not os.path.exists(self.plugins_dir):
-            logger.error("No 'plugins' repo found, you need to run configuration.")
-            sys.exit(1)
+            logger.warn("No 'plugins' repo found, skip loading plugins.")
+            return False
+        return True
 
-    def load(self, check_exists=True):
-        if check_exists:
-            self.check_plugins_dir_exists()
+    def load(self):
+        if not self.check_plugins_dir_exists():
+            return
 
         config_file_name = 'madcore.yaml'
 
