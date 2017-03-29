@@ -163,7 +163,8 @@ class StackManagement(PluginsBase):
 
         return stack_details, exists, updated
 
-    def update_stack(self, stack_name, stack_template_body, input_parameters, capabilities=None, show_progress=True):
+    def update_stack(self, stack_name, stack_template_body, input_parameters, capabilities=None,
+                     show_progress=True, use_prev_template=False):
 
         if not input_parameters:
             input_parameters = [{}]
@@ -172,7 +173,8 @@ class StackManagement(PluginsBase):
             StackName=stack_name,
             TemplateBody=stack_template_body,
             Parameters=input_parameters,
-            Capabilities=capabilities or []
+            Capabilities=capabilities or [],
+            UsePreviousTemplate=use_prev_template
         )
 
         if show_progress:

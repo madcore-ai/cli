@@ -26,8 +26,7 @@ class Followme(StackManagement, ShowOne):
             },
         ]
 
-        sgfm_stack_template = self.get_cf_template_local('sgfm.json')
-        update_response = self.update_stack(STACK_FOLLOWME, sgfm_stack_template, parameters)
+        update_response = self.update_stack(STACK_FOLLOWME, '', parameters, use_prev_template=True)
 
         return update_response
 
@@ -35,8 +34,8 @@ class Followme(StackManagement, ShowOne):
         stack_details = self.get_stack(STACK_FOLLOWME)
 
         if stack_details is None:
-            self.logger.info("Stack not created yet, run configuration to setup.")
-            self.exit()
+            self.logger.warn("Stack not created yet, run configuration to setup.")
+            return 0
 
         ipv4 = self.get_ipv4()
         self.logger.info('Core Followme: Your public IP detected as: %s', ipv4)
