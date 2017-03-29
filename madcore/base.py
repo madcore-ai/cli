@@ -84,9 +84,9 @@ class MadcoreBase(object):
         self.logger_simple.info(figlet.renderText(msg))
         self.logger.info(msg)
 
-    def exit(self):
+    def exit(self, code=1):
         self.logger.info("EXIT")
-        sys.exit(1)
+        sys.exit(code)
 
     def wait_until_url_is_up(self, url, log_msg=None, verify=False, timeout=600, sleep_time=10):
         elapsed_sec = 0
