@@ -35,7 +35,7 @@ class Followme(StackManagement, ShowOne):
 
         if stack_details is None:
             self.logger.warn("Stack not created yet, run configuration to setup.")
-            self.exit()
+            self.exit(code=0)
 
         ipv4 = self.get_ipv4()
         self.logger.info('Core Followme: Your public IP detected as: %s', ipv4)
