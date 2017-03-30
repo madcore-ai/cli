@@ -169,12 +169,17 @@ class StackManagement(PluginsBase):
         if not input_parameters:
             input_parameters = [{}]
 
+        stack_params = {
+            'StackName': stack_name,
+            'Parameters': input_parameters,
+            'Capabilities': capabilities or [],
+            'UsePreviousTemplate': use_prev_template
+        }
+        if not use_prev_template:
+            stack_params['TemplateBody'] = stack_template_body
+
         response = self.cf_client.update_stack(
-            StackName=stack_name,
-            TemplateBody=stack_template_body,
-            Parameters=input_parameters,
-            Capabilities=capabilities or [],
-            UsePreviousTemplate=use_prev_template
+            **stack_params
         )
 
         if show_progress:
