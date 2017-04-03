@@ -73,7 +73,7 @@ class MadcoreBase(object):
                 index_content = content_file.read()
                 domains = json.loads(index_content)
         else:
-            domains_url = 'https://raw.githubusercontent.com/madcore-ai/plugins/master/domain-index.json'
+            domains_url = 'https://raw.githubusercontent.com/madcore-ai/plugins/development/domain-index.json'
             domains = requests.get(domains_url).json()
 
         return domains
