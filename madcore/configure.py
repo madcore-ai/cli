@@ -17,6 +17,7 @@ from madcore.configs import config
 from madcore.libs.aws import AwsLambda, AwsConfig
 from madcore.libs.bitbucket import Bitbucket, AuthError
 from madcore.libs.repos import RepoConfigure
+from madcore.libs.plugins_loader import plugins_loader
 
 
 class MadcoreConfigure(CloudFormationBase, Command):
@@ -352,3 +353,5 @@ class MadcoreConfigure(CloudFormationBase, Command):
 
         repo_configure = RepoConfigure(self.app, self.app_args)
         repo_configure.take_action(parsed_args)
+
+        plugins_loader.load()

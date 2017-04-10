@@ -1,6 +1,5 @@
 from __future__ import print_function, unicode_literals
 
-import logging
 import time
 from collections import OrderedDict
 
@@ -16,8 +15,6 @@ from madcore.libs.aws import AwsLambda
 
 
 class StackManagement(PluginsBase):
-    logger = logging.getLogger(__name__)
-
     def stack_show_output_parameters(self, stack_details):
         def show_output(results_key, column_names):
             data = []
@@ -166,16 +163,23 @@ class StackManagement(PluginsBase):
 
         return stack_details, exists, updated
 
-    def update_stack(self, stack_name, stack_template_body, input_parameters, capabilities=None, show_progress=True):
+    def update_stack(self, stack_name, stack_template_body, input_parameters, capabilities=None,
+                     show_progress=True, use_prev_template=False):
 
         if not input_parameters:
             input_parameters = [{}]
 
+        stack_params = {
+            'StackName': stack_name,
+            'Parameters': input_parameters,
+            'Capabilities': capabilities or [],
+            'UsePreviousTemplate': use_prev_template
+        }
+        if not use_prev_template:
+            stack_params['TemplateBody'] = stack_template_body
+
         response = self.cf_client.update_stack(
-            StackName=stack_name,
-            TemplateBody=stack_template_body,
-            Parameters=input_parameters,
-            Capabilities=capabilities or []
+            **stack_params
         )
 
         if show_progress:

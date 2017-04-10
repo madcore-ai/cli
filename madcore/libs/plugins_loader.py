@@ -1,61 +1,318 @@
 from __future__ import unicode_literals, print_function
 
 import logging
+import os
+import pprint
+from collections import OrderedDict
 
-from madcore.base import PluginsBase
-from madcore.cmds.plugins.commands import PluginCustomCommands
-from madcore.configs import config
+import yaml
+from cerberus import Validator
+
+from madcore import const
+from madcore.libs.validators import VALIDATORS
+from madcore.utils import project_config_dir
 
 logger = logging.getLogger(__name__)
 
-
-class PluginLoader(PluginsBase):
-    # define here custom commands for cluster
-    PLUGIN_CLUSTER_COMMANDS = {
+PARAMETERS_VALIDATION_SCHEMA = {
+    "type": "list",
+    "required": False,
+    "schema": {
+        "type": "dict",
+        "schema": {
+            "name": {
+                "type": "string",
+                "empty": False,
+            },
+            "value": {
+                "anyof_type": ['string', 'integer'],
+                "empty": True,
+                "nullable": True
+            },
+            "default_label": {
+                "type": "string",
+                "required": False,
+                "empty": True,
+            },
+            "description": {
+                "type": "string",
+                "empty": True,
+            },
+            "type": {
+                "type": "string",
+                "empty": False,
+                "allowed": VALIDATORS.keys(),
+            },
+            "allowed": {
+                "type": "list",
+                "required": False,
+                "schema": {
+                    "anyof_type": ['string', 'integer', 'boolean'],
+                }
+            },
+            "prompt": {
+                "type": "boolean",
+                "required": False
+            },
+            "cache": {
+                "type": "boolean",
+                "required": False
+            }
+        }
     }
+}
 
-    def __init__(self, command_manager):
-        self.command_manager = command_manager
+PLUGIN_VALIDATION_SCHEMA = {
+    "id": {
+        "type": "string",
+        "empty": False
+    },
+    "type": {
+        "type": "string",
+        "empty": False,
+        "allowed": [const.PLUGIN_TYPE_PLUGIN, const.PLUGIN_TYPE_CLUSTER],
+    },
+    "image": {
+        "type": "string",
+        "empty": True
+    },
+    "description": {
+        "type": "string",
+        "empty": False
+    },
+    "bullets": {
+        "type": "list",
+        "empty": True,
+        "schema": {
+            "type": "string"
+        }
+    },
+    "text_active": {
+        "type": "string",
+        "empty": False
+    },
+    "text_buy": {
+        "type": "string",
+        "empty": False
+    },
+    "text_inactive": {
+        "type": "string",
+        "empty": False
+    },
+    "text_prerequesite": {
+        "type": "string",
+        "empty": False
+    },
+    "frame_color": {
+        "type": "string",
+        "empty": False
+    },
+    "parameters": PARAMETERS_VALIDATION_SCHEMA,
+    "cloudformations": {
+        "type": "list",
+        "required": False,
+        "schema": {
+            "type": "dict",
+            "schema": {
+                "name": {
+                    "type": "string",
+                    "empty": False
+                },
+                "stack_name": {
+                    "type": "string",
+                    "empty": False
+                },
+                "template_file": {
+                    "type": "string",
+                    "empty": False
+                },
+                "capabilities": {
+                    "type": "list",
+                    "required": False,
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                "parameters": PARAMETERS_VALIDATION_SCHEMA
+            }
+        }
+    },
+    "jobs": {
+        "type": "list",
+        "schema": {
+            "type": "dict",
+            "schema": {
+                "name": {
+                    "type": "string",
+                    "empty": False
+                },
+                "private": {
+                    "type": "boolean",
+                    "required": False,
+                },
+                "sequence": {
+                    "type": "list",
+                    "required": False,
+                    "schema": {
+                        "type": "dict",
+                        "schema": {
+                            "type": {
+                                "type": "string",
+                                "allowed": ["cloudformation", "job"],
+                                "empty": False
+                            },
+                            "name": {
+                                "type": "string",
+                                "empty": False
+                            },
+                            "description": {
+                                "type": "string",
+                                "empty": False
+                            },
+                            "job_name": {
+                                "type": "string",
+                                "empty": False
+                            },
+                            "action": {
+                                "type": "string",
+                                "empty": False,
+                                "allowed": ["create", "update", "delete", "status"],
+                            },
+                            "parameters": PARAMETERS_VALIDATION_SCHEMA
+                        }
+                    }
+                },
+                "parameters": PARAMETERS_VALIDATION_SCHEMA
+            }
+        }
+    }
+}
 
-    def load_installed_plugins_commands(self, plugin_name=None):
-        # TODO@geo investigate and see if we can make the plugin commands available in the interactive mode
-        # after plugin was installed. Currently we need to exit the cli interactive mode to see the new commands
-        if plugin_name:
-            plugins = [self.get_plugin_by_name(plugin_name)]
+
+class MadcorePluginDefinition(object):
+    def __init__(self, plugin_data):
+        self._plugin_data = plugin_data
+        self._jobs_data = {
+            'jobs': OrderedDict(),
+            'cloudformations': OrderedDict(),
+        }
+        self.validator = Validator(PLUGIN_VALIDATION_SCHEMA)
+
+    @property
+    def plugin_data(self):
+        if isinstance(self._plugin_data, list):
+            data = self._plugin_data[0]
         else:
-            # load all plugins
-            plugins = self.get_plugins()
+            data = self._plugin_data
 
-        for plugin in plugins:
-            plugin_name = plugin['id']
-            if config.is_plugin_installed(plugin_name):
-                for job_name in self.get_plugin_extra_jobs(plugin_name):
-                    command_name = '{plugin_name} {job_name}'.format(plugin_name=plugin_name, job_name=job_name)
-                    self.add_command(str(command_name), PluginCustomCommands, plugin_name)
+        return data
 
-                # here we can plugin custom commands for cluster
-                if plugin['type'] in ['cluster']:
-                    for cluster_cmd, cmd_cls in self.PLUGIN_CLUSTER_COMMANDS.items():
-                        command_name = '{plugin_name} {cluster_cmd}'.format(plugin_name=plugin_name,
-                                                                            cluster_cmd=cluster_cmd)
+    @property
+    def plugin_name(self):
+        return self.plugin_data['id']
 
-                        self.add_command(str(command_name), cmd_cls, plugin_name)
+    @property
+    def is_valid(self):
+        return self.validator.validate(self.plugin_data)
 
-    def unload_removed_plugins_commands(self, plugin_name):
-        plugins = [self.get_plugin_by_name(plugin_name)]
+    @property
+    def validation_error(self):
+        return self.validator.errors
 
-        for plugin in plugins:
-            plugin_name = plugin['id']
-            for job_name in self.get_plugin_extra_jobs(plugin_name):
-                command_name = '{plugin_name} {job_name}'.format(plugin_name=plugin_name, job_name=job_name)
-                self.remove_command(command_name, plugin_name)
+    @property
+    def plugin_level_parameters(self):
+        return self.plugin_data.get('parameters', [])
 
-    def remove_command(self, command_name, plugin_name):
-        logger.debug("[%s] Unload plugin command: '%s'", plugin_name, command_name)
-        self.command_manager.remove_command(command_name)
+    @property
+    def jobs_list(self):
+        return self.plugin_data.get('jobs', [])
 
-    def add_command(self, command_name, command_cls, plugin_name):
-        logger.debug("[%s] Load plugin command: '%s'", plugin_name, command_name)
-        # str(command_name) is required because cmd module gives error otherwise
-        # when we are using from __future__ import unicode_literals
-        self.command_manager.add_command(str(command_name), command_cls)
+    @property
+    def public_jobs_list(self):
+        return [job for job in self.jobs_list if not job.get('private', False)]
+
+    @property
+    def cloudformations_list(self):
+        return self.plugin_data.get('cloudformations', [])
+
+    @property
+    def jobs(self):
+        if not self._jobs_data['jobs']:
+            for job in self.jobs_list:
+                self._jobs_data['jobs'][job['name']] = job
+        return self._jobs_data['jobs']
+
+    @property
+    def cloudformations(self):
+        if not self._jobs_data['cloudformations']:
+            for job in self.cloudformations_list:
+                self._jobs_data['cloudformations'][job['name']] = job
+        return self._jobs_data['cloudformations']
+
+    def get_jobs_by_type(self, job_type):
+        return getattr(self, job_type, [])
+
+    @property
+    def is_cluster(self):
+        return self.plugin_data['type'] in const.PLUGIN_TYPE_CLUSTER
+
+    def __getitem__(self, item):
+        return self.plugin_data.get(item, None)
+
+    def __repr__(self):
+        return "%s(name=%s)" % (self.__class__.__name__, self.plugin_name)
+
+
+class PluginsLoader(object):
+    def __init__(self, plugins_dir=None, load=False):
+        self.plugins_dir = plugins_dir or project_config_dir('plugins')
+
+        self._plugins = OrderedDict()
+
+        if load:
+            self.load()
+
+    def check_plugins_dir_exists(self):
+        if not os.path.exists(self.plugins_dir):
+            logger.warn("No 'plugins' repo found, skip loading plugins.")
+            return False
+        return True
+
+    def load(self):
+        if not self.check_plugins_dir_exists():
+            return
+
+        config_file_name = 'madcore.yaml'
+
+        for plugin_name in os.listdir(self.plugins_dir):
+            plugin_path = os.path.join(self.plugins_dir, plugin_name)
+            # Skip any hidden dirs like .git
+            if plugin_name.startswith('.') or os.path.isfile(plugin_path):
+                continue
+
+            plugin_config_path = os.path.join(plugin_path, config_file_name)
+
+            if not os.path.exists(plugin_config_path):
+                logger.warn("[%s] Error loading plugin, %s config not found, skip.", plugin_name, config_file_name)
+                continue
+
+            with open(plugin_config_path, 'r') as plugin_file:
+                try:
+                    plugin = MadcorePluginDefinition(yaml.load(plugin_file))
+                except Exception as e:
+                    logger.warn("[%s] Error loading %s, invalid file.", plugin_name, config_file_name)
+                    logger.warn(e)
+                    continue
+                if plugin.is_valid:
+                    self._plugins[plugin.plugin_name] = plugin
+                else:
+                    logger.warn("[%s] Validation errors:", plugin_name)
+                    logger.warn("[%s] %s", plugin_name, pprint.pformat(plugin.validation_error))
+
+    @property
+    def plugins(self):
+        return self._plugins
+
+
+# Some kind of singleton here
+plugins_loader = PluginsLoader()

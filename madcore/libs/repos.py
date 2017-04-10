@@ -8,6 +8,7 @@ from cliff.command import Command
 from madcore import const
 from madcore.base import RepoBase
 from madcore.configs import config
+import shutil
 
 
 class RepoConfigure(RepoBase, Command):
@@ -122,21 +123,29 @@ class RepoConfigure(RepoBase, Command):
         self.logger.info("[%s] Last commit on branch '%s'.", repo_name, branch)
         self.run_git_cmd('git --no-pager log -1', repo_name, log_result=True)
 
-    def clone_repo(self, repo_name, parsed_args):
+    def clone_repo(self, repo_name, parsed_args, remove_repo=True):
         self.log_figlet("Clone '%s'", repo_name)
 
         repo_url = os.path.join(const.REPO_MAIN_URL, '%s.git' % repo_name)
         repo_path = os.path.join(self.config_path, repo_name)
 
-        repo_config = config.get_repo_config(repo_name)
-
         # default we use to clone from this branch and commit
         default_branch = self.env_branch
         default_commit = 'FETCH_HEAD'
 
-        config_branch = repo_config.get('branch', '')
-        config_commit = repo_config.get('commit', '')
+        repo_config = config.get_repo_config(repo_name)
+        input_config = {
+            'branch': getattr(parsed_args, 'branch_%s' % repo_name, ''),
+            'commit': getattr(parsed_args, 'commit_%s' % repo_name, ''),
+        }
+        if input_config['commit'] == 'latest':
+            input_config['commit'] = default_commit
+
+        config_branch = input_config.get('branch', '') or repo_config.get('branch', '')
+        config_commit = input_config.get('commit', '') or repo_config.get('commit', '')
+
         is_repo_config_set = config.is_repo_config_set(repo_name)
+        is_input_config_set = any(input_config.values())
 
         if not parsed_args.force:
             if self.env in (const.ENVIRONMENT_DEV,):
@@ -150,17 +159,26 @@ class RepoConfigure(RepoBase, Command):
 
         self.clone_repo_latest_version(repo_name, branch)
 
+        if remove_repo:
+            if os.path.exists(repo_path):
+                shutil.rmtree(repo_path, ignore_errors=True)
+
         if not os.path.exists(repo_path):
             self.run_cmd('git clone -b %s %s' % (branch, repo_url), cwd=self.config_path, log_prefix=repo_name)
         else:
             self.logger.info("[%s] Repo already exists.", repo_name)
 
         if not parsed_args.force:
-            if parsed_args.reset or not is_repo_config_set or (not config_branch and not config_commit):
+            if parsed_args.reset or (not is_repo_config_set and not is_input_config_set) or \
+                    (not config_branch and not config_commit):
                 branch, commit = self.ask_for_repo_inputs(repo_name, branch, commit)
                 config.set_repo_config(repo_name, {'branch': branch, 'commit': commit, 'set': True})
 
-        if parsed_args.force:
+        if is_input_config_set:
+            input_config.update(set=True)
+            config.set_repo_config(repo_name, input_config)
+
+        if parsed_args.force and not remove_repo:
             self.repo_pull_latest_version(repo_name, branch)
         elif commit:
             self.repo_reset_to_commit(repo_name, branch, commit)

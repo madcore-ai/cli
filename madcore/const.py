@@ -17,7 +17,8 @@ ENDPOINTS = {
     'kubedash': {},
     'grafana': {},
     'spark': {},
-    'zeppelin': {}
+    'zeppelin': {},
+    'elasticsearch': {}
 }
 
 DOMAIN_REGISTRATION = {
