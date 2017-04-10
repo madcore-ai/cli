@@ -11,7 +11,7 @@ VERSION = '0.6.1'
 
 
 def format_version(version):
-    fmt = '{tag}.{commitcount}+{gitsha}'
+    fmt = '{tag}.{commitcount}.{gitsha}'
     parts = version.split('-')
     assert len(parts) in (3, 4)
     dirty = len(parts) == 4
