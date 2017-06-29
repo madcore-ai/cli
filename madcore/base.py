@@ -477,7 +477,8 @@ class AwsBase(object):
                                 activity_idx = act_idx - 1
                             else:
                                 # if it's the first activity of the activity already been processed
-                                if not processed_activities_id or activity['ActivityId'] in processed_activities_id:
+                                # if not processed_activities_id or activity['ActivityId'] in processed_activities_id:
+                                if activity['ActivityId'] in processed_activities_id:
                                     break
                                 # get the top activity from the list, which mean that we are processing last activity
                                 # for current loop
@@ -507,7 +508,7 @@ class AwsBase(object):
                 self.logger.info("Stop waiting for activities to finish.")
                 break
             except exceptions.AutoScaleGroupNoActivities as e:
-                self.logger.error(e)
+                self.logger.info(e)
                 no_activities_count += 1
                 if no_activities_count > max_no_activities_count:
                     self.logger.info("No activities for AutoScaleGroup.")
@@ -529,6 +530,7 @@ class AwsBase(object):
 
         # wait until instances are properly started/terminated
         for action, instance_ids in scaled_instances.items():
+            self.logger.info("Waiting for AWS state {0} on instances {1}".format(action, instance_ids))
             if action in ('terminate',):
                 ec2_client.get_waiter('instance_terminated').wait(
                     InstanceIds=instance_ids
