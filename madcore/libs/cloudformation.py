@@ -78,7 +78,7 @@ class StackManagement(PluginsBase):
 
     def delete_stack(self, stack_name, show_progress=True):
         response = self.cf_client.delete_stack(
-            StackName=stack_name
+                StackName=stack_name
         )
 
         if show_progress:
@@ -105,10 +105,10 @@ class StackManagement(PluginsBase):
             input_parameters = [{}]
 
         response = self.cf_client.create_stack(
-            StackName=stack_name,
-            TemplateBody=stack_template_body,
-            Parameters=input_parameters,
-            Capabilities=capabilities or []
+                StackName=stack_name,
+                TemplateBody=stack_template_body,
+                Parameters=input_parameters,
+                Capabilities=capabilities or []
         )
 
         if show_progress:
@@ -179,7 +179,7 @@ class StackManagement(PluginsBase):
             stack_params['TemplateBody'] = stack_template_body
 
         response = self.cf_client.update_stack(
-            **stack_params
+                **stack_params
         )
 
         if show_progress:
@@ -253,11 +253,11 @@ class StackManagement(PluginsBase):
                 self.logger.info("%sStart madcore instance...", log_label)
                 ec2_cli = self.get_aws_client('ec2')
                 ec2_cli.start_instances(
-                    InstanceIds=[instance_id]
+                        InstanceIds=[instance_id]
                 )
                 # wait until instance is running
                 ec2_cli.get_waiter('instance_running').wait(
-                    InstanceIds=[instance_id]
+                        InstanceIds=[instance_id]
                 )
                 self.logger.info("%sMadcore instance is running.", log_label)
                 return True
@@ -285,11 +285,11 @@ class StackManagement(PluginsBase):
                 self.logger.info("%sStop madcore instance...", log_label)
                 ec2_cli = self.get_aws_client('ec2')
                 ec2_cli.stop_instances(
-                    InstanceIds=[instance_id]
+                        InstanceIds=[instance_id]
                 )
                 # wait until instance is stopped
                 ec2_cli.get_waiter('instance_stopped').wait(
-                    InstanceIds=[instance_id]
+                        InstanceIds=[instance_id]
                 )
                 self.logger.info("%sMadcore instance is stopped.", log_label)
                 return True
@@ -410,7 +410,7 @@ class StackCreate(StackManagement, Command):
         self.logger.info("DNS delegation start")
         aws_lambda = AwsLambda()
         name_servers = self.get_hosted_zone_name_servers(
-            self.get_output_from_dict(dns_stack['Outputs'], 'HostedZoneID'))
+                self.get_output_from_dict(dns_stack['Outputs'], 'HostedZoneID'))
 
         delegation_response = aws_lambda.dns_delegation(name_servers)
 
@@ -460,10 +460,13 @@ class StackCreate(StackManagement, Command):
         self.save_global_params_to_config()
 
         self.logger.info("Stack Create status:")
-        self.show_table_output(('StackName', 'Created'), (
+        self.show_table_output(('StackName', 'Created'),
+                               (
                                    (const.STACK_S3, not s3_exists),
                                    (const.STACK_NETWORK, not network_exists),
                                    (const.STACK_FOLLOWME, not sgfm_exists),
                                    (const.STACK_CORE, not core_exists),
-                                   (const.STACK_DNS, not dns_exists)))
+                                   (const.STACK_DNS, not dns_exists)
+                               ))
+
         return 0
