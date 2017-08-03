@@ -460,13 +460,10 @@ class StackCreate(StackManagement, Command):
         self.save_global_params_to_config()
 
         self.logger.info("Stack Create status:")
-        self.show_table_output(('StackName', 'Created'),
-                               (
+        self.show_table_output(('StackName', 'Created'), (
                                    (const.STACK_S3, not s3_exists),
                                    (const.STACK_NETWORK, not network_exists),
                                    (const.STACK_FOLLOWME, not sgfm_exists),
                                    (const.STACK_CORE, not core_exists),
-                                   (const.STACK_DNS, not dns_exists)
-                               ))
-
+                                   (const.STACK_DNS, not dns_exists)))
         return 0
