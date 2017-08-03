@@ -26,7 +26,7 @@ class Configure(JenkinsBase, Lister):
             for option in ['branch', 'commit']:
                 cmd = "--%s_%s" % (option, repo)
                 hlp = "Set %s %s" % (repo, option)
-                parser.add_argument(cmd, required=False,  default=None, help=hlp)
+                parser.add_argument(cmd, required=False, default=None, help=hlp)
 
     def get_parser(self, prog_name):
         parser = super(Configure, self).get_parser(prog_name)
