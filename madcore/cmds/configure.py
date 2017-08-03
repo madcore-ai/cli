@@ -150,7 +150,7 @@ class Configure(JenkinsBase, Lister):
 
         if parsed_args.local:
             self.logger.info("Local Registration Completed")
-            return ('Name','Value'), [('configure --local','Local Repos Updated')]
+            return ('Name', 'Value'), [('configure --local', 'Local Repos Updated')]
 
         self.log_figlet("Cloudformation")
         stack_create = StackCreate(self.app, self.app_args)
