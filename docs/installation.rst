@@ -6,11 +6,11 @@ Installation
     :depth: 1
     :local:
 
-        Madcore lives across 5 Github repositories: https://github.com/madcore-ai  All are being actively
-        developed across many branches. `development` branch is always kept stable and merged into master
-        when features align at which point a Python PIP package is created. This page will explain on how
-        to perform a development installation so you have control over branch and commit id's used to pin
-        your installation into a known working state.
+Madcore lives across 5 Github repositories: https://github.com/madcore-ai  All are being actively
+developed across many branches. `development` branch is always kept stable and merged into master
+when features align at which point a Python PIP package is created. This page will explain on how
+to perform a development installation so you have control over branch and commit id's used to pin
+your installation into a known working state.
 
 
 Bitbucket Account
