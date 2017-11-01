@@ -36,4 +36,5 @@ you will have your master instance (with firewall open only to your ip address).
 over HTTPS/SSL. You can then securely connect from directly to Jenkins, Grafana and Kubernetes dashboards.
 
 .. code-block:: bash
+
     pip install madcore
