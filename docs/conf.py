@@ -33,3 +33,5 @@ html_theme = 'guzzle_sphinx_theme'
 html_theme_options = {
     "base_url": "https://madcore.ai/"
 }
+
+
