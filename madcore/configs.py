@@ -102,7 +102,7 @@ class MadcoreConfig(object):
             try:
                 option_name = '{job_type}_{job_name}'.format(job_type=job_type, job_name=job_name)
                 self.remove_option(plugin_name, option_name)
-            except:
+            except Exception:
                 pass
 
     def delete_global_params(self, section='global_params'):
