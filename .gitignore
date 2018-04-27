@@ -1,4 +1,5 @@
 .idea/
+madcore.egg-info/
 *.pyc
 .project
 .pydevproject

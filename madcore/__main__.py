@@ -1,0 +1,1 @@
+from madcore import main

@@ -71,10 +71,18 @@ setup(
         'urllib3==1.22',
         'prettytable==0.7.2',
         'requests==2.18.4',
+        'Fabric==1.13.2',
     ],
 
-    namespace_packages=[],
-    packages=find_packages(),
+    #namespace_packages=[],
+    #packages=find_packages(),
+    packages=['madcore'],
     include_package_data=True,
     zip_safe=False,
+
+    entry_points={
+        'console_scripts': [
+            'madcore = madcore.madcore:main'
+        ]
+    },
 )
