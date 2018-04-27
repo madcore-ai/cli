@@ -39,7 +39,7 @@ class Static(object):
 
     @staticmethod
     def figletcyber(msg):
-        prov_cmd = "figlet -f {0} {1}".format(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../cybermedium.flf"), msg)
+        prov_cmd = "figlet -f {0} {1}".format(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cybermedium.flf"), msg)
         proc = subprocess.Popen(prov_cmd, stdout=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
         out = ''
         for line in iter(proc.stdout.readline, ''):

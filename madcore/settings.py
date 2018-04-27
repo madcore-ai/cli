@@ -60,7 +60,7 @@ class Settings(object):
 
         self.switch_config_if_new_requested()
 
-        clusterfile_data = yaml.load(open(os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../clusters/"), self.config.clusterfile)), Loader=yamlordereddictloader.Loader)
+        clusterfile_data = yaml.load(open(os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__)), "clusters/"), self.config.clusterfile)), Loader=yamlordereddictloader.Loader)
         clusterfile_struct = Struct(**clusterfile_data)
         self.cluster = Struct(**clusterfile_struct.cluster)
         self.provision = Struct(**clusterfile_struct.provision)

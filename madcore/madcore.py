@@ -69,56 +69,56 @@ def main(args=None):
         print description
         print
 
-    settings = settings.Settings(args)
+    sett = settings.Settings(args)
 
     if args.provision:
-        prov = provision.Provision(settings)
+        prov = provision.Provision(sett)
         prov.start()
         exit(0)
 
     # make sure correct context is set (based on one set in config file)
     # but not for provision (no context then)
-    kc = execkubectl.ExecKubectl(settings)
+    kc = execkubectl.ExecKubectl(sett)
     kc.use_context()
     if args.clusterfile:
         # switch happens in settings
-        kc = execkubectl.ExecKubectl(settings)
+        kc = execkubectl.ExecKubectl(sett)
         kc.use_context()
 
     elif args.destroy:
-        kops = execkops.ExecKops(settings)
+        kops = execkops.ExecKops(sett)
         kops.destroy_cluster()
 
     elif args.kops_update:
-        kops = execkops.ExecKops(settings)
+        kops = execkops.ExecKops(sett)
         kops.update_settings()
 
     elif args.kops_validate:
-        kops = execkops.ExecKops(settings)
+        kops = execkops.ExecKops(sett)
         kops.validate_cluster()
 
     elif args.install_core:
-        el = elements.Elements(settings)
+        el = elements.Elements(sett)
         el.kubectl_install_elements("core")
 
     elif args.install_elk:
-        el = elements.Elements(settings)
+        el = elements.Elements(sett)
         el.kubectl_install_elements("elk")
 
     elif args.install_neo4j:
-        el = elements.Elements(settings)
+        el = elements.Elements(sett)
         el.kubectl_install_elements("neo4j")
 
     elif args.install_kafka:
-        el = elements.Elements(settings)
+        el = elements.Elements(sett)
         el.kubectl_install_elements("kafka")
 
     elif args.kubectl_use_context:
-        kc = execkubectl.ExecKubectl(settings)
+        kc = execkubectl.ExecKubectl(sett)
         kc.use_context()
 
     elif args.mini_hostname:
-        prov = provision.Provision(settings)
+        prov = provision.Provision(sett)
         prov.mini_hostname()
 
     elif args.attr:
@@ -128,7 +128,7 @@ def main(args=None):
 
     else:
         Static.figletcyber("STATUS")
-        kc = execkubectl.ExecKubectl(settings)
+        kc = execkubectl.ExecKubectl(sett)
         kc.get_pods()
         kc.get_svc()
         kc.get_ing()
