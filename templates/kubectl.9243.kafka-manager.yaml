@@ -1,0 +1,58 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: kafka-manager
+  namespace: kafka
+spec:
+  selector:
+    app: kafka-manager
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-manager
+  namespace: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-manager
+  template:
+    metadata:
+      labels:
+        app: kafka-manager
+    spec:
+      containers:
+      - name: kafka-manager
+        image: solsson/kafka-manager@sha256:5db7d54cdb642ec5a92f37a869fdcf2aa479b2552e900b2d2b83b38a1806c2de
+        ports:
+        - containerPort: 80
+        env:
+        - name: ZK_HOSTS
+          value: pzoo.kafka:2181
+        command:
+        - ./bin/kafka-manager
+        - -Dhttp.port=80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: kafka
+  namespace: kafka
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+    ingress.kubernetes.io/ssl-redirect: false
+    ingress.kubernetes.io/app-root: /
+spec:
+  rules:
+  - host: kafka.{{ settings.provision.domain }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kafka-manager
+          servicePort: 80

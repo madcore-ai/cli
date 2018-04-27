@@ -1,0 +1,123 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana
+  namespace: elk
+  labels:
+    app: kibana
+    stack: logging
+data:
+  kibana.yml: |
+    server:
+      name: "full-stack-example"
+      port: 127.0.0.1:5601
+    elasticsearch.url: "http://elasticsearch.elk:9200"
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: elk
+  labels:
+    app: kibana
+    stack: logging
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: kibana
+        stack: logging
+    spec:
+      # FIXME
+      # healthcheck + resources
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana-oss:6.0.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: ELASTICSEARCH_PASSWORD
+          value: changeme
+        ports:
+        - containerPort: 5601
+        resources: {}
+        volumeMounts:
+        - name: config
+          mountPath: /usr/share/kibana/kibana.yml
+          subPath: kibana.yml
+      restartPolicy: Always
+      volumes:
+      - name: config
+        configMap:
+          name: kibana
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: kibana
+  namespace: elk
+  labels:
+    app: kibana
+    stack: logging
+#  annotations:
+#    ingress.kubernetes.io/auth-signin: https://$host/oauth2/start
+#    ingress.kubernetes.io/auth-url: https://$host/oauth2/auth
+#    kubernetes.io/tls-acme: "true"
+spec:
+  rules:
+  - host: kibana.{{ settings.provision.domain }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kibana
+          servicePort: 5601
+#  tls:
+#  - secretName: kibana-tls
+#    hosts:
+#    - kibana.codeformuenster.org
+#
+#---
+#apiVersion: extensions/v1beta1
+#kind: Ingress
+#metadata:
+#  name: kibana-auth
+#  labels:
+#    app: kibana-auth
+#    stack: logging
+#  annotations:
+#    kubernetes.io/tls-acme: "true"
+#spec:
+#  rules:
+#  - host: kibana.codeformuenster.org
+#    http:
+#      paths:
+#      - path: /oauth2
+#        backend:
+#          serviceName: oauth2-proxy
+#          servicePort: 4180
+#  tls:
+#  - secretName: kibana-tls
+#    hosts:
+#    - kibana.codeformuenster.org
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: elk
+  labels:
+    app: kibana
+    stack: logging
+spec:
+  type: NodePort
+  ports:
+  - name: "ui"
+    port: 5601
+    targetPort: 5601
+  selector:
+    app: kibana
+    stack: logging

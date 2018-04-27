@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+    dynamic-scaling: "false"
+    backend-server-slots-increment: "1"
+    timeout-server: "5m"
+kind: ConfigMap
+metadata:
+  name: haproxy-configmap
+  namespace: ingress

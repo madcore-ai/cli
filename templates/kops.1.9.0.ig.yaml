@@ -1,0 +1,30 @@
+apiVersion: kops/v1alpha2
+kind: InstanceGroup
+metadata:
+  creationTimestamp: 2017-08-19T18:24:11Z
+  labels:
+    kops.k8s.io/cluster: {{ settings.provision.domain }}
+  name: {{ ig.name }}
+spec:
+  image: kope.io/k8s-1.8-debian-jessie-amd64-hvm-ebs-2018-02-08
+  machineType: {{ ig.machineType }}
+  maxSize: {{ ig.maxSize }}
+  minSize: {{ ig.minSize }}
+  nodeLabels:
+    kops.k8s.io/instancegroup: {{ ig.name }}
+  role: Node
+  subnets:
+  - {{ settings.aws_zone }}
+  rootVolumeSize: {{ ig.rootVolumeSize }}
+  rootVolumeType: {{ ig.rootVolumeType }}
+  rootVolumeIops: {{ ig.rootVolumeIops }}
+  rootVolumeOptimization: {{ ig.rootVolumeOptimization }}
+  cloudLabels:
+    environment: {{ settings.cluster.name.upper() }}
+  additionalUserData:
+  - name: startup.sh
+    type: text/x-shellscript
+    content: |
+      #!/bin/bash
+      sudo apt-get update
+      sudo apt-get install nfs-kernel-server -y

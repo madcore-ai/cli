@@ -1,0 +1,156 @@
+---
+cluster:
+    name: solvezone
+
+provision:
+    cloud: aws
+    region: us-east-1
+    zone_id: c
+    vpc_id: vpc-c36f15b8
+    vpc_CIDR: 172.174.0.0/16
+    domain: solve.zone
+    dnszone_id: Z1W3SMI62IXOD3
+    s3_store: s3://solve.zone-state-store
+    kubernetesVersion: 1.9.6
+    kops_verbosity: 99
+    additional_ssh_keys:
+        - owner: peter
+          key: ..
+    subnets:
+        - cidr: 172.174.30.0/24
+          name: us-east-1c
+          type: Public
+          zone: us-east-1c
+    master:
+        machineType: c4.large
+        additionalSecurityGroups: sg-80ab20c9
+        maxSize: 1
+        minSize: 1
+        rootVolumeSize: 40
+        rootVolumeType: gp2
+        rootVolumeIops: 100
+        rootVolumeOptimization: true
+    instance_groups:
+        -  name: nodes
+           machineType: c4.large
+           maxSize: 1
+           minSize: 1
+           rootVolumeSize: 15
+           rootVolumeType: gp2
+           rootVolumeIops: 100
+           rootVolumeOptimization: true
+#        -  name: ingress
+#           machineType: c4.large
+#           maxSize: 1
+#           minSize: 1
+#           rootVolumeSize: 15
+#           rootVolumeType: gp2
+#           rootVolumeIops: 100
+#           rootVolumeOptimization: true
+#        -  name: perftest
+#           machineType: c4.xlarge
+#           maxSize: 30
+#           minSize: 30
+#           rootVolumeSize: 100
+#           rootVolumeType: io1
+#           rootVolumeIops: 1000
+#           rootVolumeOptimization: true
+#        -  name: elk
+#           machineType: c4.xlarge
+#           maxSize: 1
+#           minSize: 1
+#           rootVolumeSize: 200
+#           rootVolumeType: io1
+#           rootVolumeIops: 1000
+#           rootVolumeOptimization: true
+
+elements:
+    core:
+        - name: kubernetes-dashboard
+          template: kubectl.101.dashboard.yaml
+          image: k8s.gcr.io/kubernetes-dashboard-amd64:v1.8.2
+          service_ports:
+              - port: 80
+                targetPort: 9090
+#            - name: route53-mapper
+#              template: kubectl.102.route53.yaml
+#              image: quay.io/molecule/route53-kubernetes:v1.3.0
+#              taint:
+#                  before: master-remove-all
+#                  after: master-add-noschedule
+
+#            - name: registry
+#              template: kubectl.141.registry.yaml
+#              image: registry:2
+#              taint:
+#                  before: master-remove-all
+#                  after: master-add-noschedule
+#        - name: ingress.service.registry
+#          template: kubectl.142.ingress.service.registry.yaml
+
+        - name: ingress-default-deployment
+          template: kubectl.111.ingress-default-deployment.yaml
+        - name: http-svc-deployment
+          template: kubectl.112.http-svc-deployment.yaml
+
+        - name: nfs-claim
+          taint:
+              before: master-remove-all
+          template: kubectl.121.nfs-claim.yaml
+        - name: nfs-class
+          template: kubectl.122.nfs-class.yaml
+        - name: nfs
+          taint:
+              after: master-add-noschedule
+          template: kubectl.123.nfs.yaml
+
+#            - name: sys-influxdb
+#              template: kubectl.151.influxdb.yaml
+        - name: sys-heapster
+          template: kubectl.152.heapster.yaml
+#            - name: sys-grafana
+#              template: kubectl.153.grafana.yaml
+#            - name: sys-grafana
+#              template: kubectl.154.grafana.ing.yaml
+
+        - name: haproxy-configmap
+          template: kubectl.171.haproxy-configmap.yaml
+        - name: haproxy-ingress-deployment
+          template: kubectl.172.haproxy-ingress-deployment.yaml
+        - name: haproxy-ingress-svc
+          template: kubectl.173.haproxy-ingress-svc.yaml
+        - name: http-svc-ingress
+          template: kubectl.174.http-svc-ingress.yaml
+
+    neo4j:
+        - name: neo4j
+          template: kubectl.9221.neo4j-core.yaml
+
+    kafka:
+#        - name: zookeeper
+#          template: kubectl.9241.zookeeper.yaml
+#        - name: kafka
+#          template: kubectl.9242.kafka.yaml
+#        - name: kafka-manager
+#          template: kubectl.9243.kafka-manager.yaml
+#        - name: kfn
+#          template: kubectl.9249.kfn.yaml
+        - name: kafka-rest
+          template: kubectl.9244.kafka-rest.yaml
+
+    elk:
+        - name: elasticsearch
+          template: kubectl.9201.elasticsearch.yaml
+        - name: fluentd
+          template: kubectl.9202.fluentd.yaml
+        - name: kibana
+          template: kubectl.9203.kibana.yaml
+#        - name: oauth2-proxy
+#          template: kubectl.9204.oauth2-proxy.yaml
+
+    perftest:
+        - name: perftest
+          template: kubectl.216.perftest.yaml
+
+
+

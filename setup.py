@@ -64,47 +64,17 @@ setup(
 
     provides=[],
     install_requires=[
-        'six>=1.9.0',
-        'future==0.16.0',
-        'configparser==3.5.0',
-        'cliff==2.4.0',
-        'boto3==1.4.4',
-        'urllib3==1.20',
-        'python-jenkins==0.4.14',
-        'requests==2.12.5',
-        'questionnaire==1.1.0',
-        'pyfiglet==0.7.5',
-        'Pygments==2.2.0',
-        'jinja2==2.9.4',
-        'cerberus==1.1'
+        'termcolor==1.1.0',
+        'Jinja2==2.9.6',
+        'yamlordereddictloader==0.1.1',
+        'pyOpenSSL==16.2.0',
+        'urllib3==1.22',
+        'prettytable==0.7.2',
+        'requests==2.18.4',
     ],
 
     namespace_packages=[],
     packages=find_packages(),
     include_package_data=True,
-
-    entry_points={
-        'console_scripts': [
-            'madcore = madcore.cli:main'
-        ],
-        'madcorecli.app': [
-            'configure = madcore.cmds.configure:Configure',
-            'stacks = madcore.cmds.stacks:Stacks',
-            'create = madcore.cmds.create:Create',
-            'destroy = madcore.cmds.destroy:Destroy',
-            'followme = madcore.cmds.followme:Followme',
-            'endpoints = madcore.cmds.endpoints:Endpoints',
-            'selftest = madcore.cmds.selftest:SelfTest',
-            'registration = madcore.cmds.registration:Registration',
-            'up = madcore.cmds.up:MadcoreUp',
-            'halt = madcore.cmds.halt:MadcoreHalt',
-            'ssh = madcore.cmds.ssh:MadcoreSSH',
-            'status = madcore.cmds.status:Status',
-            'plugin list = madcore.cmds.plugins.list:PluginList',
-            'plugin install = madcore.cmds.plugins.install:PluginInstall',
-            'plugin remove = madcore.cmds.plugins.remove:PluginRemove',
-            'plugin status = madcore.cmds.plugins.status:PluginStatus'
-        ],
-    },
     zip_safe=False,
 )
