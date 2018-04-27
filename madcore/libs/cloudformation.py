@@ -15,6 +15,7 @@ from madcore.libs.aws import AwsLambda
 
 
 class StackManagement(PluginsBase):
+
     def stack_show_output_parameters(self, stack_details):
         def show_output(results_key, column_names):
             data = []
@@ -25,7 +26,9 @@ class StackManagement(PluginsBase):
 
                 self.show_table_output(column_names, data)
 
-        self.logger.info("[%s] Output parameters for stack:", stack_details['StackName'])
+        self.logger.info(
+            "[%s] Output parameters for stack:",
+            stack_details['StackName'])
         show_output('Outputs', ['OutputKey', 'OutputValue', 'Description'])
 
     def stack_show_input_parameter(self, stack_name, input_params, debug=True):
@@ -39,11 +42,13 @@ class StackManagement(PluginsBase):
 
         if input_params != [{}]:
             if debug:
-                self.logger.info("[%s] Input parameters for stack:", stack_name)
+                self.logger.info(
+                    "[%s] Input parameters for stack:", stack_name)
             show_output(['ParameterKey', 'ParameterValue'])
         else:
             if debug:
-                self.logger.info("[%s] No input parameters for stack.", stack_name)
+                self.logger.info(
+                    "[%s] No input parameters for stack.", stack_name)
 
     @classmethod
     def is_stack_create_failed(cls, stack_details):
@@ -74,7 +79,8 @@ class StackManagement(PluginsBase):
         return False
 
     def wait_for_stack_to_complete(self, stack_name):
-        self._cf_client.get_waiter('stack_create_complete').wait(StackName=stack_name)
+        self._cf_client.get_waiter(
+            'stack_create_complete').wait(StackName=stack_name)
 
     def delete_stack(self, stack_name, show_progress=True):
         response = self.cf_client.delete_stack(
@@ -100,7 +106,13 @@ class StackManagement(PluginsBase):
 
         return stack_deleted
 
-    def create_stack(self, stack_name, stack_template_body, input_parameters, capabilities=None, show_progress=True):
+    def create_stack(
+            self,
+            stack_name,
+            stack_template_body,
+            input_parameters,
+            capabilities=None,
+            show_progress=True):
         if not input_parameters:
             input_parameters = [{}]
 
@@ -116,7 +128,12 @@ class StackManagement(PluginsBase):
 
         return response
 
-    def create_stack_if_not_exists(self, stack_name, stack_template_body, dict_params, capabilities=None):
+    def create_stack_if_not_exists(
+            self,
+            stack_name,
+            stack_template_body,
+            dict_params,
+            capabilities=None):
         exists = False
         error = False
         updated = False
@@ -129,31 +146,49 @@ class StackManagement(PluginsBase):
         stack_details = self.get_stack(stack_name, debug=False)
 
         if stack_details is None:
-            self.logger.info("[%s] Stack does not exists, creating it...", stack_name)
-            self.create_stack(stack_name, stack_template_body, stack_params, capabilities=capabilities)
+            self.logger.info(
+                "[%s] Stack does not exists, creating it...",
+                stack_name)
+            self.create_stack(
+                stack_name,
+                stack_template_body,
+                stack_params,
+                capabilities=capabilities)
         elif self.is_stack_create_failed(stack_details):
-            self.logger.info("[%s] Stack is created but failed with status '%s'", stack_details['StackName'],
-                             stack_details['StackStatus'])
+            self.logger.info(
+                "[%s] Stack is created but failed with status '%s'",
+                stack_details['StackName'],
+                stack_details['StackStatus'])
             self.logger.info("[%s] Try to create again.", stack_name)
             self.delete_stack(stack_name)
-            self.create_stack(stack_name, stack_template_body, stack_params, capabilities=capabilities)
+            self.create_stack(
+                stack_name,
+                stack_template_body,
+                stack_params,
+                capabilities=capabilities)
         elif self.is_stack_create_in_progress(stack_details):
-            self.logger.info('[%s] Stack create in progress, wait to finish...', stack_name)
+            self.logger.info(
+                '[%s] Stack create in progress, wait to finish...',
+                stack_name)
             self.show_create_stack_events_progress(stack_name)
             self.logger.info('[%s] Stack finished.', stack_name)
         else:
             self.logger.info("[%s] Stack already exists, skip.", stack_name)
-            updated = self.update_stack_if_changed(stack_name, stack_template_body, stack_details, dict_params,
-                                                   capabilities)
+            updated = self.update_stack_if_changed(
+                stack_name, stack_template_body, stack_details, dict_params, capabilities)
             exists = True
 
         stack_details = self.get_stack(stack_name, debug=False)
 
         if stack_details and not self.is_stack_create_failed(stack_details):
-            self.logger.info("[%s] Stack created with status '%s'.\n", stack_details['StackName'],
-                             stack_details['StackStatus'])
+            self.logger.info(
+                "[%s] Stack created with status '%s'.\n",
+                stack_details['StackName'],
+                stack_details['StackStatus'])
         else:
-            self.logger.error("[%s] Error while creating stack. Check logs for details.", stack_name)
+            self.logger.error(
+                "[%s] Error while creating stack. Check logs for details.",
+                stack_name)
             error = True
 
         if not error:
@@ -163,8 +198,14 @@ class StackManagement(PluginsBase):
 
         return stack_details, exists, updated
 
-    def update_stack(self, stack_name, stack_template_body, input_parameters, capabilities=None,
-                     show_progress=True, use_prev_template=False):
+    def update_stack(
+            self,
+            stack_name,
+            stack_template_body,
+            input_parameters,
+            capabilities=None,
+            show_progress=True,
+            use_prev_template=False):
 
         if not input_parameters:
             input_parameters = [{}]
@@ -187,8 +228,14 @@ class StackManagement(PluginsBase):
 
         return response
 
-    def update_stack_if_changed(self, stack_name, stack_template_body, stack_details, stack_update_parameters,
-                                capabilities=None, show_progress=True):
+    def update_stack_if_changed(
+            self,
+            stack_name,
+            stack_template_body,
+            stack_details,
+            stack_update_parameters,
+            capabilities=None,
+            show_progress=True):
         updated = False
 
         self.logger.info("[%s] Try to update stack if needed.", stack_name)
@@ -203,21 +250,36 @@ class StackManagement(PluginsBase):
                 'UsePreviousValue': True
             }
             if stack_param['ParameterKey'] in stack_update_parameters:
-                if str(stack_param['ParameterValue']) != str(stack_update_parameters[stack_param['ParameterKey']]):
-                    param['ParameterValue'] = str(stack_update_parameters[stack_param['ParameterKey']])
+                if str(
+                    stack_param['ParameterValue']) != str(
+                    stack_update_parameters[
+                        stack_param['ParameterKey']]):
+                    param['ParameterValue'] = str(
+                        stack_update_parameters[
+                            stack_param['ParameterKey']])
                     updated_params.append(param)
                     param['UsePreviousValue'] = False
 
             stack_update_params.append(param)
 
         if updated_params:
-            self.logger.info("[%s] Stack params changed, show params that require update.", stack_name)
-            self.stack_show_input_parameter(stack_name, updated_params, debug=False)
+            self.logger.info(
+                "[%s] Stack params changed, show params that require update.",
+                stack_name)
+            self.stack_show_input_parameter(
+                stack_name, updated_params, debug=False)
             self.logger.info("[%s] Start updating stack.", stack_name)
-            self.update_stack(stack_name, stack_template_body, stack_update_params, capabilities, show_progress)
+            self.update_stack(
+                stack_name,
+                stack_template_body,
+                stack_update_params,
+                capabilities,
+                show_progress)
             updated = True
         else:
-            self.logger.info("[%s] There are no params to update, skip.", stack_name)
+            self.logger.info(
+                "[%s] There are no params to update, skip.",
+                stack_name)
 
         return updated
 
@@ -238,7 +300,9 @@ class StackManagement(PluginsBase):
         return cf_params
 
     def start_instance_if_not_running(self, instance_id, log_label=''):
-        self.logger.info("%sCheck if madcore instance is running...", log_label)
+        self.logger.info(
+            "%sCheck if madcore instance is running...",
+            log_label)
         try:
             instance_details = self.describe_instance(instance_id)
 
@@ -248,8 +312,10 @@ class StackManagement(PluginsBase):
 
             instance_status = instance_details['State']['Name']
             if instance_status in ['stopped', 'stopping']:
-                self.logger.info("%sMadcore instance is not running, current status is: '%s'.", log_label,
-                                 instance_status)
+                self.logger.info(
+                    "%sMadcore instance is not running, current status is: '%s'.",
+                    log_label,
+                    instance_status)
                 self.logger.info("%sStart madcore instance...", log_label)
                 ec2_cli = self.get_aws_client('ec2')
                 ec2_cli.start_instances(
@@ -262,15 +328,21 @@ class StackManagement(PluginsBase):
                 self.logger.info("%sMadcore instance is running.", log_label)
                 return True
             else:
-                self.logger.info("%sMadcore instance is already running.", log_label)
+                self.logger.info(
+                    "%sMadcore instance is already running.", log_label)
         except botocore.exceptions.ClientError as ec2_error:
-            self.logger.error("%sError while starting instance '%s'.", log_label, instance_id)
+            self.logger.error(
+                "%sError while starting instance '%s'.",
+                log_label,
+                instance_id)
             self.logger.error(ec2_error)
 
         return False
 
     def stop_instance_if_running(self, instance_id, log_label=''):
-        self.logger.info("%sCheck if madcore instance is running...", log_label)
+        self.logger.info(
+            "%sCheck if madcore instance is running...",
+            log_label)
         try:
             instance_details = self.describe_instance(instance_id)
 
@@ -280,8 +352,10 @@ class StackManagement(PluginsBase):
 
             instance_status = instance_details['State']['Name']
             if instance_status in ['pending', 'running', 'stopping']:
-                self.logger.info("%sMadcore instance is running, current status is: '%s'.", log_label,
-                                 instance_status)
+                self.logger.info(
+                    "%sMadcore instance is running, current status is: '%s'.",
+                    log_label,
+                    instance_status)
                 self.logger.info("%sStop madcore instance...", log_label)
                 ec2_cli = self.get_aws_client('ec2')
                 ec2_cli.stop_instances(
@@ -294,9 +368,13 @@ class StackManagement(PluginsBase):
                 self.logger.info("%sMadcore instance is stopped.", log_label)
                 return True
             else:
-                self.logger.info("%sMadcore instance is already stopped.", log_label)
+                self.logger.info(
+                    "%sMadcore instance is already stopped.", log_label)
         except botocore.exceptions.ClientError as ec2_error:
-            self.logger.error("%sError while stopping instance '%s'.", log_label, instance_id)
+            self.logger.error(
+                "%sError while stopping instance '%s'.",
+                log_label,
+                instance_id)
             self.logger.error(ec2_error)
 
         return False
@@ -314,12 +392,15 @@ class StackManagement(PluginsBase):
 
 
 class StackCreate(StackManagement, Command):
+
     def take_action(self, parsed_args):
         # create S3
         self.log_figlet("STACK %s", const.STACK_S3)
         s3_stack_template = self.get_cf_template_local('s3.json')
-        s3_stack, s3_exists, _ = self.create_stack_if_not_exists(const.STACK_S3, s3_stack_template, {})
-        s3_bucket_name = self.get_output_from_dict(s3_stack['Outputs'], 'S3BucketName')
+        s3_stack, s3_exists, _ = self.create_stack_if_not_exists(
+            const.STACK_S3, s3_stack_template, {})
+        s3_bucket_name = self.get_output_from_dict(
+            s3_stack['Outputs'], 'S3BucketName')
 
         self.log_figlet("STACK %s", const.STACK_NETWORK)
 
@@ -335,8 +416,8 @@ class StackCreate(StackManagement, Command):
             ('VPCCIDRBlock', '10.99.0.0/16')
         ))
         network_stack_template = self.get_cf_template_local('network.json')
-        network_stack, network_exists, _ = self.create_stack_if_not_exists(const.STACK_NETWORK, network_stack_template,
-                                                                           network_parameters)
+        network_stack, network_exists, _ = self.create_stack_if_not_exists(
+            const.STACK_NETWORK, network_stack_template, network_parameters)
 
         self.log_figlet("STACK %s", const.STACK_FOLLOWME)
         # create SGFM
@@ -345,14 +426,15 @@ class StackCreate(StackManagement, Command):
             ('VpcId', self.get_output_from_dict(network_stack['Outputs'], 'VpcId'))
         ))
         sgfm_stack_template = self.get_cf_template_local('sgfm.json')
-        sgfm_stack, sgfm_exists, _ = self.create_stack_if_not_exists(const.STACK_FOLLOWME, sgfm_stack_template,
-                                                                     sgfm_parameters)
+        sgfm_stack, sgfm_exists, _ = self.create_stack_if_not_exists(
+            const.STACK_FOLLOWME, sgfm_stack_template, sgfm_parameters)
 
         self.log_figlet("STACK %s", const.STACK_CORE)
         # create Core
         aws_config = config.get_aws_data()
         core_repo_config = self.get_repo_info('core', include_remote=False)
-        plugins_repo_config = self.get_repo_info('plugins', include_remote=False)
+        plugins_repo_config = self.get_repo_info(
+            'plugins', include_remote=False)
 
         core_parameters = OrderedDict((
             ('FollowmeSecurityGroup', self.get_output_from_dict(sgfm_stack['Outputs'], 'FollowmeSgId')),
@@ -371,26 +453,40 @@ class StackCreate(StackManagement, Command):
 
         if core_stack is not None:
             if self.is_stack_create_in_progress(core_stack):
-                self.logger.info('[%s] Stack create in progress, wait to finish.', const.STACK_CORE)
+                self.logger.info(
+                    '[%s] Stack create in progress, wait to finish.',
+                    const.STACK_CORE)
                 self.show_create_stack_events_progress(const.STACK_CORE)
                 self.logger.info('[%s] Stack finished.', const.STACK_CORE)
             elif not self.is_stack_create_failed(core_stack):
-                core_instance_id = self.get_output_from_dict(core_stack['Outputs'], 'MadCoreInstanceId')
-                self.logger.debug("[%s] Check if madcore instance is terminated...", const.STACK_CORE)
+                core_instance_id = self.get_output_from_dict(
+                    core_stack['Outputs'], 'MadCoreInstanceId')
+                self.logger.debug(
+                    "[%s] Check if madcore instance is terminated...",
+                    const.STACK_CORE)
                 if self.is_instance_terminated(core_instance_id):
-                    self.logger.info("[%s] Madcore instance is terminated, recreate stack.", const.STACK_CORE)
-                    self.logger.info("[%s] Delete stack.", core_stack['StackName'])
+                    self.logger.info(
+                        "[%s] Madcore instance is terminated, recreate stack.",
+                        const.STACK_CORE)
+                    self.logger.info(
+                        "[%s] Delete stack.",
+                        core_stack['StackName'])
                     self.delete_stack(const.STACK_CORE)
                 else:
-                    self.logger.debug("[%s] Instance not terminated.", const.STACK_CORE)
+                    self.logger.debug(
+                        "[%s] Instance not terminated.",
+                        const.STACK_CORE)
 
-                self.start_instance_if_not_running(core_instance_id, '[%s] ' % const.STACK_CORE)
+                self.start_instance_if_not_running(
+                    core_instance_id, '[%s] ' %
+                    const.STACK_CORE)
 
         core_stack_template = self.get_cf_template_local('core.json')
-        core_stack, core_exists, _ = self.create_stack_if_not_exists(const.STACK_CORE, core_stack_template,
-                                                                     core_parameters, capabilities=core_capabilities)
+        core_stack, core_exists, _ = self.create_stack_if_not_exists(
+            const.STACK_CORE, core_stack_template, core_parameters, capabilities=core_capabilities)
 
-        core_public_ip = self.get_output_from_dict(core_stack['Outputs'], 'MadCorePublicIp')
+        core_public_ip = self.get_output_from_dict(
+            core_stack['Outputs'], 'MadCorePublicIp')
 
         self.log_figlet("STACK %s", const.STACK_DNS)
         # create DNS
@@ -401,8 +497,8 @@ class StackCreate(StackManagement, Command):
             ('EC2PublicIP', core_public_ip)
         ))
         dns_stack_template = self.get_cf_template_local('dns.json')
-        dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists(const.STACK_DNS, dns_stack_template,
-                                                                             dns_parameters)
+        dns_stack, dns_exists, dns_updated = self.create_stack_if_not_exists(
+            const.STACK_DNS, dns_stack_template, dns_parameters)
 
         self.log_figlet("DNS delegation")
         # TODO@geo run DNS relegation all the time to make sure that all is uptodate
@@ -428,20 +524,28 @@ class StackCreate(StackManagement, Command):
 
         domain_name = config.get_full_domain()
 
-        self.logger.info("Wait until DNS for domain '%s' is resolved...", domain_name)
+        self.logger.info(
+            "Wait until DNS for domain '%s' is resolved...",
+            domain_name)
 
         slept_time = 0
         sleep_time = 5
         while True:
-            domain_ip = utils.hostname_resolves(config.get_full_domain(), max_time=timeouts.DNS_RESOLVE_TIMEOUT)
+            domain_ip = utils.hostname_resolves(
+                config.get_full_domain(),
+                max_time=timeouts.DNS_RESOLVE_TIMEOUT)
 
             if domain_ip != core_public_ip:
-                self.logger.warn("Domain '%s' points to '%s' but should point to '%s'", config.get_full_domain(),
-                                 domain_ip, core_public_ip)
+                self.logger.warn(
+                    "Domain '%s' points to '%s' but should point to '%s'",
+                    config.get_full_domain(),
+                    domain_ip,
+                    core_public_ip)
 
                 if slept_time > timeouts.DNS_UPDATE_TIMEOUT:
-                    self.logger.error("Error while waiting for DNS update, timeout: %s seconds",
-                                      timeouts.DNS_UPDATE_TIMEOUT)
+                    self.logger.error(
+                        "Error while waiting for DNS update, timeout: %s seconds",
+                        timeouts.DNS_UPDATE_TIMEOUT)
                     self.exit()
 
                 time.sleep(sleep_time)
@@ -467,6 +571,6 @@ class StackCreate(StackManagement, Command):
                                    (const.STACK_FOLLOWME, not sgfm_exists),
                                    (const.STACK_CORE, not core_exists),
                                    (const.STACK_DNS, not dns_exists)
-                               ))
+        ))
 
         return 0

@@ -26,7 +26,7 @@ class Configure(JenkinsBase, Lister):
             for option in ['branch', 'commit']:
                 cmd = "--%s_%s" % (option, repo)
                 hlp = "Set %s %s" % (repo, option)
-                parser.add_argument(cmd, required=False,  default=None, help=hlp)
+                parser.add_argument(cmd, required=False, default=None, help=hlp)
 
     def get_parser(self, prog_name):
         parser = super(Configure, self).get_parser(prog_name)
@@ -38,6 +38,8 @@ class Configure(JenkinsBase, Lister):
                             help="Skip input prompt, use defaults.")
         parser.add_argument('--reset', default=False, action='store_true', dest='reset',
                             help="Reset config.")
+        parser.add_argument('--local', default=False, action='store_true', dest='local',
+                            help="Local config only.")
 
         self.add_repos_params(parser=parser)
 
@@ -145,6 +147,10 @@ class Configure(JenkinsBase, Lister):
 
         configure = MadcoreConfigure(self.app, self.app_args)
         configure.take_action(parsed_args)
+
+        if parsed_args.local:
+            self.logger.info("Local Registration Completed")
+            return ('Name', 'Value'), [('configure --local', 'Local Repos Updated')]
 
         self.log_figlet("Cloudformation")
         stack_create = StackCreate(self.app, self.app_args)
