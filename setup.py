@@ -13,6 +13,7 @@ class BinaryDistribution(Distribution):
 
 
 def get_semantic_version():
+    global VERSION
     v = cmd.Cmd.local_run_get_out("get version", "git describe --tags")
     if v.startswith('v.'):
         v = v[2:]
@@ -24,12 +25,10 @@ def get_semantic_version():
         v = '{0}.{1}.{2}'.format(li[0],lii[0],lii[1])
     else:
         v = '{0}.{1}'.format(li[0], li[1])
-    return v
+    VERSION = v
 
 
-VERSION = get_git_version()
 PROJECT = 'madcore'
-
 
 try:
     long_description = open('README.rst', 'rt').read()
