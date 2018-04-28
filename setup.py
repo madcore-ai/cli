@@ -3,7 +3,7 @@ from __future__ import unicode_literals, print_function
 from subprocess import check_output
 from setuptools import setup, find_packages
 from setuptools.dist import Distribution
-from madcore import cmd
+from madcore.cmd import Cmd
 
 
 class BinaryDistribution(Distribution):
@@ -14,7 +14,7 @@ class BinaryDistribution(Distribution):
 
 def get_semantic_version():
     global VERSION
-    v = cmd.Cmd.local_run_get_out("get version", "git describe --tags")
+    v = Cmd.local_run_get_out("get version", "git describe --tags")
     if v.startswith('v.'):
         v = v[2:]
     elif v.startswith('v'):
