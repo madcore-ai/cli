@@ -17,7 +17,7 @@ setup(
     setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
 
     name=PROJECT,
-    version=find_version("madcore", "__init__.py")
+    version=find_version("madcore", "__init__.py"),
 
     description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller',
     long_description=long_description,
