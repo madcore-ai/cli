@@ -4,6 +4,12 @@ from subprocess import check_output
 from setuptools import setup, find_packages
 
 
+class BinaryDistribution(Distribution):
+
+    def is_pure(self):
+        return False
+
+
 PROJECT = 'madcore'
 
 
@@ -56,6 +62,7 @@ setup(
     #packages=find_packages(),
     packages=['madcore'],
     include_package_data=True,
+    distclass=BinaryDistribution,
     zip_safe=False,
 
     entry_points={
