@@ -43,9 +43,7 @@ class Struct:
 
 
 class MyParser(argparse.ArgumentParser):
-
     def error(self, message):
-
         sys.stderr.write('ERROR: %s\n' % message)
         self.print_help()
         sys.exit(2)
@@ -55,27 +53,8 @@ def get_version():
     try:
         return pkg_resources.get_distribution("madcore")
     except:
-        v =  Cmd.local_run_get_out("get version", "git describe --tags")
-        if v.startswith('v.'):
-            v = v[2:]
-        elif v.startswith('v'):
-            v = v[1:]
-        li = v.split('.')
-        if len(li) == 2:
-            v = '{0}.{1}'.format(li[0], li[1])
+        return Cmd.local_run_get_out("get version", "git describe --tags")
 
-
-
-
-        v = Version.coerce(v, partial=True)
-
-        if not latest:
-            latest = v
-        else:
-            if v > latest:
-                latest = v
-
-        return latest
 
 def main(args=None):
     description = "Madcore CLI {0} - (c) 2016-2018 Madcore Ltd <humans@madcore.ai>".format(get_version())

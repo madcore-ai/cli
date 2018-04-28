@@ -3,6 +3,7 @@ from __future__ import unicode_literals, print_function
 from subprocess import check_output
 from setuptools import setup, find_packages
 from setuptools.dist import Distribution
+from madcore import cmd
 
 
 class BinaryDistribution(Distribution):
@@ -11,25 +12,19 @@ class BinaryDistribution(Distribution):
         return False
 
 
-def format_version(version):
-    fmt = '{tag}.{commitcount}.{gitsha}'
-    parts = version.split('-')
-    assert len(parts) in (3, 4)
-    dirty = len(parts) == 4
-    tag, count, sha = parts[:3]
-    if count == '0' and not dirty:
-        return tag
-    return fmt.format(tag=tag, commitcount=count, gitsha=sha)
-
-
-def get_git_version():
-    global VERSION
-    git_version_command = 'git describe --tags --long'
-    try:
-        VERSION = check_output(git_version_command.split()).decode('utf-8').strip()
-        VERSION = format_version(VERSION)
-    except:
-        pass
+def get_semantic_version():
+    v = cmd.Cmd.local_run_get_out("get version", "git describe --tags")
+    if v.startswith('v.'):
+        v = v[2:]
+    elif v.startswith('v'):
+        v = v[1:]
+    li = v.split('.')
+    lii = li[1].split('-')
+    if len(lii) == 3:
+        v = '{0}.{1}.{2}'.format(li[0],lii[0],lii[1])
+    else:
+        v = '{0}.{1}'.format(li[0], li[1])
+    return v
 
 
 VERSION = get_git_version()
