@@ -74,7 +74,7 @@ setup(
     ],
 
     #namespace_packages=[],
-    #packages=find_packages(),
+    packages=find_packages(),
     #packages=['madcore'],
     include_package_data=True,
     #scm_version_options={

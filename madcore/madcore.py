@@ -25,7 +25,6 @@ SOFTWARE.
 
 import os
 import settings
-
 import argparse
 import sys
 import execkops
