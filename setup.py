@@ -62,13 +62,13 @@ setup(
 
     #namespace_packages=[],
     #packages=find_packages(),
-    packages=['madcore'],
+    packages=['.','madcore'],
     include_package_data=True,
 
     #packages = ['.','templates','static','docs'],
 
     package_data={'.git':['*']},
-    distclass=BinaryDistribution,
+    #distclass=BinaryDistribution,
     zip_safe=False,
 
     entry_points={
