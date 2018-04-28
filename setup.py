@@ -37,7 +37,7 @@ except IOError:
     long_description = ''
 
 setup(
-    use_scm_version = {"root": ".", "relative_to": __file__},
+    use_scm_version={"root": ".", "relative_to": __file__},
     setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
 
     name=PROJECT,
@@ -88,6 +88,5 @@ setup(
             'madcore = madcore.madcore:main'
         ]
     },
-
 
 )
