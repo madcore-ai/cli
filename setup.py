@@ -2,6 +2,7 @@
 from __future__ import unicode_literals, print_function
 from subprocess import check_output
 from setuptools import setup, find_packages
+from setuptools.dist import Distribution
 
 
 class BinaryDistribution(Distribution):
