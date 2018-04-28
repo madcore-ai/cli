@@ -3,4 +3,5 @@ madcore.egg-info/
 *.pyc
 .project
 .pydevproject
-
+dist/
+build/
