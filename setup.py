@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 from __future__ import unicode_literals, print_function
-
 from subprocess import check_output
-
 from setuptools import setup, find_packages
 
-PROJECT = 'madcore'
 
+PROJECT = 'madcore'
 VERSION = '1.7.0'
 
 
@@ -31,7 +29,7 @@ def get_git_version():
         pass
 
 
-get_git_version()
+#get_git_version()
 
 try:
     long_description = open('README.rst', 'rt').read()
@@ -39,8 +37,11 @@ except IOError:
     long_description = ''
 
 setup(
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
+
     name=PROJECT,
-    version=VERSION,
+    #version=VERSION,
 
     description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller',
     long_description=long_description,
@@ -72,6 +73,7 @@ setup(
         'prettytable==0.7.2',
         'requests==2.18.4',
         'Fabric==1.13.2',
+        'setuptools_scm==2.0.0',
     ],
 
     #namespace_packages=[],
@@ -85,4 +87,6 @@ setup(
             'madcore = madcore.madcore:main'
         ]
     },
+
+
 )

@@ -27,6 +27,7 @@ import provision
 import execkubectl
 from cmd import Cmd
 from static import Static
+from setuptools_scm import get_version
 
 
 class Struct:
@@ -43,11 +44,8 @@ class MyParser(argparse.ArgumentParser):
         sys.exit(2)
 
 
-def get_version():
-    return Cmd.local_run_get_out("get version", "git describe --tags")
-
 def main(args=None):
-    description = "Madcore CLI {0} - (c) 2016-2018 Peter Styk <peter@styk.tv>".format(get_version())
+    description = "Madcore CLI {0} - (c) 2016-2018 Peter Styk <peter@styk.tv>".format(get_version(root='..', relative_to=__file__))
     parser = MyParser(prog="./madcore.py", description=description)
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-p', '--provision', dest="provision", metavar=('CLUSTERFILE'), help='provision based on <cllusterfile>', action='store')
