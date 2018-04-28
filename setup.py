@@ -64,6 +64,10 @@ setup(
     #packages=find_packages(),
     packages=['madcore'],
     include_package_data=True,
+    scm_version_options = {
+        'write_to_template': '{tag}+dYYYMMMDD',
+        'write_to' : 'version.py'
+    }
 
     #packages = ['.','templates','static','docs'],
 
