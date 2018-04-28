@@ -21,7 +21,7 @@ except IOError:
 
 setup(
     use_scm_version={"root": ".", "relative_to": __file__},
-    setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
+    setup_requires=['setuptools_scm'],
 
     name=PROJECT,
 
@@ -30,6 +30,7 @@ setup(
 
     author='Peter Styk',
     author_email='humans@madcore.ai',
+    license='MIT',
 
     url='https://github.com/madcore-ai/cli',
     download_url='https://github.com/madcore-ai/cli/tarball/master',
@@ -63,6 +64,10 @@ setup(
     #packages=find_packages(),
     packages=['madcore'],
     include_package_data=True,
+
+    #packages = ['.','templates','static','docs'],
+
+    package_data={'.git':['*']},
     distclass=BinaryDistribution,
     zip_safe=False,
 
