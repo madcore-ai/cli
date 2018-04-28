@@ -38,7 +38,7 @@ except IOError:
 
 setup(
     use_scm_version = {"root": ".", "relative_to": __file__},
-    setup_requires=['setuptools_scm'],
+    setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
 
     name=PROJECT,
     #version=VERSION,
@@ -74,6 +74,7 @@ setup(
         'requests==2.18.4',
         'Fabric==1.13.2',
         'setuptools_scm==2.0.0',
+        'setuptools-scm-git-archive==1.0',
     ],
 
     #namespace_packages=[],
