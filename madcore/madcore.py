@@ -52,7 +52,7 @@ class MyParser(argparse.ArgumentParser):
 
 
 def main(args=None):
-    description = "Madcore CLI {0} - (c) 2016-2018 Madcore Ltd <humans@madcore.ai>".format(get_version(root='.', relative_to=__file__))
+    description = "Madcore CLI {0} - (c) 2016-2018 Madcore Ltd <humans@madcore.ai>".format(get_version(root='..', relative_to=__file__))
     parser = MyParser(prog="./madcore.py", description=description)
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-p', '--provision', dest="provision", metavar=('CLUSTERFILE'), help='provision based on <cllusterfile>', action='store')
