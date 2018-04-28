@@ -3,7 +3,6 @@ from __future__ import unicode_literals, print_function
 from subprocess import check_output
 from setuptools import setup, find_packages
 from setuptools.dist import Distribution
-from madcore import cmd
 
 
 class BinaryDistribution(Distribution):
@@ -25,9 +24,10 @@ def get_semantic_version():
         v = '{0}.{1}.{2}'.format(li[0],lii[0],lii[1])
     else:
         v = '{0}.{1}'.format(li[0], li[1])
-    VERSION = v
+    return v
 
 
+VERSION = get_semantic_version()
 PROJECT = 'madcore'
 
 try:
