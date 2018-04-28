@@ -57,6 +57,7 @@ class Settings(object):
     config_locust = None
     config_path = None
     elements = None
+    version = None
 
     def __init__(self, args):
 

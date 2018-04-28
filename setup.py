@@ -11,6 +11,28 @@ class BinaryDistribution(Distribution):
         return False
 
 
+def format_version(version):
+    fmt = '{tag}.{commitcount}.{gitsha}'
+    parts = version.split('-')
+    assert len(parts) in (3, 4)
+    dirty = len(parts) == 4
+    tag, count, sha = parts[:3]
+    if count == '0' and not dirty:
+        return tag
+    return fmt.format(tag=tag, commitcount=count, gitsha=sha)
+
+
+def get_git_version():
+    global VERSION
+    git_version_command = 'git describe --tags --long'
+    try:
+        VERSION = check_output(git_version_command.split()).decode('utf-8').strip()
+        VERSION = format_version(VERSION)
+    except:
+        pass
+
+
+VERSION = get_git_version()
 PROJECT = 'madcore'
 
 
@@ -20,10 +42,8 @@ except IOError:
     long_description = ''
 
 setup(
-    use_scm_version={"root": ".", "relative_to": __file__},
-    setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
-
     name=PROJECT,
+    version=VERSION,
 
     description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller',
     long_description=long_description,
@@ -56,8 +76,6 @@ setup(
         'prettytable==0.7.2',
         'requests==2.18.4',
         'Fabric==1.13.2',
-        'setuptools_scm==2.0.0',
-        'setuptools-scm-git-archive==1.0',
     ],
 
     #namespace_packages=[],
