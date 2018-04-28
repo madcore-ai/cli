@@ -21,7 +21,7 @@ except IOError:
 
 setup(
     use_scm_version={"root": ".", "relative_to": __file__},
-    setup_requires=['setuptools_scm'],
+    setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
 
     name=PROJECT,
 
@@ -62,12 +62,12 @@ setup(
 
     #namespace_packages=[],
     #packages=find_packages(),
-    packages=['madcore'],
+    #packages=['madcore'],
     include_package_data=True,
-    scm_version_options = {
-        'write_to_template': '{tag}+dYYYMMMDD',
-        'write_to' : 'version.py'
-    }
+    #scm_version_options={
+    #    'write_to_template': '{tag}+dYYYMMMDD',
+    #    'write_to' : 'version.py'
+    #},
 
     #packages = ['.','templates','static','docs'],
 
