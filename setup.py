@@ -70,7 +70,6 @@ setup(
         'urllib3==1.22',
         'prettytable==0.7.2',
         'requests==2.18.4',
-        'Fabric==1.13.2',
     ],
 
     #namespace_packages=[],

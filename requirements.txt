@@ -5,7 +5,5 @@ pyOpenSSL==16.2.0
 urllib3==1.22
 prettytable==0.7.2
 requests==2.18.4
-Fabric==1.13.2
-setuptools_scm==2.0.0
-setuptools-scm-git-archive==1.0
+
 

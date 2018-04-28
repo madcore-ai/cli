@@ -27,7 +27,7 @@ import yamlordereddictloader
 import os
 import yaml
 import subprocess
-from fabric.api import *
+#from fabric.api import *
 import re
 from os.path import expanduser
 import errno
