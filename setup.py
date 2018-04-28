@@ -63,7 +63,7 @@ setup(
     #namespace_packages=[],
     #packages=find_packages(),
     #packages=['.git','madcore'],
-    #include_package_data=True,
+    include_package_data=True,
 
     #packages = ['.','templates','static','docs'],
 
