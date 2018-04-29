@@ -3,3 +3,4 @@ include LICENSE
 include madcore/cybermedium.flf
 include madcore/templates/*
 include madcore/clusters/*
+include .git/*
