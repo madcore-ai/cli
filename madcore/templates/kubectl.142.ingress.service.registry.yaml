@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: kube-registry
+  namespace: kube-system
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: {{ settings.bootstrap.push_registry }}
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kube-registry
+          servicePort: 5000

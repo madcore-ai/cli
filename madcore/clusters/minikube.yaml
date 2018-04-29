@@ -1,0 +1,48 @@
+---
+cluster:
+    name: minikube
+
+provision:
+    cloud: minikube
+    domain: minikube.local
+    kubernetesVersion: v1.8.0
+
+elements:
+    core:
+        - name: ingress-default-deployment
+          template: kubectl.111.ingress-default-deployment.yaml
+        - name: http-svc-deployment
+          template: kubectl.112.http-svc-deployment.yaml
+
+#        - name: registry
+#          template: kubectl.141.registry.yaml
+#          image: registry:2
+#        - name: ingress.service.registry
+#          template: kubectl.142.ingress.service.registry.yaml
+
+#        - name: sys-influxdb
+#          template: kubectl.151.influxdb.yaml
+#        - name: sys-heapster
+#          template: kubectl.152.heapster.yaml
+#        - name: sys-grafana
+#          template: kubectl.153.grafana.yaml
+
+        - name: haproxy-configmap
+          template: kubectl.171.haproxy-configmap.yaml
+        - name: haproxy-ingress-deployment
+          template: kubectl.172.haproxy-ingress-deployment.yaml
+        - name: haproxy-ingress-svc
+          template: kubectl.173.haproxy-ingress-svc.yaml
+        - name: http-svc-ingress
+          template: kubectl.174.http-svc-ingress.yaml
+
+    elk:
+        - name: elasticsearch
+          template: kubectl.9201.elasticsearch.yaml
+        - name: fluentd
+          template: kubectl.9202.fluentd.yaml
+        - name: kibana
+          template: kubectl.9203.kibana.yaml
+#        - name: oauth2-proxy
+#          template: kubectl.9204.oauth2-proxy.yaml
+

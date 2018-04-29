@@ -3,14 +3,14 @@ sudo: required
 language: python
 install:
   - sudo pip install tox
-  - sudo python setup.py install
+  - sudo python setup.py develop bdist_wheel
 script: sudo tox -v -e $TOX_ENV -- --verbose
 env:
 #  - TOX_ENV=docs
-  - TOX_ENV=py27pep8
-  - TOX_ENV=py34pep8
-  - TOX_ENV=py27-coverage
-  - TOX_ENV=py34-coverage
+#  - TOX_ENV=py27pep8
+#  - TOX_ENV=py34pep8
+#  - TOX_ENV=py27-coverage
+#  - TOX_ENV=py34-coverage
   - TOX_ENV=py27
 #  - TOX_ENV=py32
 #  - TOX_ENV=py33

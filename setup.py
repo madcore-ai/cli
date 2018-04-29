@@ -1,37 +1,50 @@
 #!/usr/bin/env python
 from __future__ import unicode_literals, print_function
-
 from subprocess import check_output
-
 from setuptools import setup, find_packages
-
-PROJECT = 'madcore'
-
-VERSION = '1.7.0'
-
-
-def format_version(version):
-    fmt = '{tag}.{commitcount}.{gitsha}'
-    parts = version.split('-')
-    assert len(parts) in (3, 4)
-    dirty = len(parts) == 4
-    tag, count, sha = parts[:3]
-    if count == '0' and not dirty:
-        return tag
-    return fmt.format(tag=tag, commitcount=count, gitsha=sha)
+from setuptools.dist import Distribution
+#from madcore.cmd import Cmd
+import subprocess
+import sys
+import pkg_resources
 
 
-def get_git_version():
+#class BinaryDistribution(Distribution):
+#
+#    def is_pure(self):
+#        return False
+
+
+def get_semantic_version():
     global VERSION
-    git_version_command = 'git describe --tags --long'
     try:
-        VERSION = check_output(git_version_command.split()).decode('utf-8').strip()
-        VERSION = format_version(VERSION)
+        return pkg_resources.get_distribution("madcore").version
     except:
-        pass
+        proc1 = subprocess.Popen("git describe --tags", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        out = proc1.communicate()
+
+        if proc1.returncode != 0:
+            sys.stdout.write("madcore must install from cloned folder. make sure .git folder exists\n")
+            sys.stdout.write(out[1])
+            raise SystemExit(32)
+
+        v = out[0].replace('\n','')
+
+        if v.startswith('v.'):
+            v = v[2:]
+        elif v.startswith('v'):
+            v = v[1:]
+        li = v.split('.')
+        lii = li[1].split('-')
+        if len(lii) == 3:
+            v = '{0}.{1}.{2}'.format(li[0],lii[0],lii[1])
+        else:
+            v = '{0}.{1}'.format(li[0], li[1])
+        return v
 
 
-get_git_version()
+VERSION = get_semantic_version()
+PROJECT = 'madcore'
 
 try:
     long_description = open('README.rst', 'rt').read()
@@ -47,6 +60,7 @@ setup(
 
     author='Peter Styk',
     author_email='humans@madcore.ai',
+    license='MIT',
 
     url='https://github.com/madcore-ai/cli',
     download_url='https://github.com/madcore-ai/cli/tarball/master',
@@ -60,51 +74,37 @@ setup(
 
     platforms=['Any'],
 
-    scripts=[],
+    #scripts=[],
 
-    provides=[],
+    #provides=[],
     install_requires=[
-        'six>=1.9.0',
-        'future==0.16.0',
-        'configparser==3.5.0',
-        'cliff==2.4.0',
-        'boto3==1.4.4',
-        'urllib3==1.20',
-        'python-jenkins==0.4.14',
-        'requests==2.12.5',
-        'questionnaire==1.1.0',
-        'pyfiglet==0.7.5',
-        'Pygments==2.2.0',
-        'jinja2==2.9.4',
-        'cerberus==1.1'
+        'termcolor==1.1.0',
+        'Jinja2==2.9.6',
+        'yamlordereddictloader==0.4.0',
+        'pyOpenSSL==16.2.0',
+        'urllib3==1.22',
+        'prettytable==0.7.2',
+        'requests==2.18.4',
     ],
 
-    namespace_packages=[],
+    #namespace_packages=[],
     packages=find_packages(),
+    #packages=['madcore'],
     include_package_data=True,
+    #scm_version_options={
+    #    'write_to_template': '{tag}+dYYYMMMDD',
+    #    'write_to' : 'version.py'
+    #},
+
+    #packages = ['.','templates','static','docs'],
+
+    #package_data={'.git':['*']},
+    #distclass=BinaryDistribution,
+    zip_safe=False,
 
     entry_points={
         'console_scripts': [
-            'madcore = madcore.cli:main'
-        ],
-        'madcorecli.app': [
-            'configure = madcore.cmds.configure:Configure',
-            'stacks = madcore.cmds.stacks:Stacks',
-            'create = madcore.cmds.create:Create',
-            'destroy = madcore.cmds.destroy:Destroy',
-            'followme = madcore.cmds.followme:Followme',
-            'endpoints = madcore.cmds.endpoints:Endpoints',
-            'selftest = madcore.cmds.selftest:SelfTest',
-            'registration = madcore.cmds.registration:Registration',
-            'up = madcore.cmds.up:MadcoreUp',
-            'halt = madcore.cmds.halt:MadcoreHalt',
-            'ssh = madcore.cmds.ssh:MadcoreSSH',
-            'status = madcore.cmds.status:Status',
-            'plugin list = madcore.cmds.plugins.list:PluginList',
-            'plugin install = madcore.cmds.plugins.install:PluginInstall',
-            'plugin remove = madcore.cmds.plugins.remove:PluginRemove',
-            'plugin status = madcore.cmds.plugins.status:PluginStatus'
-        ],
-    },
-    zip_safe=False,
+            'madcore = madcore.madcore:main'
+        ]
+    }
 )
