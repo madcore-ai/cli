@@ -30,7 +30,7 @@ import sys
 import localtemplate
 
 
-class ExecKubectl(object):
+class CmdKubectl(object):
     settings = None
     localtemplate = None
 
@@ -48,7 +48,7 @@ class ExecKubectl(object):
         Cmd.local_run_long(component_item.name, cmd)
 
     def use_context(self):
-        name = "Switch Existing Kubectl Context"
+        name = "Match Kubectl Context"
         cmd = None
         context = None
         if self.settings.provision.cloud != "minikube":

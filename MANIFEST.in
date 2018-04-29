@@ -1,5 +1,4 @@
 include README.rst
-include .git/*
 include LICENSE
 include madcore/templates/*
 include madcore/clusters/*

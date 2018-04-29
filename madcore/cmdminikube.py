@@ -48,6 +48,12 @@ class Minikube(object):
         Static.msg(name, '.')
         Cmd.local_run_realtime(name, cmd)
 
+    def delete(self):
+        name = "Minikube Delete"
+        cmd = "minikube delete"
+        Static.msg(name, '.')
+        Cmd.local_run_realtime(name, cmd)
+
     def confirm_started(self):
         name = "Minikube Confirm Started"
         cmd = "until kubectl get serviceaccount -n kube-system | grep -m 1 'default'; do sleep 1; done"

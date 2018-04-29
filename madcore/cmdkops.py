@@ -35,7 +35,7 @@ class Struct:
         self.__dict__.update(entries)
 
 
-class ExecKops(object):
+class CmdKops(object):
     settings = None
     localtemplate = None
 

@@ -27,10 +27,10 @@ import os
 import settings
 import argparse
 import sys
-import execkops
+import cmdkops
 import elements
 import provision
-import execkubectl
+import cmdkubectl
 from cmd import Cmd
 from static import Static
 import pkg_resources
@@ -83,27 +83,22 @@ def main(args=None):
     if args.provision:
         prov = provision.Provision(sett)
         prov.start()
-        exit(0)
 
-    # make sure correct context is set (based on one set in config file)
-    # but not for provision (no context then)
-    kc = execkubectl.ExecKubectl(sett)
-    kc.use_context()
-    if args.clusterfile:
+    elif args.clusterfile:
         # switch happens in settings
-        kc = execkubectl.ExecKubectl(sett)
+        kc = cmdkubectl.CmdKubectl(sett)
         kc.use_context()
 
     elif args.destroy:
-        kops = execkops.ExecKops(sett)
-        kops.destroy_cluster()
+        prov = provision.Provision(sett)
+        prov.destroy()
 
     elif args.kops_update:
-        kops = execkops.ExecKops(sett)
+        kops = cmdkops.CmdKops(sett)
         kops.update_settings()
 
     elif args.kops_validate:
-        kops = execkops.ExecKops(sett)
+        kops = cmdkops.CmdKops(sett)
         kops.validate_cluster()
 
     elif args.install_core:
@@ -123,7 +118,7 @@ def main(args=None):
         el.kubectl_install_elements("kafka")
 
     elif args.kubectl_use_context:
-        kc = execkubectl.ExecKubectl(sett)
+        kc = cmdkubectl.CmdKubectl(sett)
         kc.use_context()
 
     elif args.mini_hostname:
@@ -137,7 +132,7 @@ def main(args=None):
 
     else:
         Static.figletcyber("STATUS")
-        kc = execkubectl.ExecKubectl(sett)
+        kc = cmdkubectl.CmdKubectl(sett)
         kc.get_pods()
         kc.get_svc()
         kc.get_ing()

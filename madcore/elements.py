@@ -28,7 +28,7 @@ import subprocess
 import os
 import sys
 import localtemplate
-import execkubectl
+import cmdkubectl
 import time
 
 class Struct:
@@ -38,12 +38,12 @@ class Struct:
 class Elements(object):
     settings = None
     localtemplate = None
-    execkubectl = None
+    CmdKubectl = None
 
     def __init__(self, in_settings):
         self.settings = in_settings
         self.localtemplate = localtemplate.LocalTemplate(self.settings)
-        self.execkubectl = execkubectl.ExecKubectl(self.settings)
+        self.CmdKubectl = cmdkubectl.CmdKubectl(self.settings)
 
     def kubectl_install_elements(self, stage):
         name = "ELEMENTS"
@@ -51,7 +51,7 @@ class Elements(object):
 
         # parse master ip, currently required by ingress template 026
         # this also becomes local minikube ip if that's the current context
-        self.execkubectl.get_master_ip()
+        self.CmdKubectl.get_master_ip()
 
         for element in self.settings.elements[stage]:
             self.create_stage(element)
@@ -64,17 +64,17 @@ class Elements(object):
         if hasattr(element_item, "taint"):
             if "before" in element_item.taint:
                 if element_item.taint["before"] == 'master-remove-all':
-                    self.execkubectl.taint_remove_from_master()
+                    self.CmdKubectl.taint_remove_from_master()
 
         # process component
-        self.execkubectl.apply(element_item)
+        self.CmdKubectl.apply(element_item)
 
         # after add taint
         if hasattr(element_item, "taint"):
             if "after" in element_item.taint:
                 if element_item.taint["after"] == 'master-add-noschedule':
-                    self.execkubectl.wait_until_kube_system_ready()
-                    self.execkubectl.taint_add_to_master_noschedule()
+                    self.CmdKubectl.wait_until_kube_system_ready()
+                    self.CmdKubectl.taint_add_to_master_noschedule()
 
         time.sleep(3)
         print

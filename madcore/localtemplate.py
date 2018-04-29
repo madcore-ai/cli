@@ -64,7 +64,7 @@ class LocalTemplate(object):
 
     def generate_template_element(self, item):
 
-        env = Environment(loader=PackageLoader('localtemplate', '../templates'))
+        env = Environment(loader=PackageLoader('localtemplate', 'templates'))
         template = env.get_template(item.template)
         rendered = template.render(component=item, settings=self.settings)
 

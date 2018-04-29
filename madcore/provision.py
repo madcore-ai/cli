@@ -27,8 +27,8 @@ from cmd import Cmd
 import subprocess
 import os
 import sys
-import execkops
-import execminikube
+import cmdkops
+import cmdminikube
 
 
 class Provision(object):
@@ -38,8 +38,8 @@ class Provision(object):
 
     def __init__(self, in_settings):
         self.settings = in_settings
-        self.kops = execkops.ExecKops(self.settings)
-        self.minikube = execminikube.Minikube(self.settings)
+        self.kops = cmdkops.CmdKops(self.settings)
+        self.minikube = cmdminikube.Minikube(self.settings)
 
     def start(self):
         Static.figletcyber("PROVISIONING")
@@ -64,3 +64,13 @@ class Provision(object):
             # append, new
             self.minikube.add_minikube_to_hosts()
         Static.msg("/etc/hosts entry for minikube.local updated to", self.settings.master_ip)
+
+    def destroy(self):
+        Static.figletcyber("DESTROY CLUSTER")
+        if self.settings.provision.cloud == "aws":
+            self.kops.destroy_cluster()
+        elif self.settings.provision.cloud == "minikube":
+            self.minikube.delete()
+        else:
+            Static.msg_bold("No such provisioner specified in config", self.settings.provision.cloud)
+            raise SystemExit(32)

@@ -31,7 +31,7 @@ import subprocess
 import re
 from os.path import expanduser
 import errno
-import execkubectl
+import cmdkubectl
 import os.path
 from static import Static
 
@@ -91,33 +91,30 @@ class Settings(object):
                 return False
 
             if different:
-                if os.path.isfile(os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../clusters/"), in_passed)):
+                if os.path.isfile(os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__)), "clusters/"), in_passed)):
                     return True
                 else:
                     Static.msg_bold("Error", "Clusterfile file {0} does not exist. Cannot continue.".format(in_passed))
                 raise SystemExit(99)
 
-        # this will fail when settings loaded independently (for example within locust run
-        try:
-            # switch if required
-            switched = False
-            if self.args.provision:
-                if switch_check(self.args.provision):
-                    self.config.clusterfile = self.args.provision
-                    switched = True
+        # switch if required
+        switched = False
+        if self.args.provision:
+            if switch_check(self.args.provision):
+                self.config.clusterfile = self.args.provision
+                switched = True
 
-            elif self.args.clusterfile:
-                if switch_check(self.args.clusterfile):
-                    self.config.clusterfile = self.args.clusterfile
-                    switched = True
+        elif self.args.clusterfile:
+            if switch_check(self.args.clusterfile):
+                self.config.clusterfile = self.args.clusterfile
+                switched = True
 
-            if switched:
-                self.save_config()
-                Static.msg("Default clusterfile set to", self.config.clusterfile)
-            else:
-                Static.msg("Default clusterfile remains as", self.config.clusterfile)
-        except:
-            pass
+        if switched:
+            self.save_config()
+            Static.msg("Default clusterfile set to", self.config.clusterfile)
+        else:
+            Static.msg("Default clusterfile remains as", self.config.clusterfile)
+
 
     def setup_local_folder(self):
 
