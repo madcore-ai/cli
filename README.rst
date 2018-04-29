@@ -39,7 +39,7 @@ First time you run "madcore" the cli will required an extra authorization to mak
 madcore configuration will then automatically proceed to deploy the following madcore cloud formation stacks
 
 ================  =====
-Stack Name         Description    
+Stack Name         Description
 ================  =====
 Madcore-NET        Isolated VPC, Subnets, Integrent Gateway only for madcore
 Madcore-FollowMe   SG autoconfigured based on your public ip address
@@ -73,7 +73,7 @@ Configure is triggered when you first time run "madcore"  it starts by creating 
 CLI Command: destroy
 --------------------
 
-Core installation is done through CloudFormation stacks mentioned above so can be completely removed when not required. Two stacks survive destructions, DNS and S3.  Dns is valid delegated subdomain. S3 bucket is used for ssl certificates and redis backup/restore. 
+Core installation is done through CloudFormation stacks mentioned above so can be completely removed when not required. Two stacks survive destructions, DNS and S3.  Dns is valid delegated subdomain. S3 bucket is used for ssl certificates and redis backup/restore.
 
 CLI Command: halt
 -----------------
@@ -93,10 +93,10 @@ Automatically connects to core instance. Uses private key path you specified dur
 CLI Command: plugin list
 ------------------------
 
-List currently available community Madcore plugins. 
+List currently available community Madcore plugins.
 
 =============  =====
-Plugin Name    Description    
+Plugin Name    Description
 =============  =====
 flasker        Example. Build simple flask python application into Docker Container, Store container in local private docker registry, create kubernetes pod with new docker image, deploy pod into kubernetes directly from local private docker registry
 flasker-hub    Example. Use existing Docker Hub image, create kubenretes pod, deploy pod into kubernetes directly from public Docker Hub
@@ -140,4 +140,3 @@ License
 -----------------
 
 Madcore Project is distributed on MIT License (c) 2016-2017 Madcore Ltd (London, UK)
-

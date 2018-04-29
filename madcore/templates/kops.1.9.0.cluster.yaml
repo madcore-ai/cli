@@ -1,0 +1,66 @@
+apiVersion: kops/v1alpha2
+kind: Cluster
+metadata:
+  creationTimestamp: 2017-08-19T18:24:11Z
+  name: {{ settings.provision.domain }}
+spec:
+  api:
+    dns: {}
+  authorization:
+    alwaysAllow: {}
+  channel: stable
+  cloudProvider: aws
+  configBase: {{ settings.provision.s3_store }}/{{ settings.provision.domain }}
+  etcdClusters:
+  - etcdMembers:
+    - instanceGroup: master-{{ settings.aws_zone }}
+      name: {{ settings.provision.zone_id }}
+    name: main
+  - etcdMembers:
+    - instanceGroup: master-{{ settings.aws_zone }}
+      name: {{ settings.provision.zone_id }}
+    name: events
+  iam:
+    allowContainerRegistry: true
+    legacy: false
+  kubernetesApiAccess:
+  - 0.0.0.0/0
+  kubernetesVersion: {{ settings.provision.kubernetesVersion }}
+  masterPublicName: api.{{ settings.provision.domain }}
+  networkCIDR: {{ settings.provision.vpc_CIDR }}
+  networkID: {{ settings.provision.vpc_id }}
+  networking:
+    kubenet: {}
+  nonMasqueradeCIDR: 100.64.0.0/10
+  sshAccess:
+  - 0.0.0.0/0
+  subnets:
+  {% for sub in settings.provision.subnets -%}
+  - cidr: {{ sub.cidr }}
+    name: {{ sub.name }}
+    type: {{ sub.type }}
+    zone: {{ sub.zone }}
+  {% endfor %}topology:
+    dns:
+      type: Public
+    masters: public
+    nodes: public
+  additionalPolicies:
+    master: |
+      [
+        {
+          "Effect": "Allow",
+          "Action": ["route53:ListHostedZonesByName"],
+          "Resource": ["*"]
+        },
+        {
+          "Effect": "Allow",
+          "Action": ["elasticloadbalancing:DescribeLoadBalancers"],
+          "Resource": ["*"]
+        },
+        {
+          "Effect": "Allow",
+          "Action": ["route53:ChangeResourceRecordSets"],
+          "Resource": ["*"]
+        }
+      ]

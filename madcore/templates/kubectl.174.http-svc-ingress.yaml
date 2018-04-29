@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: echo
+  namespace: ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: {{ settings.provision.domain }}
+    http:
+      paths:
+      - path: /echo
+        backend:
+          serviceName: http-svc
+          servicePort: 8080
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: stats
+  namespace: ingress
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: {{ settings.provision.domain }}
+    http:
+      paths:
+      - path: /stats
+        backend:
+          serviceName: haproxy-ingress
+          servicePort: 1936
