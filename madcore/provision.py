@@ -74,3 +74,14 @@ class Provision(object):
         else:
             Static.msg_bold("No such provisioner specified in config", self.settings.provision.cloud)
             raise SystemExit(32)
+
+    def check_alive(self):
+        Static.figletcyber("STATUS")
+        # not implemented
+        if self.settings.provision.cloud == "aws":
+            pass
+        elif self.settings.provision.cloud == "minikube":
+            pass
+        else:
+            Static.msg_bold("No such provisioner specified in config", self.settings.provision.cloud)
+            raise SystemExit(32)

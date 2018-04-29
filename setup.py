@@ -3,18 +3,30 @@ from __future__ import unicode_literals, print_function
 from subprocess import check_output
 from setuptools import setup, find_packages
 from setuptools.dist import Distribution
-from madcore.cmd import Cmd
+#from madcore.cmd import Cmd
+import subprocess
+import sys
 
 
-class BinaryDistribution(Distribution):
-
-    def is_pure(self):
-        return False
+#class BinaryDistribution(Distribution):
+#
+#    def is_pure(self):
+#        return False
 
 
 def get_semantic_version():
     global VERSION
-    v = Cmd.local_run_get_out("get version", "git describe --tags")
+
+    proc1 = subprocess.Popen("git describe --tags", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    out = proc1.communicate()
+
+    if proc1.returncode != 0:
+        sys.stdout.write("madcore must install from cloned folder. make sure .git folder exists\n")
+        sys.stdout.write(out[1])
+        raise SystemExit(32)
+
+    v = out[0].replace('\n','')
+
     if v.startswith('v.'):
         v = v[2:]
     elif v.startswith('v'):
@@ -65,7 +77,7 @@ setup(
     install_requires=[
         'termcolor==1.1.0',
         'Jinja2==2.9.6',
-        'yamlordereddictloader==0.1.1',
+        'yamlordereddictloader==0.4.0',
         'pyOpenSSL==16.2.0',
         'urllib3==1.22',
         'prettytable==0.7.2',
@@ -84,7 +96,7 @@ setup(
     #packages = ['.','templates','static','docs'],
 
     #package_data={'.git':['*']},
-    distclass=BinaryDistribution,
+    #distclass=BinaryDistribution,
     zip_safe=False,
 
     entry_points={

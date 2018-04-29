@@ -34,6 +34,7 @@ import cmdkubectl
 from cmd import Cmd
 from static import Static
 import pkg_resources
+from termcolor import colored
 
 
 class Struct:
@@ -50,13 +51,13 @@ class MyParser(argparse.ArgumentParser):
 
 def get_version():
     try:
-        return pkg_resources.get_distribution("madcore")
+        return pkg_resources.get_distribution("madcore").version
     except:
         return Cmd.local_run_get_out("get version", "git describe --tags")
 
 
 def main(args=None):
-    description = "Madcore CLI {0} - (c) 2016-2018 Madcore Ltd <humans@madcore.ai>".format(get_version())
+    description = colored("Madcore CLI {0} - (c) 2016-2018 Madcore Ltd <https://madcore.ai>".format(get_version()),'white',attrs=['bold'])
     parser = MyParser(prog="./madcore.py", description=description)
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-p', '--provision', dest="provision", metavar=('CLUSTERFILE'), help='provision based on <cllusterfile>', action='store')
