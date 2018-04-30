@@ -1,0 +1,30 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: jobmanager-webui
+  namespace: flink
+spec:
+  selector:
+    component: jobmanager
+  ports:
+    - port: 8081
+      targetPort: 8081
+      name: http
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: flink-ing
+  namespace: flink
+  annotations:
+    ingress.kubernetes.io/rewrite-target: /
+    ingress.kubernetes.io/ssl-redirect: false
+    ingress.kubernetes.io/app-root: /
+spec:
+  rules:
+  - host: flink.{{ settings.provision.domain }}
+    http:
+      paths:
+      - backend:
+          serviceName: jobmanager-webui
+          servicePort: 8081

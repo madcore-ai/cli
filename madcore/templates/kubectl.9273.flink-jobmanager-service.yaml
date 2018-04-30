@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: jobmanager
+  namespace: flink
+spec:
+  selector:
+    component: jobmanager
+  ports:
+    - port: 6123
+      targetPort: 6123
+      name: flink
+    - port: 50101
+      targetPort: 50101
+      name: blobserver
