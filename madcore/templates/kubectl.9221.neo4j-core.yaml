@@ -52,13 +52,16 @@ spec:
     app: neo4j
 ---
 kind: StatefulSet
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 metadata:
   name: neo4j-core
   namespace: neo4j
 spec:
   serviceName: neo4j
   replicas: 1
+  selector:
+    matchLabels:
+      app: neo4j
   template:
     metadata:
       labels:

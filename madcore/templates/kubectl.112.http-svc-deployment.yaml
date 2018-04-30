@@ -16,6 +16,8 @@ spec:
         run: http-svc
       namespace: ingress
     spec:
+      nodeSelector:
+        kops.k8s.io/instancegroup: ingress
       containers:
         - name: http-svc
           image: gcr.io/google_containers/echoserver:1.3

@@ -88,5 +88,3 @@ class Minikube(object):
         cmd = "minikube ip"
         self.settings.master_ip = Cmd.local_run_get_out(name, cmd)
         return self.settings.master_ip
-
-

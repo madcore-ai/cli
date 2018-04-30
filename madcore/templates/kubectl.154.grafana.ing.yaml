@@ -3,17 +3,17 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: grafana
-  namespace: monitoring
+  namespace: kube-system
   annotations:
     ingress.kubernetes.io/rewrite-target: /
     ingress.kubernetes.io/ssl-redirect: false
     ingress.kubernetes.io/app-root: /
 spec:
   rules:
-  - host: {{ settings.provision.domain }}
+  - host: grafana.{{ settings.provision.domain }}
     http:
       paths:
-      - path: /grafana
+      - path: /
         backend:
-          serviceName: metrics-grafana-service
+          serviceName: monitoring-grafana
           servicePort: 80

@@ -47,6 +47,11 @@ Currently Madcore is tested on Mac and Linux only. We are working on exposing cl
 
    pip install madcore
 
+AWS POST-INSTALL:
+* Create <yourdomain.com> A record and point it to ingress IP (ingress horizontal scaling above 500MB/s is described in another doc)
+* Create wildcard CNAME *.<yourdomain.com> and point it to your above hostname (will automate this eventually)
+* Create Security Group in your VPC and whitelist your access IP's, attach it to ingress node (will automate this eventually)
+
 
 Data Mining & Deep Learning Ecosystem
 -------------------------------------
@@ -79,6 +84,8 @@ ingress-default   default container reporting 404 when hitting anything but mapp
 ingress echo      echo container to test ingress alive
 ================  =====
 
+* DASHBOARD - https://api.<yourdomain.com>/api/v1/namespaces/kube-system/services/kubernetes-dashboard/proxy/
+* GRAFANA - http://grafana.<yourdomain.com>
 
 Deploy neo4j
 ------------
@@ -95,6 +102,8 @@ Neo4J Stack       Description
 engine            Enterprise: neo4j:3.1.4-enterprise (subject to EULA)
 ui                Dashboard
 ================  =====
+
+* Neo4j Browser - http://neo4j.<yourdomain.com>
 
 
 Deploy kafka
@@ -115,6 +124,9 @@ kafka-manager     solsson/kafka-manager
 kafka-pixy        mailgun/kafka-pixy
 ================  =====
 
+* Kafka Manager - http://kafka.<yourdomain.com>
+* Kafka Rest Proxy - http://rest.kafka.<yourdomain.com>
+
 
 Deploy Elasticsearch / FluentD / Kibana
 ---------------------------------------
@@ -132,6 +144,9 @@ elasticsearch     docker.elastic.co/elasticsearch/elasticsearch-oss:6.0.0
 fluentd           fluent/fluentd-kubernetes-daemonset:v0.12.33-elasticsearch
 kibana            docker.elastic.co/kibana/kibana-oss:6.0.0
 ================  =====
+
+* Elasticsearch - http://elasticsearch.<yourdomain.com>
+* Kibana - http://kibana.<yourdomain.com>
 
 
 Chat with us on Gitter

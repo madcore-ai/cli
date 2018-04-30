@@ -41,7 +41,7 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: kafka
+  name: kafka-manager
   namespace: kafka
   annotations:
     ingress.kubernetes.io/rewrite-target: /
@@ -52,7 +52,6 @@ spec:
   - host: kafka.{{ settings.provision.domain }}
     http:
       paths:
-      - path: /
-        backend:
+      - backend:
           serviceName: kafka-manager
           servicePort: 80

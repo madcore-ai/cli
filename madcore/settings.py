@@ -51,6 +51,7 @@ class Settings(object):
     folder_config = None
     folder_populated = None
     master_ip = None
+    ingress_ips = []
     current_context = None
     data_path = None
     config = None

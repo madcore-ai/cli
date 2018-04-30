@@ -196,16 +196,17 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: kafka
+  name: kafka-rest
   namespace: kafka
   annotations:
     ingress.kubernetes.io/rewrite-target: /
+    ingress.kubernetes.io/ssl-redirect: false
+    ingress.kubernetes.io/app-root: /
 spec:
   rules:
-  - host: kafka.{{ settings.provision.domain }}
+  - host: rest.kafka.{{ settings.provision.domain }}
     http:
       paths:
-      - path: /rest
-        backend:
+      - backend:
           serviceName: kafka-rest
           servicePort: 19092

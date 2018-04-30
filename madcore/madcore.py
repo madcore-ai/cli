@@ -71,7 +71,8 @@ def main(args=None):
     group.add_argument('--install-core', help='install core of Madcore', action='store_true')
     group.add_argument('--install-elk', help='install elk', action='store_true')
     group.add_argument('--install-neo4j', help='install neo4j', action='store_true')
-    group.add_argument('--install-kafka', help='install kafka', action='store_true')
+    group.add_argument('--install-kafka', help='install apache kafka', action='store_true')
+    group.add_argument('--install-flink', help='install apache flink', action='store_true')
     args = parser.parse_args()
 
     if not args.attr:
@@ -118,6 +119,10 @@ def main(args=None):
         el = elements.Elements(sett)
         el.kubectl_install_elements("kafka")
 
+    elif args.install_flink:
+        el = elements.Elements(sett)
+        el.kubectl_install_elements("flink")
+
     elif args.kubectl_use_context:
         kc = cmdkubectl.CmdKubectl(sett)
         kc.use_context()
@@ -134,6 +139,7 @@ def main(args=None):
     else:
         Static.figletcyber("STATUS")
         kc = cmdkubectl.CmdKubectl(sett)
+        kc.get_nodes()
         kc.get_pods()
         kc.get_svc()
         kc.get_ing()
