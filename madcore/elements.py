@@ -52,6 +52,7 @@ class Elements(object):
         # parse master ip, currently required by ingress template 026
         # this also becomes local minikube ip if that's the current context
         self.CmdKubectl.get_master_ip()
+        self.CmdKubectl.get_ingress_ips()
 
         for element in self.settings.elements[stage]:
             self.create_stage(element)

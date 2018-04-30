@@ -21,6 +21,8 @@ spec:
         run: ingress-default-backend
       namespace: ingress
     spec:
+      nodeSelector:
+        kops.k8s.io/instancegroup: ingress
       containers:
         - name: ingress-default-backend
           image: gcr.io/google_containers/defaultbackend:1.0

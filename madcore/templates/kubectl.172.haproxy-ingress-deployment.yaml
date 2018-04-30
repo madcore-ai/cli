@@ -16,7 +16,7 @@ spec:
         run: haproxy-ingress
     spec:
       nodeSelector:
-        kops.k8s.io/instancegroup: nodes
+        kops.k8s.io/instancegroup: ingress
       containers:
       - name: haproxy-ingress
         image: quay.io/jcmoraisjr/haproxy-ingress:v0.5-beta.3

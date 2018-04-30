@@ -89,6 +89,36 @@ class CmdKubectl(object):
         Static.msg(name, self.settings.master_ip)
         return self.settings.master_ip
 
+    def get_ingress_ips(self):
+        name = "Get Ingress IPs"
+        if self.get_context() == "minikube":
+            cmd = "minikube ip"
+            self.settings.ingress_ips.append(self.settings.master_ip)
+        else:
+            self.settings.ingress_ips = self.get_ig_ips("ingress")
+
+        Static.msg(name, self.settings.ingress_ips)
+        return self.settings.ingress_ips
+
+    def get_ig_ips(self, ig):
+        task = "Get Instancegroup IPS"
+        cmd = 'kubectl get nodes -o wide --show-labels | grep "instancegroup={0}" | cut -d" " -f1'.format(ig)
+        #        print cmd
+        result = Cmd.local_run_get_out_raw(task, cmd)
+        outlist = []
+        for line in result.split("\n"):
+            if line:
+                line = line.split('-') # highly dependant on hostname not being changed from amazon default. find better way fast (example: 'ip-172-32-56-155.ec2.internal')
+                outlist.append('{0}.{1}.{2}.{3}'.format(
+                    line[1],
+                    line[2],
+                    line[3],
+                    line[4].split('.')[0]
+                ))
+
+        #       print outlist
+        return outlist
+
     def get_master_node(self):
         name = "Get Master Node"
         cmd = "kubectl get nodes | grep master | sed 's/ .*//'"
@@ -157,8 +187,8 @@ class CmdKubectl(object):
         print
 
     def get_pods(self):
-        name = "Get Pods"
-        cmd = "kubectl get pods --all-namespaces -o wide"
+        name = "Get Pods (sorted by nodeName)"
+        cmd = 'kubectl get pods --all-namespaces -o wide --sort-by="{.spec.nodeName}"'
         Static.msg(name, self.settings.provision.domain)
         Cmd.local_run_long(name, cmd)
         print
@@ -188,14 +218,6 @@ class CmdKubectl(object):
         Static.msg(name, "")
         Cmd.local_run_long_until_ready(name, cmd)
 
-    def get_ig_ips(self, ig):
-        task = "Get Perftests IPS"
-        cmd = "kubectl get nodes -o wide --show-labels | grep 'instancegroup={0}' | awk '{print $6}'".format(ig)
-        result = Cmd.local_run_get_out_raw(task, cmd)
-        outlist = []
-        for line in result.split("/n"):
-            outlist.append(line)
-            print line
-        return outlist
+
 
 

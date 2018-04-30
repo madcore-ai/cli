@@ -1,19 +1,19 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: monitoring
----
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  name: monitoring
+#---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: heapster
-  namespace: monitoring
+  namespace: kube-system
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: heapster
-  namespace: monitoring
+  namespace: kube-system
 spec:
   replicas: 1
   template:
@@ -42,7 +42,7 @@ metadata:
     kubernetes.io/cluster-service: 'true'
     kubernetes.io/name: Heapster
   name: heapster
-  namespace: monitoring
+  namespace: kube-system
 spec:
   ports:
   - port: 80

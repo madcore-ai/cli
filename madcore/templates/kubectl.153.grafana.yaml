@@ -2,7 +2,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: monitoring-grafana
-  namespace: monitoring
+  namespace: kube-system
 spec:
   replicas: 1
   template:
@@ -41,7 +41,7 @@ spec:
         - name: GF_SERVER_ROOT_URL
           # If you're only using the API Server proxy, set this value instead:
           # value: /api/v1/namespaces/kube-system/services/monitoring-grafana/proxy
-          value: /stats
+          value: /
       volumes:
       - name: ca-certificates
         hostPath:
@@ -52,20 +52,20 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  labels:
+  #labels:
     # For use as a Cluster add-on (https://github.com/kubernetes/kubernetes/tree/master/cluster/addons)
     # If you are NOT using this as an addon, you should comment out this line.
-    kubernetes.io/cluster-service: 'true'
-    kubernetes.io/name: monitoring-grafana
-    dns: route53
+    #kubernetes.io/cluster-service: 'true'
+    #kubernetes.io/name: monitoring-grafana
+    #dns: route53
   name: monitoring-grafana
-  namespace: monitoring
+  namespace: kube-system
 spec:
   # In a production setup, we recommend accessing Grafana through an external Loadbalancer
   # or through a public IP.
-  type: LoadBalancer
+  # type: LoadBalancer
   # You could also use NodePort to expose the service at a randomly-generated port
-  # type: NodePort
+  type: NodePort
   ports:
   - port: 80
     targetPort: 3000

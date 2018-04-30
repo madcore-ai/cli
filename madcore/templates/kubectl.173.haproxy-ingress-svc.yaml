@@ -8,16 +8,17 @@ metadata:
 spec:
   type: NodePort
   externalIPs:
-    - 172.174.30.177
-  ports:
+  {% for ip in settings.ingress_ips -%}
+    - {{ ip }}
+  {% endfor %}ports:
   - name: port-1
     port: 80
     protocol: TCP
     targetPort: 80
-#  - name: port-2
-#    port: 443
-#    protocol: TCP
-#    targetPort: 443
+  - name: port-2
+    port: 443
+    protocol: TCP
+    targetPort: 443
   - name: port-3
     port: 1936
     protocol: TCP

@@ -134,6 +134,7 @@ def main(args=None):
     else:
         Static.figletcyber("STATUS")
         kc = cmdkubectl.CmdKubectl(sett)
+        kc.get_nodes()
         kc.get_pods()
         kc.get_svc()
         kc.get_ing()
