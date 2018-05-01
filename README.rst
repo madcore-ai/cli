@@ -98,7 +98,7 @@ Installation of core elements is a single command. Filenames in range of 100-200
 
 
 .. raw:: html
-   <script src="https://asciinema.org/a/179330.js" id="asciicast-179330" async></script>
+<a href="https://asciinema.org/a/179330" target="_blank"><img src="https://asciinema.org/a/179330.png" /></a>
 
 
 ================  =====
