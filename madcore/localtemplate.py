@@ -63,14 +63,25 @@ class LocalTemplate(object):
         f.close()
 
     def generate_template_element(self, item):
-
         env = Environment(loader=PackageLoader('localtemplate', 'templates'))
         template = env.get_template(item.template)
         rendered = template.render(component=item, settings=self.settings)
+
+        if self.settings.provision.cloud == "minikube":
+            rendered = self.overwrite_nodeselector_for_minikube (rendered)
 
         template_save_path = "{0}/{1}".format(self.settings.folder_populated, item.template)
         with open(template_save_path, "wb") as f:
             f.write(rendered.encode("UTF-8"))
         f.close()
 
+    def overwrite_nodeselector_for_minikube(self, data):
+        out = ''
+        lines = data.split('\n')
+        for line in lines:
+            if "kops.k8s.io/instancegroup:" in line:
+                number_of_leading_spaces = len(line) - len(line.lstrip())
+                line = "{0}kubernetes.io/hostname: minikube".format(' ' * number_of_leading_spaces)
+            out += '{0}\n'.format(line)
+        return out
 

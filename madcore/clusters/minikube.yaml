@@ -5,7 +5,7 @@ cluster:
 provision:
     cloud: minikube
     domain: minikube.local
-    kubernetesVersion: v1.8.0
+    kubernetesVersion: v1.9.4
 
 elements:
     core:
@@ -36,6 +36,34 @@ elements:
         - name: http-svc-ingress
           template: kubectl.174.http-svc-ingress.yaml
 
+    neo4j:
+        - name: neo4j
+          template: kubectl.9221.neo4j-core.yaml
+
+    kafka:
+        - name: zookeeper
+          template: kubectl.9241.zookeeper.yaml
+        - name: kafka
+          template: kubectl.9242.kafka.yaml
+        - name: kafka-manager
+          template: kubectl.9243.kafka-manager.yaml
+#        - name: kfn
+#          template: kubectl.9249.kfn.yaml
+        - name: kafka-rest
+          template: kubectl.9244.kafka-rest.yaml
+
+    flink:
+        - name: flink-namespace
+          template: kubectl.9271.flink-namespace.yaml
+        - name: flink-jobmanager-controller
+          template: kubectl.9272.flink-jobmanager-controller.yaml
+        - name: flink-jobmanager-service
+          template: kubectl.9273.flink-jobmanager-service.yaml
+        - name: flink-jobmanager-webui-service
+          template: kubectl.9274.flink-jobmanager-webui-service.yaml
+        - name: flink-taskmanager-controller
+          template: kubectl.9275.flink-taskmanager-controller.yaml
+
     elk:
         - name: elasticsearch
           template: kubectl.9201.elasticsearch.yaml
@@ -45,4 +73,9 @@ elements:
           template: kubectl.9203.kibana.yaml
 #        - name: oauth2-proxy
 #          template: kubectl.9204.oauth2-proxy.yaml
+
+    perftest:
+        - name: perftest
+          template: kubectl.216.perftest.yaml
+
 
