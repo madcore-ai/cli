@@ -97,8 +97,8 @@ Installation of core elements is a single command. Filenames in range of 100-200
    madcore --install-core
 
 
-.. raw:: html
-<a href="https://asciinema.org/a/179330" target="_blank"><img src="https://asciinema.org/a/179330.png" /></a>
+.. image:: https://asciinema.org/a/179330.png
+   :target: https://asciinema.org/a/179330
 
 
 ================  =====
