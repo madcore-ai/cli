@@ -147,8 +147,8 @@ Kafka and Dashboard is in the template file space of 9240-9249. Deploy using com
    madcore --install-kafka
 
 
-.. image:: https://asciinema.org/a/179335
-   :target: https://asciinema.org/a/179335.png
+.. image:: https://asciinema.org/a/179335.png
+   :target: https://asciinema.org/a/179335
 
 
 ================  =====
