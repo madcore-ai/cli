@@ -53,12 +53,38 @@ AWS POST-INSTALL:
 * Create Security Group in your VPC and whitelist your access IP's, attach it to ingress node (will automate this eventually)
 
 
-Data Mining & Deep Learning Ecosystem
--------------------------------------
+Madcore Data Mining & Deep Learning Ecosystem
+---------------------------------------------
 
 Functionality is grouped into instance groups (physically) and into namespaces (logically). Each software deployed here belongs to their respective owners. We do not interfere in containers but make sure that we find best containers for deployment in Kubernetes.
 
 Goal of Madcore is to abstract deployment and configuration of data processing elements and have it available in working state out-of-the-box. This way anyone can start work on their actual problem and not spend time on deployment and configuration of common toolsets.
+
+.. code-block:: text
+
+   usage: ./madcore.py [-h]
+                       [-p CLUSTERFILE | -c CLUSTERFILE | --destroy | --kops-update | --kops-validate | --kubectl-use-context | --mini-hostname | --get-attr ATTR | --install-core | --install-elk | --install-neo4j | --install-kafka | --install-flink]
+
+   Madcore CLI 1.9.15 - (c) 2016-2018 Madcore Ltd <https://madcore.ai>
+
+   optional arguments:
+     -h, --help            show this help message and exit
+     -p CLUSTERFILE, --provision CLUSTERFILE
+                           provision based on <cllusterfile>
+     -c CLUSTERFILE, --clusterfile CLUSTERFILE
+                           set default clusterfile to input <clusterfile>
+     --destroy             destroy infrastructure
+     --kops-update         kops update
+     --kops-validate       kopds validate
+     --kubectl-use-context
+                           kubectl use context
+     --mini-hostname       set minikube hostname (will sudo)
+     --get-attr ATTR       get atribute
+     --install-core        install core of Madcore
+     --install-elk         install elk
+     --install-neo4j       install neo4j
+     --install-kafka       install apache kafka
+     --install-flink       install apache flink
 
 
 Deploy Core
@@ -148,6 +174,25 @@ kibana            docker.elastic.co/kibana/kibana-oss:6.0.0
 * Elasticsearch - http://elasticsearch.<yourdomain.com>
 * Kibana - http://kibana.<yourdomain.com>
 
+
+Deploy Apache Flink Cluster
+---------------------------
+
+Apache Flink is an open source stream processing framework developed by the Apache Software Foundation. The core of Apache Flink is a distributed streaming dataflow engine written in Java and Scala
+
+.. code-block:: bash
+
+   madcore --install-flink
+
+================  =====
+Flink Stack       Description
+================  =====
+jobmanager        Flink Job Manager
+jobmanager-ui     Flink Web Ui
+taskmanager       Flink Task Manager (Horizontally Scaling)
+================  =====
+
+* Flink UI - http://flink.<yourdomain.com>
 
 Chat with us on Gitter
 ----------------------
