@@ -5,7 +5,7 @@ cluster:
 provision:
     cloud: minikube
     domain: minikube.local
-    kubernetesVersion: v1.8.0
+    kubernetesVersion: v1.9.4
 
 elements:
     core:

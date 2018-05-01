@@ -96,6 +96,8 @@ Installation of core elements is a single command. Filenames in range of 100-200
 
    madcore --install-core
 
+[![asciicast](https://asciinema.org/a/179330.png)](https://asciinema.org/a/179330)
+
 ================  =====
 Core Stack        Description
 ================  =====
