@@ -10,7 +10,7 @@ metadata:
   name: zoo-pvc
   namespace: kafka
 spec:
-  storageClassName: madcore-nfs
+  storageClassName: madcore-storage
   accessModes:
     - ReadWriteOnce
   resources:

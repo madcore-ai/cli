@@ -15,12 +15,12 @@ metadata:
   name: neo4j-pvc
   namespace: neo4j
 spec:
-  storageClassName: madcore-nfs
+  storageClassName: madcore-storage
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 1Mi
 ---
 apiVersion: v1
 kind: Service

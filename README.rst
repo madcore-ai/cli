@@ -45,7 +45,6 @@ Minikube is great but obviously limited by specs of your local machine. You can 
 
 .. code-block:: bash
 
-   pip install madcore
    madcore --provision minikube.yaml
    madcore --mini-hostname
 
@@ -57,7 +56,6 @@ Currently Madcore is tested on Mac and Linux only. We are working on exposing cl
 
 .. code-block:: bash
 
-   pip install madcore
    madcore --provision demo.yaml
 
 **AWS POST-INSTALL:**
@@ -129,8 +127,8 @@ ingress-default   default container reporting 404 when hitting anything but mapp
 ingress echo      echo container to test ingress alive
 ================  =====
 
-* DASHBOARD - https://api.<yourdomain.com>/api/v1/namespaces/kube-system/services/kubernetes-dashboard/proxy/
-* GRAFANA - http://grafana.<yourdomain.com>
+* DASHBOARD - https://api.<yourdomain.com>/api/v1/namespaces/kube-system/services/kubernetes-dashboard/proxy/ or type *minikube dahsboard*
+* GRAFANA - http://grafana.<yourdomain.com> or http://grafana.minikube.local
 
 Deploy neo4j
 ------------
@@ -148,7 +146,7 @@ engine            Enterprise: neo4j:3.1.4-enterprise (subject to EULA)
 ui                Dashboard
 ================  =====
 
-* Neo4j Browser - http://neo4j.<yourdomain.com>
+* Neo4j Browser - http://neo4j.<yourdomain.com> or http://neo4j.minikube.local
 
 
 Deploy kafka
@@ -170,8 +168,8 @@ kafka-manager     solsson/kafka-manager
 kafka-pixy        mailgun/kafka-pixy
 ================  =====
 
-* Kafka Manager - http://kafka.<yourdomain.com>
-* Kafka Rest Proxy - http://rest.kafka.<yourdomain.com>
+* Kafka Manager - http://kafka.<yourdomain.com> or http://kafka.minikube.local
+* Kafka Rest Proxy - http://rest.kafka.<yourdomain.com> or http://rest.kafka.minikube.local
 
 
 Deploy Elasticsearch / FluentD / Kibana
@@ -191,8 +189,8 @@ fluentd           fluent/fluentd-kubernetes-daemonset:v0.12.33-elasticsearch
 kibana            docker.elastic.co/kibana/kibana-oss:6.0.0
 ================  =====
 
-* Elasticsearch - http://elasticsearch.<yourdomain.com>
-* Kibana - http://kibana.<yourdomain.com>
+* Elasticsearch - http://elasticsearch.<yourdomain.com> or http://elasticsearch.minikube.local
+* Kibana - http://kibana.<yourdomain.com> or http://kibana.minikube.local
 
 
 Deploy Apache Flink Cluster
@@ -212,7 +210,7 @@ jobmanager-ui     Flink Web Ui
 taskmanager       Flink Task Manager (Horizontally Scaling)
 ================  =====
 
-* Flink UI - http://flink.<yourdomain.com>
+* Flink UI - http://flink.<yourdomain.com> or http://fink.minikube.local
 
 Chat with us on Gitter
 ----------------------

@@ -95,12 +95,12 @@ elements:
         - name: http-svc-deployment
           template: kubectl.112.http-svc-deployment.yaml
 
-        - name: nfs-claim
-          template: kubectl.121.nfs-claim.yaml
-        - name: nfs-class
-          template: kubectl.122.nfs-class.yaml
-        - name: nfs
-          template: kubectl.123.nfs.yaml
+        - name: storage-ns
+          template: kubectl.121.storage-ns.yaml
+        - name: storage-nfs-provisioner
+          template: kubectl.127.storage-nfs-provisioner.yaml
+        - name: storage-nfs-class
+          template: kubectl.128.storage-nfs-class.yaml
 
         - name: influxdb
           template: kubectl.151.influxdb.yaml

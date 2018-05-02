@@ -71,7 +71,7 @@ class Minikube(object):
         self.get_minikube_ip()
 
         name = "Add minikube.local to /etc/hosts"
-        cmd = "bash -c \"echo $'{0}\tminikube.local registry.minikube.local elasticsearch.minikube.local kibana.minikube.local' >> /etc/hosts\"".format(self.settings.master_ip)
+        cmd = "bash -c \"echo $'{0}\tminikube.local registry.minikube.local elasticsearch.minikube.local kibana.minikube.local kafka.minikube.local rest.kafka.minikube.local grafana.minikube.local flink.minikube.local neo4j.minikube.local' >> /etc/hosts\"".format(self.settings.master_ip)
         Static.msg(name, '.')
         Cmd.local_sudo_prompt_run(name, cmd)
 
@@ -79,7 +79,7 @@ class Minikube(object):
         self.get_minikube_ip()
 
         name = "Update minikube.local to /etc/hosts"
-        cmd = "sed -i -e $'s/.*minikube.*/{0}\tminikube.local registry.minikube.local elasticsearch.minikube.local kibana.minikube.local/' /etc/hosts".format(self.settings.master_ip)
+        cmd = "sed -i -e $'s/.*minikube.*/{0}\tminikube.local registry.minikube.local elasticsearch.minikube.local kibana.minikube.local  kafka.minikube.local rest.kafka.minikube.local grafana.minikube.local flink.minikube.local neo4j.minikube.local/' /etc/hosts".format(self.settings.master_ip)
         Static.msg(name, '.')
         Cmd.local_sudo_prompt_run(name, cmd)
 
