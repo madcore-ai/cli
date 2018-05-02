@@ -61,6 +61,7 @@ Currently Madcore is tested on Mac and Linux only. We are working on exposing cl
    madcore --provision demo.yaml
 
 **AWS POST-INSTALL:**
+
 - Create <yourdomain.com> A record and point it to ingress IP (ingress horizontal scaling above 500MB/s is described in another doc)
 - Create wildcard CNAME *.<yourdomain.com> and point it to your above hostname (will automate this eventually)
 - Create Security Group in your VPC and whitelist your access IP's, attach it to ingress node (will automate this eventually)
