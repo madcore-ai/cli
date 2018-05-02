@@ -14,6 +14,13 @@ elements:
         - name: http-svc-deployment
           template: kubectl.112.http-svc-deployment.yaml
 
+        - name: storage-ns
+          template: kubectl.121.storage-ns.yaml
+        - name: storage-local-provisioner
+          template: kubectl.122.storage-local-provisioner.yaml
+        - name: storage-local-class
+          template: kubectl.123.storage-local-class.yaml
+
 #        - name: registry
 #          template: kubectl.141.registry.yaml
 #          image: registry:2

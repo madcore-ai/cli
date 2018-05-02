@@ -2,7 +2,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: nfs-provisioner
-  namespace: nfs
+  namespace: storage
   labels:
     app: nfs-provisioner
 spec:
@@ -23,7 +23,7 @@ kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
   name: nfs-provisioner
-  namespace: nfs
+  namespace: storage
 spec:
   replicas: 1
   strategy:
@@ -54,8 +54,8 @@ spec:
                 - DAC_READ_SEARCH
                 - SYS_RESOURCE
           args:
-            - "-provisioner=core.madcore/nfs"
-            - "-grace-period=10"
+            - "-provisioner=madcore.ai/nfs"
+            - "-grace-period=90"
           env:
             - name: POD_IP
               valueFrom:

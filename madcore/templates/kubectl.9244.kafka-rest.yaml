@@ -178,13 +178,14 @@ spec:
       containers:
       - name: kafka-rest
         image: mailgun/kafka-pixy
-        command: ["sh", "-c", "/usr/bin/kafka-pixy -config /root/default.yaml; sleep 6000"]
+        command: ["sh", "-c", "/usr/bin/kafka-pixy -config /root/pixy/default.yaml; sleep 6000"]
         ports:
         - containerPort: 19092
         volumeMounts:
           - name: pixy-default-yaml
-            mountPath: /root/default.yaml
-            subPath: default.yaml
+            mountPath: /root/pixy/
+#            mountPath: /root/default.yaml
+#            subPath: default.yaml
       volumes:
       - name: pixy-default-yaml
         configMap:
