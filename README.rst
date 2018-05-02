@@ -38,19 +38,32 @@ AWS Environment Prerequisites
  * S3 Storage bucket for KOPS settings
 
 
-Provision Locally on Minikube or in AWS Cloud
----------------------------------------------
+Provision Locally on Minikube
+-----------------------------
+
+Minikube is great but obviously limited by specs of your local machine. You can comment out elements of minikube.yaml to suit your needs. Then when you're ready start provisioning. When you're done, run second command to map *minikube.local* hostname to your new setup.
+
+.. code-block:: bash
+
+   pip install madcore
+   madcore --provision minikube.yaml
+   madcore --mini-hostname
+
+
+Provision in AWS
+----------------
 
 Currently Madcore is tested on Mac and Linux only. We are working on exposing clusterfiles and templates in a better way. By default they install with the python project files location similar to this `lib/python2.7/site-packages/madcore`
 
 .. code-block:: bash
 
    pip install madcore
+   madcore --provision demo.yaml
 
-AWS POST-INSTALL:
-* Create <yourdomain.com> A record and point it to ingress IP (ingress horizontal scaling above 500MB/s is described in another doc)
-* Create wildcard CNAME *.<yourdomain.com> and point it to your above hostname (will automate this eventually)
-* Create Security Group in your VPC and whitelist your access IP's, attach it to ingress node (will automate this eventually)
+**AWS POST-INSTALL:**
+- Create <yourdomain.com> A record and point it to ingress IP (ingress horizontal scaling above 500MB/s is described in another doc)
+- Create wildcard CNAME *.<yourdomain.com> and point it to your above hostname (will automate this eventually)
+- Create Security Group in your VPC and whitelist your access IP's, attach it to ingress node (will automate this eventually)
 
 
 Madcore Data Mining & Deep Learning Ecosystem
