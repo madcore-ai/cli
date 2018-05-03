@@ -2,22 +2,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: scrapy-redis
-  namespace: scrapy-cluster
+  name: redis
+  namespace: scrapy
   labels:
-    app: scrapy-redis
+    app: redis
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: scrapy-redis
+      app: redis
   template:
     metadata:
       labels:
-        app: scrapy-redis
+        app: redis
     spec:
       containers:
-      - name: scrapy-redis
+      - name: redis
         image: redis
         ports:
         - containerPort: 6379
@@ -25,14 +25,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: scrapy-redis
-  namespace: scrapy-cluster
+  name: redis
+  namespace: scrapy
   labels:
-    app: scrapy-redis
+    app: redis
 spec:
   ports:
   - name: redis
     port: 6379
   selector:
-    app: scrapy-redis
+    app: redis
 
