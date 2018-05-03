@@ -87,7 +87,7 @@ setup(
         'requests==2.18.4',
     ],
 
-    #namespace_packages=[],
+    namespace_packages=['madcore'],
     packages=find_packages(),
     #packages=['madcore'],
     include_package_data=True,

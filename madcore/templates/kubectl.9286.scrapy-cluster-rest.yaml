@@ -1,0 +1,111 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest
+  namespace: scrapy
+  labels:
+    app: rest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rest
+  template:
+    metadata:
+      labels:
+        app: rest
+    spec:
+      containers:
+      - name: rest
+        image: istresearch/scrapy-cluster:rest-dev
+        ports:
+        - containerPort: 5343
+        env:
+        # REST SETTINGS: http://scrapy-cluster.readthedocs.io/en/latest/topics/rest/settings.html
+        # REST: CORE
+        - name: FLASK_LOGGING_ENABLED
+          value: "True"
+        - name: FLASK_PORT
+          value: "5343"
+        - name: SLEEP_TIME
+          value: "0.1"
+        - name: HEARTBEAT_TIMEOUT
+          value: "120"
+        - name: DAEMON_THREAD_JOIN_TIMEOUT
+          value: "10"
+        - name: WAIT_FOR_RESPONSE_TIME
+          value: "5"
+        - name: SCHEMA_DIR
+          value: "schemas/"
+
+
+        # REST: REDIS
+        - name: REDIS_HOST
+          value: "redis.scrapy"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_DB
+          value: "0"
+
+
+        # REST: KAFKA
+        - name: KAFKA_HOSTS
+          value: "broker.kafka:9092"
+        - name: KAFKA_TOPIC_PREFIX
+          value: "demo"
+        - name: KAFKA_FEED_TIMEOUT
+          value: "10"
+        - name: KAFKA_CONSUMER_AUTO_OFFSET_RESET
+          value: "latest"
+        - name: KAFKA_CONSUMER_TIMEOUT
+          value: "50"
+        - name: KAFKA_CONSUMER_COMMIT_INTERVAL_MS
+          value: "5000"
+        - name: KAFKA_CONSUMER_AUTO_COMMIT_ENABLE
+          value: "True"
+        - name: KAFKA_CONSUMER_FETCH_MESSAGE_MAX_BYTES
+          value: "10 * 1024 * 1024"
+        - name: KAFKA_CONSUMER_SLEEP_TIME
+          value: "1"
+        - name: KAFKA_PRODUCER_TOPIC
+          value: "demo.incoming"
+        - name: KAFKA_PRODUCER_BATCH_LINGER_MS
+          value: "25"
+        - name: KAFKA_PRODUCER_BUFFER_BYTES
+          value: "4 * 1024 * 1024"
+
+
+        # CRAWLER: LOGGING
+        - name: LOGGER_NAME
+          value: "rest-service"
+        - name: LOG_DIR
+          value: "logs"
+        - name: LOG_FILE
+          value: "rest_service.log"
+        - name: LOG_MAX_BYTES
+          value: "10 * 1024 * 1024"
+        - name: LOG_BACKUPS
+          value: "5"
+        - name: LOG_STDOUT
+          value: "True"
+        - name: LOG_JSON
+          value: "False"
+        - name: LOG_LEVEL
+          value: "INFO"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rest
+  namespace: scrapy
+  labels:
+    app: rest
+spec:
+  ports:
+  - name: rest
+    port: 5343
+  selector:
+    app: rest
+

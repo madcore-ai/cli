@@ -126,7 +126,7 @@ def main(args=None):
 
     elif args.install_scrapy_cluster:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("scrapy-cluster")
+        el.kubectl_install_elements("scrapycluster")
 
     elif args.kubectl_use_context:
         kc = cmdkubectl.CmdKubectl(sett)

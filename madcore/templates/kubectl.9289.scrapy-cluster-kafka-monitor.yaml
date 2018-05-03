@@ -1,0 +1,25 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-monitor
+  namespace: scrapy
+  labels:
+    app: kafka-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-monitor
+  template:
+    metadata:
+      labels:
+        app: kafka-monitor
+    spec:
+      containers:
+      - name: kafka-monitor
+        image: istresearch/scrapy-cluster:kafka-monitor-dev
+        env:
+
+
+
