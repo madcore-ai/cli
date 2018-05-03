@@ -1,0 +1,38 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scrapy-zookeeper
+  namespace: scrapy-cluster
+  labels:
+    app: scrapy-zookeeper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scrapy-zookeeper
+  template:
+    metadata:
+      labels:
+        app: scrapy-zookeeper
+    spec:
+      containers:
+      - name: scrapy-zookeeper
+        image: zookeeper
+        ports:
+        - containerPort: 2181
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scrapy-zookeeper
+  namespace: scrapy-cluster
+  labels:
+    app: scrapy-zookeeper
+spec:
+  ports:
+  - name: zookeeper
+    port: 2181
+  selector:
+    app: scrapy-zookeeper
+
