@@ -73,7 +73,7 @@ def main(args=None):
     group.add_argument('--install-neo4j', help='install neo4j', action='store_true')
     group.add_argument('--install-kafka', help='install apache kafka', action='store_true')
     group.add_argument('--install-flink', help='install apache flink', action='store_true')
-    group.add_argument('--install-scrapy-cluster', help='install scrapy cluster', action='store_true')
+    group.add_argument('--install-scrapy', help='install scrapy cluster', action='store_true')
     args = parser.parse_args()
 
     if not args.attr:
@@ -124,9 +124,9 @@ def main(args=None):
         el = elements.Elements(sett)
         el.kubectl_install_elements("flink")
 
-    elif args.install_scrapy_cluster:
+    elif args.install_scrapy:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("scrapycluster")
+        el.kubectl_install_elements("scrapy")
 
     elif args.kubectl_use_context:
         kc = cmdkubectl.CmdKubectl(sett)

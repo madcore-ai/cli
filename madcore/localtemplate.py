@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, FileSystemLoader
 import os
 from prettytable import PrettyTable
 import static
@@ -42,7 +42,8 @@ class LocalTemplate(object):
 
     def generate_template(self, name):
 
-        env = Environment(loader=PackageLoader('madcore.localtemplate', 'templates'))
+        #env = Environment(loader=PackageLoader('localtemplate', 'templates'))
+        env = Environment(loader=FileSystemLoader(self.settings.templates_path))
         template = env.get_template(name)
         rendered = template.render(settings=self.settings)
 
@@ -52,8 +53,7 @@ class LocalTemplate(object):
         f.close()
 
     def generate_template_node(self, file_template, file_populated, ig):
-
-        env = Environment(loader=PackageLoader('madcore.localtemplate', 'templates'))
+        env = Environment(loader=FileSystemLoader(self.settings.templates_path))
         template = env.get_template(file_template)
         rendered = template.render(ig=ig, settings=self.settings)
 
@@ -63,7 +63,7 @@ class LocalTemplate(object):
         f.close()
 
     def generate_template_element(self, item):
-        env = Environment(loader=PackageLoader('madcore.localtemplate', 'templates'))
+        env = Environment(loader=FileSystemLoader(self.settings.templates_path))
         template = env.get_template(item.template)
         rendered = template.render(component=item, settings=self.settings)
 

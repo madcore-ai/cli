@@ -57,6 +57,7 @@ class Settings(object):
     config = None
     config_locust = None
     config_path = None
+    templates_path = None
     elements = None
 
     def __init__(self, args):
@@ -65,6 +66,7 @@ class Settings(object):
 
         self.setup_local_folder()
         self.config_path = os.path.join(self.folder_config, 'config.yaml')
+        self.templates_path = os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__)), "templates/"))
         self.get_config()
 
         self.switch_config_if_new_requested()
