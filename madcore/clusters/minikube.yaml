@@ -85,6 +85,10 @@ elements:
         - name: perftest
           template: kubectl.216.perftest.yaml
 
+    tron:
+        - name: tron
+          template: kubectl.9291.tron.yaml
+
     scrapy:
         - name: scrapy-cluster-ns
           template: kubectl.9281.scrapy-cluster-ns.yaml

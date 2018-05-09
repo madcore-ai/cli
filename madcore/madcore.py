@@ -74,6 +74,7 @@ def main(args=None):
     group.add_argument('--install-kafka', help='install apache kafka', action='store_true')
     group.add_argument('--install-flink', help='install apache flink', action='store_true')
     group.add_argument('--install-scrapy', help='install scrapy cluster', action='store_true')
+    group.add_argument('--install-tron', help='install tron network', action='store_true')
     args = parser.parse_args()
 
     if not args.attr:
@@ -127,6 +128,10 @@ def main(args=None):
     elif args.install_scrapy:
         el = elements.Elements(sett)
         el.kubectl_install_elements("scrapy")
+
+    elif args.install_tron:
+        el = elements.Elements(sett)
+        el.kubectl_install_elements("tron")
 
     elif args.kubectl_use_context:
         kc = cmdkubectl.CmdKubectl(sett)
