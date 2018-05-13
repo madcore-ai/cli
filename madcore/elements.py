@@ -49,8 +49,6 @@ class Elements(object):
         name = "ELEMENTS"
         Static.figletcyber('{0} {1}'.format(name, stage.upper()))
 
-        # parse master ip, currently required by ingress template 026
-        # this also becomes local minikube ip if that's the current context
         self.CmdKubectl.get_master_ip()
         self.CmdKubectl.get_ingress_ips()
 
