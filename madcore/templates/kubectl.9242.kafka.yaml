@@ -1,16 +1,40 @@
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: kafka-pvc
-  namespace: kafka
-spec:
-  storageClassName: madcore-storage
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: 5Gi
+#
+# MIT License
+#
+# Copyright (c) 2016-2018 Madcore Ltd
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+#---
+#kind: PersistentVolumeClaim
+#apiVersion: v1
+#metadata:
+#  name: kafka-pvc
+#  namespace: kafka
+#spec:
+#  storageClassName: madcore-storage
+#  accessModes:
+#    - ReadWriteOnce
+#  resources:
+#    requests:
+#      storage: 5Gi
 ---
 {% raw %}
 kind: ConfigMap
@@ -72,9 +96,9 @@ data:
     # the brokers.
     num.partitions=1
 
-    default.replication.factor=3
+    default.replication.factor=1
 
-    min.insync.replicas=2
+    min.insync.replicas=1
 
     auto.create.topics.enable=true
 
@@ -181,7 +205,7 @@ data:
 
     ##
     ## Modified by Madcore
-    zookeeper.connect=pzoo:2181
+    zookeeper.connect=zk-0.zk-hs.kafka.svc.cluster.local:2181,zk-1.zk-hs.kafka.svc.cluster.local:2181,zk-2.zk-hs.kafka.svc.cluster.local:2181
     ## Was: zookeeper
 
     # Timeout in ms for connecting to zookeeper
@@ -309,7 +333,7 @@ spec:
     matchLabels:
       app: kafka
   serviceName: "broker"
-  replicas: 1
+  replicas: 3
   updateStrategy:
     type: OnDelete
   template:
@@ -370,7 +394,7 @@ spec:
         volumeMounts:
         - name: config
           mountPath: /etc/kafka
-        - name: data
+        - name: datadir
           mountPath: /var/lib/kafka/data
       volumes:
       - name: configmap
@@ -378,6 +402,11 @@ spec:
           name: broker-config
       - name: config
         emptyDir: {}
-      - name: data
-        persistentVolumeClaim:
-          claimName: kafka-pvc
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
