@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
 """
 MIT License
 
@@ -57,9 +57,10 @@ def get_version():
 
 
 def main(args=None):
-    description = colored("Madcore CLI {0} - (c) 2016-2018 Madcore Ltd <https://madcore.ai>".format(get_version()),'white',attrs=['bold'])
+    description = colored("Madcore CLI {0} - (c) 2016-2018 Madcore Ltd <https://madcore.ai>".format(get_version()), 'white', attrs=['bold'])
     parser = MyParser(prog="./madcore.py", description=description)
     group = parser.add_mutually_exclusive_group()
+
     group.add_argument('-p', '--provision', dest="provision", metavar=('CLUSTERFILE'), help='provision based on <cllusterfile>', action='store')
     group.add_argument('-c', '--clusterfile', dest="clusterfile", metavar=('CLUSTERFILE'), help='set default clusterfile to input <clusterfile>', action='store')
     group.add_argument('-i', '--init', dest="init", metavar=('SOURCE_CLUSTERFILE','NEW_CLUSTERFILE'), nargs=2, help='initialize new yaml clusterfile using existing from template folder', action='store')
@@ -76,6 +77,7 @@ def main(args=None):
     group.add_argument('--install-flink', help='install apache flink', action='store_true')
     group.add_argument('--install-scrapy', help='install scrapy cluster', action='store_true')
     group.add_argument('--install-tron', help='install tron network', action='store_true')
+
     args = parser.parse_args()
 
     if not args.attr:
@@ -166,4 +168,3 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
-
