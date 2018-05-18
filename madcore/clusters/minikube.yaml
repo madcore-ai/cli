@@ -104,8 +104,8 @@ elements:
           template: kubectl.9286.scrapy-cluster-rest.yaml
         - name: scrapy-cluster-crawler
           template: kubectl.9287.scrapy-cluster-crawler.yaml
-#        - name: scrapy-cluster-redis-monitor
-#          template: kubectl.9288.scrapy-cluster-redis-monitor.yaml
+        - name: scrapy-cluster-redis-monitor
+          template: kubectl.9288.scrapy-cluster-redis-monitor.yaml
         - name: scrapy-cluster-kafka-monitor
           template: kubectl.9289.scrapy-cluster-kafka-monitor.yaml
 
