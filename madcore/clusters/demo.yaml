@@ -1,6 +1,7 @@
 ---
 cluster:
     name: demo
+    ingress_instance_group: ingress
 
 provision:
     cloud: aws
@@ -133,8 +134,8 @@ elements:
           template: kubectl.9242.kafka.yaml
         - name: kafka-manager
           template: kubectl.9243.kafka-manager.yaml
-#        - name: kfn
-#          template: kubectl.9249.kfn.yaml
+        - name: kfn
+          template: kubectl.9249.kfn.yaml
         - name: kafka-rest
           template: kubectl.9244.kafka-rest.yaml
 

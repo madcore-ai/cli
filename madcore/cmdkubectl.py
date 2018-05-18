@@ -95,7 +95,7 @@ class CmdKubectl(object):
             cmd = "minikube ip"
             self.settings.ingress_ips.append(self.settings.master_ip)
         else:
-            self.settings.ingress_ips = self.get_ig_ips("ingress")
+            self.settings.ingress_ips = self.get_ig_ips(self.settings.cluster.ingress_instance_group)
 
         Static.msg(name, self.settings.ingress_ips)
         return self.settings.ingress_ips

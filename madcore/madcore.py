@@ -62,6 +62,7 @@ def main(args=None):
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-p', '--provision', dest="provision", metavar=('CLUSTERFILE'), help='provision based on <cllusterfile>', action='store')
     group.add_argument('-c', '--clusterfile', dest="clusterfile", metavar=('CLUSTERFILE'), help='set default clusterfile to input <clusterfile>', action='store')
+    group.add_argument('-i', '--init', dest="init", metavar=('SOURCE_CLUSTERFILE','NEW_CLUSTERFILE'), nargs=2, help='initialize new yaml clusterfile using existing from template folder', action='store')
     group.add_argument('--destroy', help='destroy infrastructure', action='store_true')
     group.add_argument('--kops-update', help='kops update', action='store_true')
     group.add_argument('--kops-validate', help='kopds validate', action='store_true')
@@ -140,6 +141,14 @@ def main(args=None):
     elif args.mini_hostname:
         prov = provision.Provision(sett)
         prov.mini_hostname()
+
+    elif args.init:
+        print "INIT"
+        source = args.init[0]
+        dest = args.init[1]
+        # new file goes to ~/.madcore/templates
+        #self.settings.folder_clusters #copy to this folder form existing
+
 
     elif args.attr:
 

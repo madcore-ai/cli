@@ -50,6 +50,7 @@ class Settings(object):
     aws_zone = None
     folder_config = None
     folder_populated = None
+    folder_clusters = None
     master_ip = None
     ingress_ips = []
     current_context = None
@@ -125,6 +126,9 @@ class Settings(object):
         self.folder_populated = os.path.join(self.folder_config, "rendered")
         if not os.path.exists(self.folder_populated):
             self.mkdir_p(self.folder_populated)
+        self.folder_clusters = os.path.join(self.folder_config, "clusters")
+        if not os.path.exists(self.folder_clusters):
+            self.mkdir_p(self.folder_clusters)
 
     def mkdir_p(self, path):
         try:
