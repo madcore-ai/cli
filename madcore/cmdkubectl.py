@@ -48,7 +48,7 @@ class CmdKubectl(object):
         Cmd.local_run_long(component_item.name, cmd)
 
     def use_context(self):
-        name = "Match Kubectl Context"
+        name = "Kubectl Use Context"
         cmd = None
         context = None
         if self.settings.provision.cloud != "minikube":
@@ -64,7 +64,7 @@ class CmdKubectl(object):
         print
 
     def get_context(self):
-        name = "Detect current kubectl context"
+        name = "kubectl config current-context"
         cmd = "kubectl config current-context"
         self.settings.current_context = Cmd.local_run_get_out(name, cmd)
         Static.msg(name,  self.settings.current_context)

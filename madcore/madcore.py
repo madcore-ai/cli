@@ -85,18 +85,40 @@ def main(args=None):
         print description
         print
 
+    args = parser.parse_args()
     sett = settings.Settings(args)
 
     if args.provision:
+        sett.set_clusterfile()
+        sett.save_settings_file()
+        sett.load_clusterfile()
         prov = provision.Provision(sett)
         prov.start()
+        return
 
     elif args.clusterfile:
         # switch happens in settings
+        sett.set_clusterfile()
+        sett.save_settings_file()
+        sett.load_clusterfile()
         kc = cmdkubectl.CmdKubectl(sett)
         kc.use_context()
+        return
 
-    elif args.destroy:
+    elif args.init:
+        sett.initialize_new_clusterfile()
+        kc = cmdkubectl.CmdKubectl(sett)
+        kc.get_context()
+        return
+
+    # settings for the
+
+    sett.set_clusterfile()
+    sett.save_settings_file()
+    sett.load_clusterfile()
+    sett.set_zone()
+
+    if args.destroy:
         prov = provision.Provision(sett)
         prov.destroy()
 
@@ -144,12 +166,7 @@ def main(args=None):
         prov = provision.Provision(sett)
         prov.mini_hostname()
 
-    elif args.init:
-        print "INIT"
-        source = args.init[0]
-        dest = args.init[1]
-        # new file goes to ~/.madcore/templates
-        #self.settings.folder_clusters #copy to this folder form existing
+
 
 
     elif args.attr:
