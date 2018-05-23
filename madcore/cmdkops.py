@@ -102,7 +102,7 @@ class CmdKops(object):
         task = "Get Kops Cluster settings"
         cmd = "kops get cluster -oyaml --state={0} > {1}/remote.{2}".format(
             self.settings.provision.s3_store,
-            self.settings.folder_populated,
+            self.settings.folder_user_populated,
             self.file_local_cluster)
         Static.msg(name, task)
         Cmd.local_run_long(name, cmd)
@@ -113,7 +113,7 @@ class CmdKops(object):
 
         task = "Update Kops Clusters settings"
         cmd = "kops replace -f {0}/{1} --state={2}".format(
-            self.settings.folder_populated,
+            self.settings.folder_user_populated,
             self.file_local_cluster,
             self.settings.provision.s3_store
         )
@@ -126,7 +126,7 @@ class CmdKops(object):
             self.settings.provision.domain,
             self.settings.aws_zone,
             self.settings.provision.s3_store,
-            self.settings.folder_populated,
+            self.settings.folder_user_populated,
             self.file_local_master)
         Static.msg(name, task)
         Cmd.local_run_long(name, cmd)
@@ -137,7 +137,7 @@ class CmdKops(object):
 
         task = "Update Kops Master settings"
         cmd = "kops replace -f {0}/{1} --state={2}".format(
-            self.settings.folder_populated,
+            self.settings.folder_user_populated,
             self.file_local_master,
             self.settings.provision.s3_store
         )
@@ -153,7 +153,7 @@ class CmdKops(object):
             cmd = "kops get ig --name={0} nodes -oyaml --state={1} > {2}/remote.{3}".format(
                 self.settings.provision.domain,
                 self.settings.provision.s3_store,
-                self.settings.folder_populated,
+                self.settings.folder_user_populated,
                 populated_ig_file)
             Static.msg(name, task)
             Cmd.local_run_long(name, cmd)
@@ -164,7 +164,7 @@ class CmdKops(object):
 
             task = "Update Kops Instance Group {0} settings".format(single_ig.name)
             cmd = "kops replace -f {0}/{1} --state={2} --force".format(
-                self.settings.folder_populated,
+                self.settings.folder_user_populated,
                 populated_ig_file,
                 self.settings.provision.s3_store
             )
@@ -181,7 +181,7 @@ class CmdKops(object):
         cmd = "kops get ig --name={0} nodes -oyaml --state={1} > {2}/remote.{3}".format(
             self.settings.provision.domain,
             self.settings.provision.s3_store,
-            self.settings.folder_populated,
+            self.settings.folder_user_populated,
             populated_ig_file)
         Static.msg(name, task)
         Cmd.local_run_long(name, cmd)
@@ -192,7 +192,7 @@ class CmdKops(object):
 
         task = "Update Kops Instance Group {0} settings".format(single_ig.name)
         cmd = "kops replace -f {0}/{1} --state={2} --force".format(
-            self.settings.folder_populated,
+            self.settings.folder_user_populated,
             populated_ig_file,
             self.settings.provision.s3_store
         )

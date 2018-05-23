@@ -1,9 +1,4 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: ingress
----
-apiVersion: v1
 data:
     dynamic-scaling: "false"
     backend-server-slots-increment: "1"

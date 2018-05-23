@@ -41,7 +41,7 @@ class CmdKubectl(object):
     def apply(self, component_item):
 
         cmd = "kubectl apply -f {0}/{1}".format(
-            self.settings.folder_populated,
+            self.settings.folder_user_populated,
             component_item.template
         )
         Static.msg("Adding Component", component_item.name)
@@ -136,7 +136,7 @@ class CmdKubectl(object):
     def registry_port_forward_enable(self):
         name = "Enable PortForward to Registy"
         cmd = "kubectl port-forward --namespace kube-system {0} 5000:5000 & echo $$! > {1}/port-forward.pid".format(
-            self.settings.folder_populated,
+            self.settings.folder_user_populated,
             self.get_registry_pod()
         )
         master_node = Cmd.local_run_get_out(name, cmd)
@@ -147,9 +147,9 @@ class CmdKubectl(object):
     def registry_port_forward_disable(self):
         name = "Disable PortForward to Registy"
 
-        cmd1 = "kill $(shell cat {0}/port-forward.pid) || true".format(self.settings.folder_populated)
+        cmd1 = "kill $(shell cat {0}/port-forward.pid) || true".format(self.settings.folder_user_populated)
         cmd1_out = Cmd.local_run_get_out(name, cmd1)
-        cmd2 = "rm -f {0}/port-forward.pid".format(self.settings.folder_populated)
+        cmd2 = "rm -f {0}/port-forward.pid".format(self.settings.folder_user_populated)
         cmd2_out = Cmd.local_run_get_out(name, cmd2)
 
         Static.msg(name, master_node)

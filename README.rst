@@ -227,11 +227,6 @@ taskmanager       Flink Task Manager (Horizontally Scaling)
 
 * Flink UI - http://flink.<yourdomain.com> or http://fink.minikube.local
 
-
-Changes
----------------------------------------
-
-
 Chat with us on Gitter
 ----------------------
 
