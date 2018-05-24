@@ -89,6 +89,12 @@ def main(args=None):
                        help='install apache flink', action='store_true')
     group.add_argument('--install-scrapy',
                        help='install scrapy cluster', action='store_true')
+
+    group.add_argument('--install-scrapyrc',
+                       help='install scrapy cluster 1.2rc', action='store_true')
+    group.add_argument('--install-storm',
+                       help='install storm', action='store_true')
+
     group.add_argument(
         '--install-tron', help='install tron network', action='store_true')
     args = parser.parse_args()
@@ -144,6 +150,14 @@ def main(args=None):
     elif args.install_scrapy:
         el = elements.Elements(sett)
         el.kubectl_install_elements("scrapy")
+
+    elif args.install_scrapyrc:
+        el = elements.Elements(sett)
+        el.kubectl_install_elements("scrapyrc")
+
+    elif args.install_storm:
+        el = elements.Elements(sett)
+        el.kubectl_install_elements("storm")
 
     elif args.install_tron:
         el = elements.Elements(sett)

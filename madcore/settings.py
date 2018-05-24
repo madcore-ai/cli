@@ -66,19 +66,23 @@ class Settings(object):
 
         self.setup_local_folder()
         self.config_path = os.path.join(self.folder_config, 'config.yaml')
-        self.templates_path = os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__)), "templates/"))
+        self.templates_path = os.path.join(os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "templates/"))
+        print self.templates_path
         self.get_config()
 
         self.switch_config_if_new_requested()
 
-        clusterfile_data = yaml.load(open(os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__)), "clusters/"), self.config.clusterfile)), Loader=yamlordereddictloader.Loader)
+        clusterfile_data = yaml.load(open(os.path.join(os.path.join(os.path.dirname(os.path.realpath(
+            __file__)), "clusters/"), self.config.clusterfile)), Loader=yamlordereddictloader.Loader)
         clusterfile_struct = Struct(**clusterfile_data)
         self.cluster = Struct(**clusterfile_struct.cluster)
         self.provision = Struct(**clusterfile_struct.provision)
         self.elements = clusterfile_data['elements']
 
         if self.provision.cloud == "aws":
-            self.aws_zone = "{0}{1}".format(self.provision.region, self.provision.zone_id)
+            self.aws_zone = "{0}{1}".format(
+                self.provision.region, self.provision.zone_id)
 
     # switch default clusterfile
     # quite important so double checking
@@ -97,7 +101,8 @@ class Settings(object):
                 if os.path.isfile(os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__)), "clusters/"), in_passed)):
                     return True
                 else:
-                    Static.msg_bold("Error", "Clusterfile file {0} does not exist. Cannot continue.".format(in_passed))
+                    Static.msg_bold(
+                        "Error", "Clusterfile file {0} does not exist. Cannot continue.".format(in_passed))
                 raise SystemExit(99)
 
         # switch if required
@@ -116,8 +121,8 @@ class Settings(object):
             self.save_config()
             Static.msg("Default clusterfile set to", self.config.clusterfile)
         else:
-            Static.msg("Default clusterfile remains as", self.config.clusterfile)
-
+            Static.msg("Default clusterfile remains as",
+                       self.config.clusterfile)
 
     def setup_local_folder(self):
 
@@ -165,4 +170,3 @@ class Settings(object):
 
         with open(self.config_path, 'w') as config_file:
             config_file.write(yaml.dump(config, default_flow_style=False))
-

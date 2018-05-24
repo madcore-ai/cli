@@ -109,5 +109,17 @@ elements:
         - name: scrapy-cluster-kafka-monitor
           template: kubectl.9289.scrapy-cluster-kafka-monitor.yaml
 
+    storm:
+        - name: storm-ns
+          template: kubectl.9303.apache-storm-ns.yaml
+        - name: storm-zookeeper
+          template: kubectl.9304.storm-zookeeper.yaml
+        - name: storm-nimbus
+          template: kubectl.9300.apache-storm-nimbus.yaml
+        - name: storm-supervisor
+          template: kubectl.9301.apache-storm-supervisor.yaml
+        - name: storm-ui
+          template: kubectl.9302.apache-storm-ui.yaml
+
 
 
