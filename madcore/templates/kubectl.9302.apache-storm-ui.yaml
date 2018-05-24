@@ -26,12 +26,8 @@ spec:
         - name: STORM_NIMBUS
           value: '["nimbus.storm"]'
         ports:
-        # - name: storm-ui
-        - containerPort: 8080
-        # lifecycle:
-        #   postStart:
-        #     exec:
-        #       command: ['/bin/bash','/apache-storm-1.2.1/bin/storm ui']
+        - name: storm-ui
+          containerPort: 8080
         resources:
           limits:
             cpu: 100m

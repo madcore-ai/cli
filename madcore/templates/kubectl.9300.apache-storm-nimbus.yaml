@@ -1,27 +1,3 @@
----
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: nimbus
-#   namespace: storm
-#   labels:
-#     app: nimbus
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: nimbus
-#   template:
-#     metadata:
-#       labels:
-#         app: nimbus
-#     spec:
-#       containers:
-#       - name: nimbus
-#         image: nimbus
-#         ports:
-#         - containerPort: 6379
-# ---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -42,7 +18,6 @@ spec:
       containers:
         - name: nimbus
           image: doginal/storm-nimbus
-          # command: ["storm nimbus"]
           ports:
             - containerPort: 6627
           env:
@@ -50,10 +25,6 @@ spec:
             value: '["zookeeper.storm"]'
           - name: STORM_NIMBUS
             value: '["nimbus.storm"]'
-          # lifecycle:
-          #   postStart:
-          #     exec:
-          #       command: ['/bin/bash','/apache-storm-1.2.1/bin/storm nimbus']
           resources:
             limits:
               cpu: 100m
@@ -65,10 +36,10 @@ spec:
       # volumes:
       #   - name: topologies
       #     hostPath:
-      #       path: "/Users/agriggs/Projects/sellzilla/storm-data"
+      #       path: /path/to/topologies
       #   - name: conf
       #     hostPath:
-      #       path: "/Users/agriggs/Projects/sellzilla/storm-conf"
+      #       path: /path/to/storm-config
 
 ---
 apiVersion: v1
