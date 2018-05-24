@@ -1,6 +1,7 @@
 ---
 cluster:
     name: solvezone
+    ingress_instance_group: nodes
 
 provision:
     cloud: aws
@@ -68,50 +69,12 @@ elements:
     core:
         - name: kubernetes-dashboard
           template: kubectl.101.dashboard.yaml
+          taint:
+              before: master-remove-all
           image: k8s.gcr.io/kubernetes-dashboard-amd64:v1.8.2
           service_ports:
               - port: 80
                 targetPort: 9090
-#            - name: route53-mapper
-#              template: kubectl.102.route53.yaml
-#              image: quay.io/molecule/route53-kubernetes:v1.3.0
-#              taint:
-#                  before: master-remove-all
-#                  after: master-add-noschedule
-
-#            - name: registry
-#              template: kubectl.141.registry.yaml
-#              image: registry:2
-#              taint:
-#                  before: master-remove-all
-#                  after: master-add-noschedule
-#        - name: ingress.service.registry
-#          template: kubectl.142.ingress.service.registry.yaml
-
-        - name: ingress-default-deployment
-          template: kubectl.111.ingress-default-deployment.yaml
-        - name: http-svc-deployment
-          template: kubectl.112.http-svc-deployment.yaml
-
-        - name: nfs-claim
-          taint:
-              before: master-remove-all
-          template: kubectl.121.nfs-claim.yaml
-        - name: nfs-class
-          template: kubectl.122.nfs-class.yaml
-        - name: nfs
-          taint:
-              after: master-add-noschedule
-          template: kubectl.123.nfs.yaml
-
-#            - name: sys-influxdb
-#              template: kubectl.151.influxdb.yaml
-        - name: sys-heapster
-          template: kubectl.152.heapster.yaml
-#            - name: sys-grafana
-#              template: kubectl.153.grafana.yaml
-#            - name: sys-grafana
-#              template: kubectl.154.grafana.ing.yaml
 
         - name: haproxy-configmap
           template: kubectl.171.haproxy-configmap.yaml
@@ -121,20 +84,58 @@ elements:
           template: kubectl.173.haproxy-ingress-svc.yaml
         - name: http-svc-ingress
           template: kubectl.174.http-svc-ingress.yaml
+        - name: ingress-default-deployment
+          template: kubectl.111.ingress-default-deployment.yaml
+        - name: http-svc-deployment
+          template: kubectl.112.http-svc-deployment.yaml
+
+        - name: registry
+          template: kubectl.141.registry.yaml
+          image: registry:2
+        - name: ingress.service.registry
+          template: kubectl.142.ingress.service.registry.yaml
+
+        - name: storage-ns
+          template: kubectl.121.storage-ns.yaml
+        - name: storage-nfs-provisioner
+          template: kubectl.127.storage-nfs-provisioner.yaml
+        - name: storage-nfs-class
+          template: kubectl.128.storage-nfs-class.yaml
+
+        - name: sys-heapster
+          template: kubectl.152.heapster.yaml
+          taint:
+              after: master-add-noschedule
+
+#            - name: sys-influxdb
+#              template: kubectl.151.influxdb.yaml
+
+#            - name: sys-grafana
+#              template: kubectl.153.grafana.yaml
+#            - name: sys-grafana
+#              template: kubectl.154.grafana.ing.yaml
+
+#            - name: route53-mapper
+#              template: kubectl.102.route53.yaml
+#              image: quay.io/molecule/route53-kubernetes:v1.3.0
+#              taint:
+#                  before: master-remove-all
+#                  after: master-add-noschedule
+
 
     neo4j:
         - name: neo4j
           template: kubectl.9221.neo4j-core.yaml
 
     kafka:
-#        - name: zookeeper
-#          template: kubectl.9241.zookeeper.yaml
-#        - name: kafka
-#          template: kubectl.9242.kafka.yaml
-#        - name: kafka-manager
-#          template: kubectl.9243.kafka-manager.yaml
-#        - name: kfn
-#          template: kubectl.9249.kfn.yaml
+        - name: zookeeper
+          template: kubectl.9241.zookeeper.yaml
+        - name: kafka
+          template: kubectl.9242.kafka.yaml
+        - name: kafka-manager
+          template: kubectl.9243.kafka-manager.yaml
+        - name: kfn
+          template: kubectl.9249.kfn.yaml
         - name: kafka-rest
           template: kubectl.9244.kafka-rest.yaml
 
@@ -151,6 +152,10 @@ elements:
     perftest:
         - name: perftest
           template: kubectl.216.perftest.yaml
+
+    tron:
+        - name: tron
+          template: kubectl.9291.tron.yaml
 
 
 

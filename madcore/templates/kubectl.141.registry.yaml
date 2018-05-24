@@ -77,6 +77,8 @@ spec:
         kubernetes.io/cluster-service: "true"
         version: v0.4
     spec:
+      nodeSelector:
+        kops.k8s.io/instancegroup: master-{{ settings.aws_zone }}
       containers:
       - name: kube-registry-proxy
         image: gcr.io/google_containers/kube-registry-proxy:0.4

@@ -17,7 +17,7 @@ spec:
       namespace: ingress
     spec:
       nodeSelector:
-        kops.k8s.io/instancegroup: ingress
+        kops.k8s.io/instancegroup: master-{{ settings.aws_zone }}
       containers:
         - name: http-svc
           image: gcr.io/google_containers/echoserver:1.3
