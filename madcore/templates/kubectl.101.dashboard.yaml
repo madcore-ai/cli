@@ -101,6 +101,8 @@ spec:
       labels:
         k8s-app: kubernetes-dashboard
     spec:
+      nodeSelector:
+        kops.k8s.io/instancegroup: master-{{ settings.aws_zone }}
       containers:
       - name: kubernetes-dashboard
         image: {{ component.image }}

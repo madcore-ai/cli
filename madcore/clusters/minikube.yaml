@@ -1,6 +1,7 @@
 ---
 cluster:
     name: minikube
+    ingress_instance_group: minikube
 
 provision:
     cloud: minikube

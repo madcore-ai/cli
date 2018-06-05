@@ -57,46 +57,27 @@ def get_version():
 
 
 def main(args=None):
-    description = colored(
-        "Madcore CLI {0} - (c) 2016-2018 Madcore Ltd <https://madcore.ai>".format(get_version()), 'white', attrs=['bold'])
+    description = colored("Madcore CLI {0} - (c) 2016-2018 Madcore Ltd <https://madcore.ai>".format(get_version()), 'white', attrs=['bold'])
     parser = MyParser(prog="./madcore.py", description=description)
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('-p', '--provision', dest="provision", metavar=(
-        'CLUSTERFILE'), help='provision based on <cllusterfile>', action='store')
-    group.add_argument('-c', '--clusterfile', dest="clusterfile", metavar=('CLUSTERFILE'),
-                       help='set default clusterfile to input <clusterfile>', action='store')
-    group.add_argument(
-        '--destroy', help='destroy infrastructure', action='store_true')
-    group.add_argument('--kops-update', help='kops update',
-                       action='store_true')
-    group.add_argument('--kops-validate',
-                       help='kopds validate', action='store_true')
-    group.add_argument('--kubectl-use-context',
-                       help='kubectl use context', action='store_true')
-    group.add_argument(
-        '--mini-hostname', help='set minikube hostname (will sudo)', action='store_true')
-    group.add_argument('--get-attr', dest="attr",
-                       help='get atribute', action='store')
-    group.add_argument(
-        '--install-core', help='install core of Madcore', action='store_true')
-    group.add_argument('--install-elk', help='install elk',
-                       action='store_true')
-    group.add_argument('--install-neo4j',
-                       help='install neo4j', action='store_true')
-    group.add_argument('--install-kafka',
-                       help='install apache kafka', action='store_true')
-    group.add_argument('--install-flink',
-                       help='install apache flink', action='store_true')
-    group.add_argument('--install-scrapy',
-                       help='install scrapy cluster', action='store_true')
 
-    group.add_argument('--install-scrapyrc',
-                       help='install scrapy cluster 1.2rc', action='store_true')
-    group.add_argument('--install-storm',
-                       help='install storm', action='store_true')
+    group.add_argument('-p', '--provision', dest="provision", metavar=('CLUSTERFILE'), help='provision based on <cllusterfile>', action='store')
+    group.add_argument('-c', '--clusterfile', dest="clusterfile", metavar=('CLUSTERFILE'), help='set default clusterfile to input <clusterfile>', action='store')
+    group.add_argument('-i', '--init', dest="init", metavar=('SOURCE_CLUSTERFILE','NEW_CLUSTERFILE'), nargs=2, help='initialize new yaml clusterfile using existing from template folder', action='store')
+    group.add_argument('--destroy', help='destroy infrastructure', action='store_true')
+    group.add_argument('--kops-update', help='kops update', action='store_true')
+    group.add_argument('--kops-validate', help='kopds validate', action='store_true')
+    group.add_argument('--kubectl-use-context', help='kubectl use context', action='store_true')
+    group.add_argument('--mini-hostname', help='set minikube hostname (will sudo)', action='store_true')
+    group.add_argument('--get-attr', dest="attr", help='get atribute', action='store')
+    group.add_argument('--install-core', help='install core of Madcore', action='store_true')
+    group.add_argument('--install-elk', help='install elk', action='store_true')
+    group.add_argument('--install-neo4j', help='install neo4j', action='store_true')
+    group.add_argument('--install-kafka', help='install apache kafka', action='store_true')
+    group.add_argument('--install-flink', help='install apache flink', action='store_true')
+    group.add_argument('--install-scrapy', help='install scrapy cluster', action='store_true')
+    group.add_argument('--install-tron', help='install tron network', action='store_true')
 
-    group.add_argument(
-        '--install-tron', help='install tron network', action='store_true')
     args = parser.parse_args()
 
     if not args.attr:
@@ -104,18 +85,40 @@ def main(args=None):
         print description
         print
 
+    args = parser.parse_args()
     sett = settings.Settings(args)
 
     if args.provision:
+        sett.set_clusterfile()
+        sett.save_settings_file()
+        sett.load_clusterfile()
         prov = provision.Provision(sett)
         prov.start()
+        return
 
     elif args.clusterfile:
         # switch happens in settings
+        sett.set_clusterfile()
+        sett.save_settings_file()
+        sett.load_clusterfile()
         kc = cmdkubectl.CmdKubectl(sett)
         kc.use_context()
+        return
 
-    elif args.destroy:
+    elif args.init:
+        sett.initialize_new_clusterfile()
+        kc = cmdkubectl.CmdKubectl(sett)
+        kc.get_context()
+        return
+
+    # settings for the
+
+    sett.set_clusterfile()
+    sett.save_settings_file()
+    sett.load_clusterfile()
+    sett.set_zone()
+
+    if args.destroy:
         prov = provision.Provision(sett)
         prov.destroy()
 
@@ -170,6 +173,9 @@ def main(args=None):
     elif args.mini_hostname:
         prov = provision.Provision(sett)
         prov.mini_hostname()
+
+
+
 
     elif args.attr:
 

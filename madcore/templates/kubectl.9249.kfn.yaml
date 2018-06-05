@@ -9,20 +9,19 @@
 #  selector:
 #    app: kfn
 #---
-#kind: PersistentVolumeClaim
-#apiVersion: v1
-#metadata:
-#  name: kfn-pvc
-#  namespace: kafka
-#spec:
-#  storageClassName: madcore-storage
-#  accessModes:
-#    - ReadWriteOnce
-#  resources:
-#    requests:
-#      storage: 1Gi
-#---
-#apiVersion: apps/v1
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: kfn-pvc
+  namespace: kafka
+spec:
+  storageClassName: madcore-storage
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 kind: Deployment
 apiVersion: apps/v1
@@ -42,7 +41,7 @@ spec:
       containers:
         - name: kfn
           image: madcore/kfn
-          command: ["sh", "-c", "ls /opt/gsec; sleep 6000"]
+          command: ["sh", "-c", "sleep 6000; ls /opt/gsec; sleep 6000"]
           resources:
             limits:
               cpu: 100m

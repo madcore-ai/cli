@@ -26,6 +26,7 @@ spec:
       - name: tron
         image: polfilm/tron-java:Odyssey-v1.0.6.1
         command: ['/bin/bash','-c','cd /home/java-tron/build/libs && java -jar java-tron.jar']
+        #command: ['/bin/bash','-c','cd /home/java-tron/build/libs && java -jar java-tron.jar']
         #command: ['/bin/bash','-c','sleep 6000']
 
 
