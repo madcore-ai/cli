@@ -1,0 +1,68 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scrapy-rc-configmap
+  namespace: scrapy-rc
+data:
+    SLEEP_TIME: "0.1"
+    HEARTBEAT_TIMEOUT: "120"
+    
+    # REDIS
+    REDIS_HOST: "redis.scrapy-rc"
+    REDIS_PORT: "6379"
+    REDIS_DB: "0"
+
+    # KAFKA-MONITOR: KAFKA
+    KAFKA_HOSTS: "broker.kafka:9092"
+    KAFKA_INCOMING_TOPIC: "demo.incoming"
+    KAFKA_GROUP: "10"
+    KAFKA_FEED_TIMEOUT: "latest"
+    KAFKA_CONSUMER_AUTO_OFFSET_RESET: "50"
+    KAFKA_CONSUMER_TIMEOUT: "5000"
+    KAFKA_CONSUMER_COMMIT_INTERVAL_MS: "True"
+    KAFKA_CONSUMER_AUTO_COMMIT_ENABLE: "10 * 1024 * 1024"
+    KAFKA_CONSUMER_FETCH_MESSAGE_MAX_BYTES: "1"
+    KAFKA_PRODUCER_BATCH_LINGER_MS: "25"
+    KAFKA_PRODUCER_BUFFER_BYTES: "4 * 1024 * 1024"
+
+    # CRAWLER: ZOOKEEPER
+    ZOOKEEPER_ASSIGN_PATH: "/scrapy-cluster/crawler/"
+    ZOOKEEPER_ID: "all"
+    ZOOKEEPER_HOSTS: "pzoo.kafka:2181"
+
+
+    # KAFKA-MONITOR: PLUGINS
+    PLUGIN_DIR: "plugins/"
+    PLUGINS: |-
+        {
+            'plugins.scraper_handler.ScraperHandler': 100,
+            'plugins.action_handler.ActionHandler': 200,
+            'plugins.stats_handler.StatsHandler': 300,
+            'plugins.zookeeper_handler.ZookeeperHandler': 400,
+        }
+
+    # KAFKA-MONITOR: LOGGING
+    LOGGER_NAME: "kafka-monitor"
+    LOG_DIR: "logs"
+    LOG_FILE: "kafka_monitor.log"
+    LOG_MAX_BYTES: "10 * 1024 * 1024"
+    LOG_BACKUPS: "5"
+    LOG_STDOUT: "True"
+    LOG_JSON: "False"
+    LOG_LEVEL: "DEBUG"
+
+    # KAFKA-MONITOR: STATS
+    STATS_TOTAL: "True"
+    STATS_PLUGINS: "True"
+    STATS_CYCLE: "5"
+    STATS_DUMP: "60"
+    STATS_TIMES: |-
+        [
+            'SECONDS_15_MINUTE',
+            'SECONDS_1_HOUR',
+            'SECONDS_6_HOUR',
+            'SECONDS_12_HOUR',
+            'SECONDS_1_DAY',
+            'SECONDS_1_WEEK',
+        ]
