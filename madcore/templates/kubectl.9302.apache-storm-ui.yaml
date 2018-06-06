@@ -1,0 +1,51 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storm-ui
+  namespace: storm
+  labels:
+    name: storm-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: storm-ui
+  template:
+    metadata:
+      labels:
+        name: storm-ui
+        uses: nimbus
+    spec:
+      containers:
+      - name: storm-ui
+        image: doginal/storm-ui:latest
+        env:
+        - name: STORM_ZOOKEEPER
+          value: '["zookeeper.storm"]'
+        - name: STORM_NIMBUS
+          value: '["nimbus.storm"]'
+        ports:
+        - name: storm-ui
+          containerPort: 8080
+        resources:
+          limits:
+            cpu: 100m
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storm-ui
+  namespace: storm
+  labels:
+    name: storm-ui
+spec:
+  ports:
+  - name: ui
+    port: 8080
+    targetPort: storm-ui
+    protocol: TCP
+  selector:
+    name: storm-ui
+  type: Ingress

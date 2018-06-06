@@ -1,0 +1,32 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: tron
+  labels:
+    name: tron
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tron
+  namespace: tron
+  labels:
+    app: tron
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tron
+  template:
+    metadata:
+      labels:
+        app: tron
+    spec:
+      containers:
+      - name: tron
+        image: polfilm/tron-java:Odyssey-v1.0.6.1
+        command: ['/bin/bash','-c','cd /home/java-tron/build/libs && java -jar java-tron.jar']
+        #command: ['/bin/bash','-c','cd /home/java-tron/build/libs && java -jar java-tron.jar']
+        #command: ['/bin/bash','-c','sleep 6000']
+
+

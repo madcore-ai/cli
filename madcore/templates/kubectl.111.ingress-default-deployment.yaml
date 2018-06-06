@@ -22,7 +22,7 @@ spec:
       namespace: ingress
     spec:
       nodeSelector:
-        kops.k8s.io/instancegroup: ingress
+        kops.k8s.io/instancegroup: master-{{ settings.aws_zone }}
       containers:
         - name: ingress-default-backend
           image: gcr.io/google_containers/defaultbackend:1.0

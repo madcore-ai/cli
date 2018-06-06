@@ -1,0 +1,126 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crawler
+  namespace: scrapy
+  labels:
+    app: crawler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crawler
+  template:
+    metadata:
+      labels:
+        app: crawler
+    spec:
+      containers:
+      - name: crawler
+        image: istresearch/scrapy-cluster:crawler-dev
+        env:
+        # CRAWLER SETTINGS: http://scrapy-cluster.readthedocs.io/en/latest/topics/crawler/settings.html
+        # CRAWLER: REDIS
+        - name: REDIS_HOST
+          value: "redis.scrapy"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_DB
+          value: "0"
+
+        # CRAWLER: KAFKA
+        - name: KAFKA_HOSTS
+          value: "broker.kafka:9092"
+        - name: KAFKA_TOPIC_PREFIX
+          value: "demo"
+        - name: KAFKA_APPID_TOPICS
+          value: "False"
+        - name: KAFKA_BASE_64_ENCODE
+          value: "False"
+        - name: KAFKA_PRODUCER_BATCH_LINGER_MS
+          value: "25"
+        - name: KAFKA_PRODUCER_BUFFER_BYTES
+          value: "4 * 1024 * 1024"
+
+        # CRAWLER: ZOOKEEPER
+        - name: ZOOKEEPER_ASSIGN_PATH
+          value: "/scrapy-cluster/crawler/"
+        - name: ZOOKEEPER_ID
+          value: "all"
+        - name: ZOOKEEPER_HOSTS
+          value: "pzoo.kafka:2181"
+
+        # CRAWLER: SCHEDULER
+        - name: SCHEDULER_PERSIST
+          value: "True"
+        - name: SCHEDULER_QUEUE_REFRESH
+          value: "10"
+        - name: SCHEDULER_QUEUE_TIMEOUT
+          value: "3600"
+        - name: SCHEDULER_BACKLOG_BLACKLIST
+          value: "True"
+
+        # CRAWLER: THROTTLE
+        - name: QUEUE_HITS
+          value: "10"
+        - name: QUEUE_WINDOW
+          value: "60"
+        - name: QUEUE_MODERATED
+          value: "True"
+        - name: DUPEFILTER_TIMEOUT
+          value: "600"
+        - name: SCHEDULER_IP_REFRESH
+          value: "60"
+        - name: PUBLIC_IP_URL
+          value: "http://ip.42.pl/raw"
+        - name: IP_ADDR_REGEX
+          value: (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})
+        - name: SCHEDULER_TYPE_ENABLED
+          value: "True"
+        - name: SCHEDULER_IP_ENABLED
+          value: "True"
+        - name: SCHEUDLER_ITEM_RETRIES
+          value: "2"
+
+        # CRAWLER: LOGGING
+        - name: SC_LOGGER_NAME
+          value: "sc-crawler"
+        - name: SC_LOG_DIR
+          value: "logs"
+        - name: SC_LOG_FILE
+          value: "sc_crawler.log"
+        - name: SC_LOG_MAX_BYTES
+          value: "10 * 1024 * 1024"
+        - name: SC_LOG_BACKUPS
+          value: "5"
+        - name: SC_LOG_STDOUT
+          value: "True"
+        - name: SC_LOG_JSON
+          value: "False"
+        - name: SC_LOG_LEVEL
+          value: "INFO"
+
+        # CRAWLER: STATS
+        - name: STATS_STATUS_CODES
+          value: "True"
+        - name: STATUS_RESPONSE_CODES
+          value: |-
+            [
+                200,
+                404,
+                403,
+                504,
+            ]
+        - name: STATS_CYCLE
+          value: "5"
+        - name: STATS_TIMES
+          value: |-
+            [
+                'SECONDS_15_MINUTE',
+                'SECONDS_1_HOUR',
+                'SECONDS_6_HOUR',
+                'SECONDS_12_HOUR',
+                'SECONDS_1_DAY',
+                'SECONDS_1_WEEK',
+            ]

@@ -1,0 +1,113 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-monitor
+  namespace: scrapy
+  labels:
+    app: kafka-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-monitor
+  template:
+    metadata:
+      labels:
+        app: kafka-monitor
+    spec:
+      containers:
+      - name: kafka-monitor
+        image: istresearch/scrapy-cluster:kafka-monitor-dev
+        env:
+        # KAFKA-MONITOR SETTINGS: http://scrapy-cluster.readthedocs.io/en/latest/topics/kafka-monitor/settings.html
+        # KAFKA-MONITOR: CORE
+        - name: SLEEP_TIME
+          value: "0.1"
+        - name: HEARTBEAT_TIMEOUT
+          value: "120"
+
+
+        # KAFKA-MONITOR: REDIS
+        - name: REDIS_HOST
+          value: "redis.scrapy"
+        - name: REDIS_PORT
+          value: "6379"
+        - name: REDIS_DB
+          value: "0"
+
+
+        # KAFKA-MONITOR: KAFKA
+        - name: KAFKA_HOSTS
+          value: "broker.kafka:9092"
+        - name: KAFKA_INCOMING_TOPIC
+          value: "demo"
+        - name: KAFKA_GROUP
+          value: "10"
+        - name: KAFKA_FEED_TIMEOUT
+          value: "latest"
+        - name: KAFKA_CONSUMER_AUTO_OFFSET_RESET
+          value: "50"
+        - name: KAFKA_CONSUMER_TIMEOUT
+          value: "5000"
+        - name: KAFKA_CONSUMER_COMMIT_INTERVAL_MS
+          value: "True"
+        - name: KAFKA_CONSUMER_AUTO_COMMIT_ENABLE
+          value: "10 * 1024 * 1024"
+        - name: KAFKA_CONSUMER_FETCH_MESSAGE_MAX_BYTES
+          value: "1"
+        - name: KAFKA_PRODUCER_BATCH_LINGER_MS
+          value: "demo.incoming"
+        - name: KAFKA_PRODUCER_BUFFER_BYTES
+          value: "25"
+
+
+        # KAFKA-MONITOR: PLUGINS
+        - name: PLUGIN_DIR
+          value: "plugins/"
+        - name: PLUGINS
+          value: |-
+            {
+                'plugins.scraper_handler.ScraperHandler': 100,
+                'plugins.action_handler.ActionHandler': 200,
+                'plugins.stats_handler.StatsHandler': 300,
+                'plugins.zookeeper_handler.ZookeeperHandler': 400,
+            }
+
+        # KAFKA-MONITOR: LOGGING
+        - name: LOGGER_NAME
+          value: "kafka-monitor"
+        - name: LOG_DIR
+          value: "logs"
+        - name: LOG_FILE
+          value: "kafka_monitor.log"
+        - name: LOG_MAX_BYTES
+          value: "10 * 1024 * 1024"
+        - name: LOG_BACKUPS
+          value: "5"
+        - name: LOG_STDOUT
+          value: "True"
+        - name: LOG_JSON
+          value: "False"
+        - name: LOG_LEVEL
+          value: "INFO"
+
+        # KAFKA-MONITOR: STATS
+        - name: STATS_TOTAL
+          value: "True"
+        - name: STATS_PLUGINS
+          value: "True"
+        - name: STATS_CYCLE
+          value: "5"
+        - name: STATS_DUMP
+          value: "60"
+        - name: STATS_TIMES
+          value: |-
+            [
+                'SECONDS_15_MINUTE',
+                'SECONDS_1_HOUR',
+                'SECONDS_6_HOUR',
+                'SECONDS_12_HOUR',
+                'SECONDS_1_DAY',
+                'SECONDS_1_WEEK',
+            ]

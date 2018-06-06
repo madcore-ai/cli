@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ui
+  namespace: scrapy
+  labels:
+    app: ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ui
+  template:
+    metadata:
+      labels:
+        app: ui
+    spec:
+      containers:
+      - name: ui
+        image: wurstmeister/kafka
+        ports:
+        - containerPort: 9092
+        env:
+        - name: KAFKA_ZOOKEEPER_CONNECT
+          value: "zookeeper.scrapy:2181"
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: "1"
+        - name: KAFKA_ADVERTISED_HOST_NAME
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: scrapy
+  labels:
+    app: kafka
+spec:
+  ports:
+  - name: kafka
+    port: 9092
+  selector:
+    app: kafka
+

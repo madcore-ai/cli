@@ -23,6 +23,21 @@ Mac & Linux install form terminal.
    pip install madcore
 
 
+Development Install
+-------------------
+
+If you want to contribute to MadcoreCLI, add new k8s modules or create your own clusterfiles you should clone the repo, create python virtual environment (make sure package is installed) to isolate installations from the rest of the system, activate the virtual env, perform requirements install, and create a symlink so you can call MadcoreCLI from any folder on the system. For below example we assume both cloned repo and new virtual environment will end up in ~/git folder in your user space and full path is /Users/peter/git  Obviously you can adjust this to match your system.
+
+.. code-block:: bash
+
+   mkdir ~/git && cd ~/git
+   virtualenv venv_cli && source venv_cli/bin/activate
+   git clone git@github.com:madcore-ai/cli.git
+   pip install -r ~git/cli/requirements.txt
+   ln -s /Users/peter/git/cli/bin/madcore.sh /usr/local/bin/madcore
+
+
+
 Minikube Environment Prerequisites
 ----------------------------------
 

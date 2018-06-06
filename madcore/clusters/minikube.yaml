@@ -1,6 +1,7 @@
 ---
 cluster:
     name: minikube
+    ingress_instance_group: minikube
 
 provision:
     cloud: minikube
@@ -84,5 +85,42 @@ elements:
     perftest:
         - name: perftest
           template: kubectl.216.perftest.yaml
+
+    tron:
+        - name: tron
+          template: kubectl.9291.tron.yaml
+
+    scrapy:
+        - name: scrapy-cluster-ns
+          template: kubectl.9281.scrapy-cluster-ns.yaml
+        - name: scrapy-cluster-redis
+          template: kubectl.9282.scrapy-cluster-redis.yaml
+#        - name: scrapy-cluster-zookeeper
+#          template: kubectl.9283.scrapy-cluster-zookeeper.yaml
+#        - name: scrapy-cluster-kafka
+#          template: kubectl.9284.scrapy-cluster-kafka.yaml
+#        - name: scrapy-cluster-ui
+#          template: kubectl.9285.scrapy-cluster-ui.yaml
+        - name: scrapy-cluster-rest
+          template: kubectl.9286.scrapy-cluster-rest.yaml
+        - name: scrapy-cluster-crawler
+          template: kubectl.9287.scrapy-cluster-crawler.yaml
+        - name: scrapy-cluster-redis-monitor
+          template: kubectl.9288.scrapy-cluster-redis-monitor.yaml
+        - name: scrapy-cluster-kafka-monitor
+          template: kubectl.9289.scrapy-cluster-kafka-monitor.yaml
+
+    storm:
+        - name: storm-ns
+          template: kubectl.9303.apache-storm-ns.yaml
+        - name: storm-zookeeper
+          template: kubectl.9304.storm-zookeeper.yaml
+        - name: storm-nimbus
+          template: kubectl.9300.apache-storm-nimbus.yaml
+        - name: storm-supervisor
+          template: kubectl.9301.apache-storm-supervisor.yaml
+        - name: storm-ui
+          template: kubectl.9302.apache-storm-ui.yaml
+
 
 

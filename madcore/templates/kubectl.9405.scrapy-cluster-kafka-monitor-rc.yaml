@@ -1,0 +1,24 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-monitor-rc
+  namespace: scrapy-rc
+  labels:
+    app: kafka-monitor-rc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-monitor-rc
+  template:
+    metadata:
+      labels:
+        app: kafka-monitor-rc
+    spec:
+      containers:
+      - name: kafka-monitor-rc
+        image: istresearch/scrapy-cluster:kafka-monitor-1.2
+        envFrom:
+        - configMapRef:
+            name: 'scrapy-rc-configmap'

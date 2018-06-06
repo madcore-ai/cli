@@ -22,6 +22,8 @@ spec:
         task: monitoring
         k8s-app: heapster
     spec:
+      nodeSelector:
+        kops.k8s.io/instancegroup: master-{{ settings.aws_zone }}
       serviceAccountName: heapster
       containers:
       - name: heapster

@@ -44,7 +44,7 @@ class Minikube(object):
 
     def start(self):
         name = "Minikube Start"
-        cmd = "minikube start --insecure-registry localhost:5000 --memory 4096 --kubernetes-version={0}".format(self.settings.provision.kubernetesVersion)
+        cmd = "minikube start --insecure-registry localhost:5000 --memory 6144 --kubernetes-version={0}".format(self.settings.provision.kubernetesVersion)
         Static.msg(name, '.')
         Cmd.local_run_realtime(name, cmd)
 
