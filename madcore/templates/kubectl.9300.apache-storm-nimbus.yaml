@@ -1,0 +1,59 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nimbus
+  namespace: storm
+  labels:
+    name: nimbus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nimbus
+  template:
+    metadata:
+      labels:
+        app: nimbus
+    spec:
+      containers:
+        - name: nimbus
+          image: doginal/storm-nimbus
+          ports:
+            - containerPort: 6627
+          env:
+          - name: STORM_ZOOKEEPER
+            value: '["zookeeper.storm"]'
+          - name: STORM_NIMBUS
+            value: '["nimbus.storm"]'
+          resources:
+            limits:
+              cpu: 100m
+          # volumeMounts:
+          # - name: topologies
+          #   mountPath: "/data/topologies"
+          # - name: conf
+          #   mountPath: /data/conf
+      # volumes:
+      #   - name: topologies
+      #     hostPath:
+      #       path: /path/to/topologies
+      #   - name: conf
+      #     hostPath:
+      #       path: /path/to/storm-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nimbus
+  namespace: storm
+  labels:
+    app: nimbus
+spec:
+  ports:
+  - name: nimbus
+    port: 6627
+    targetPort: 6627
+  selector:
+    app: nimbus
+

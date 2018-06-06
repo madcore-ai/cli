@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storm-worker
+  namespace: storm
+  labels:
+    name: storm-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: storm-worker
+  template:
+    metadata:
+      labels:
+        name: storm-worker
+        uses: nimbus
+    spec:
+      containers:
+      - name: storm-worker
+        image: doginal/storm-supervisor:latest
+        env:
+          - name: STORM_ZOOKEEPER
+            value: '["zookeeper.storm"]'
+          - name: STORM_NIMBUS
+            value: '["nimbus.storm"]'
+        ports:
+          - containerPort: 6700
+        # - name: 's6701'
+        #   containerPort: 6701
+        # - name: 's6702'
+        #   containerPort: 6702
+        # - name: 's6703'
+        #   containerPort: 6703
+        # lifecycle:
+        #     postStart:
+        #       exec:
+        #         command: ['/bin/bash','/apache-storm-1.2.1/bin/storm supervisor']
+        resources:
+          limits:
+            cpu: 100m
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storm-worker
+  namespace: storm
+  labels:
+    app: storm-worker
+spec:
+  ports:
+  - name: 'worker'
+    port: 6700
+    targetPort: 6700
+  # - name: 's6701'
+  #   port: 6701
+  #   targetPort: 6701
+  # - name: 's6702'
+  #   port: 6702
+  #   targetPort: 6702
+  # - name: 's6703'
+  #   port: 6703
+  #   targetPort: 6703
+  selector:
+    app: storm-worker

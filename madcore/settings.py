@@ -63,7 +63,6 @@ class Settings(object):
     settings = None
     filepath_settings = None
     filepath_clusterfile = None
-
     folder_user = None
     folder_user_populated = None
     folder_user_clusters = None
@@ -71,7 +70,6 @@ class Settings(object):
     folder_app_clusters = None
 
     def __init__(self, args):
-
         self.args = args
 
         self.set_user_folders()
@@ -80,7 +78,8 @@ class Settings(object):
 
     def set_zone(self):
         if self.provision.cloud == "aws":
-            self.aws_zone = "{0}{1}".format(self.provision.region, self.provision.zone_id)
+            self.aws_zone = "{0}{1}".format(
+                self.provision.region, self.provision.zone_id)
 
     def set_clusterfile(self):
         # name is file without extension
@@ -106,7 +105,8 @@ class Settings(object):
                 if os.path.isfile(os.path.join(os.path.join(os.path.dirname(os.path.realpath(__file__)), "clusters/"), in_passed)):
                     return True
                 else:
-                    Static.msg_bold("Error", "Clusterfile file {0} does not exist. Cannot continue.".format(in_passed))
+                    Static.msg_bold(
+                        "Error", "Clusterfile file {0} does not exist. Cannot continue.".format(in_passed))
                 raise SystemExit(99)
 
         filepath_app_settings_clusterfile = os.path.join(self.folder_app_clusters, self.settings.clusterfile)

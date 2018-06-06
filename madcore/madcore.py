@@ -154,6 +154,14 @@ def main(args=None):
         el = elements.Elements(sett)
         el.kubectl_install_elements("scrapy")
 
+    elif args.install_scrapyrc:
+        el = elements.Elements(sett)
+        el.kubectl_install_elements("scrapyrc")
+
+    elif args.install_storm:
+        el = elements.Elements(sett)
+        el.kubectl_install_elements("storm")
+
     elif args.install_tron:
         el = elements.Elements(sett)
         el.kubectl_install_elements("tron")
