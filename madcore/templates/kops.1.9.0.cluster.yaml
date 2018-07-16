@@ -49,18 +49,18 @@ spec:
     master: |
       [
         {
-          "Effect": "Allow",
-          "Action": ["route53:ListHostedZonesByName"],
-          "Resource": ["*"]
+            "Effect": "Allow",
+            "Action": "route53:GetChange",
+            "Resource": "arn:aws:route53:::change/{{ settings.provision.dnszone_id }}"
         },
         {
-          "Effect": "Allow",
-          "Action": ["elasticloadbalancing:DescribeLoadBalancers"],
-          "Resource": ["*"]
+            "Effect": "Allow",
+            "Action": "route53:ChangeResourceRecordSets",
+            "Resource": "arn:aws:route53:::hostedzone/{{ settings.provision.dnszone_id }}"
         },
         {
-          "Effect": "Allow",
-          "Action": ["route53:ChangeResourceRecordSets"],
-          "Resource": ["*"]
+            "Effect": "Allow",
+            "Action": "route53:ListHostedZonesByName",
+            "Resource": "arn:aws:route53:::hostedzone/{{ settings.provision.dnszone_id }}"
         }
       ]
