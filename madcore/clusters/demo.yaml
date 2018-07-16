@@ -2,7 +2,7 @@
 cluster:
     name: demo
     ingress_instance_group: ingress
-    email: polfilm@gmail.com
+    email: github@styk.tv
 
 provision:
     cloud: aws
