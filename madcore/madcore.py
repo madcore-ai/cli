@@ -76,7 +76,11 @@ def main(args=None):
     group.add_argument('--install-kafka', help='install apache kafka', action='store_true')
     group.add_argument('--install-flink', help='install apache flink', action='store_true')
     group.add_argument('--install-scrapy', help='install scrapy cluster', action='store_true')
+    group.add_argument('--install-scrapyrc', help='install scrapy rc cluster', action='store_true')
     group.add_argument('--install-tron', help='install tron network', action='store_true')
+    group.add_argument('--install-storm', help='install storm', action='store_true')
+    group.add_argument('--install-keycloak', help='install keycloak', action='store_true')
+    group.add_argument('--install-cert-manager', help='install cert manager', action='store_true')
 
     args = parser.parse_args()
 
@@ -165,6 +169,14 @@ def main(args=None):
     elif args.install_tron:
         el = elements.Elements(sett)
         el.kubectl_install_elements("tron")
+
+    elif args.install_keycloak:
+        el = elements.Elements(sett)
+        el.kubectl_install_elements("keycloak")
+
+    elif args.install_cert_manager:
+        el = elements.Elements(sett)
+        el.kubectl_install_elements("certmanager")
 
     elif args.kubectl_use_context:
         kc = cmdkubectl.CmdKubectl(sett)
