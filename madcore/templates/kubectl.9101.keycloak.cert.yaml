@@ -9,12 +9,12 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: kc.{{ settings.provision.domain }}
+  commonName: signin.{{ settings.provision.domain }}
   dnsNames:
-  - kc.{{ settings.provision.domain }}
+  - signin.{{ settings.provision.domain }}
   acme:
     config:
     - dns01:
         provider: route53
       domains:
-      - kc.{{ settings.provision.domain }}
+      - signin.{{ settings.provision.domain }}

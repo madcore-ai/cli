@@ -191,8 +191,17 @@ elements:
           template: kubectl.9291.tron.yaml
 
     keycloak:
+        - name: keycloak-namespace
+          template: kubectl.9103.keycloak.namespace.yaml
         - name: keycloak
-          template: kubectl.9100.keycloak.yaml
+          template: values.helm.9100.keycloak.yaml
+          release: mad
+          chart: stable/keycloak
+          postgresPasswordOpaque: OTNIanMmaGZedGZrc3VCTQo=
+          uiPasswordOpaque: QkxseHVQYkpSNg==
+          uiUsername: admin
+#        - name: keycloak
+#          template: kubectl.9100.keycloak.yaml
         - name: keycloak-cert
           template: kubectl.9101.keycloak.cert.yaml
         - name: keycloak-ingress
@@ -204,5 +213,12 @@ elements:
           taint:
               before: master-remove-all
               after: master-add-noschedule
+
+    postgresql:
+        - name: postgresql
+          release: mad
+          chart: stable/postgresql
+          template: values.helm.8100.postgresql.yaml
+          postgresPassword: 93Hjs&hf^tfksuBM
 
 

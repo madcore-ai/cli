@@ -29,6 +29,7 @@ import os
 import sys
 import localtemplate
 import cmdkubectl
+import cmdhelm
 import time
 
 class Struct:
@@ -39,14 +40,16 @@ class Elements(object):
     settings = None
     localtemplate = None
     CmdKubectl = None
+    CmdHelm = None
 
     def __init__(self, in_settings):
         self.settings = in_settings
         self.localtemplate = localtemplate.LocalTemplate(self.settings)
         self.CmdKubectl = cmdkubectl.CmdKubectl(self.settings)
+        self.CmdHelm = cmdhelm.CmdHelm(self.settings)
 
-    def kubectl_install_elements(self, stage):
-        name = "ELEMENTS"
+    def install_elements(self, stage):
+        name = "ELEMENT"
         Static.figletcyber('{0} {1}'.format(name, stage.upper()))
 
         self.CmdKubectl.get_master_ip()
@@ -54,6 +57,7 @@ class Elements(object):
 
         for element in self.settings.elements[stage]:
             self.create_stage(element)
+
 
     def create_stage(self, stage):
         element_item = Struct(**stage)
@@ -65,8 +69,13 @@ class Elements(object):
                 if element_item.taint["before"] == 'master-remove-all':
                     self.CmdKubectl.taint_remove_from_master()
 
-        # process component
-        self.CmdKubectl.apply(element_item)
+        # helm or kubectl
+        if hasattr(element_item, "chart"):
+            # process as helm component
+            self.CmdHelm.install(element_item)
+        else:
+            # process as kubectl component
+            self.CmdKubectl.apply(element_item)
 
         # after add taint
         if hasattr(element_item, "taint"):

@@ -13,7 +13,7 @@ metadata:
     app: keycloak
 type: Opaque
 data:
-  password: ""
+  password: "{{ component.postgresPasswordOpaque }}"
 ---
 # Source: keycloak/templates/keycloak-secret.yaml
 apiVersion: v1
@@ -25,7 +25,7 @@ metadata:
     app: keycloak
 type: Opaque
 data:
-  password: "QkxseHVQYkpSNg=="
+  password: "{{ component.uiPasswordOpaque }}"
 
 ---
 # Source: keycloak/templates/configmap.yaml
@@ -186,7 +186,7 @@ spec:
         - /tests/test.py
       env:
         - name: KEYCLOAK_USER
-          value: keycloak
+          value: "{{ component.uiUsername }}"
         - name: KEYCLOAK_PASSWORD
           valueFrom:
             secretKeyRef:
