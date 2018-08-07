@@ -36,6 +36,7 @@ class Struct:
 class LocalTemplate(object):
 
     settings = None
+    path_populated = None
 
     def __init__(self, in_settings):
         self.settings = in_settings
@@ -47,8 +48,8 @@ class LocalTemplate(object):
         template = env.get_template(name)
         rendered = template.render(settings=self.settings)
 
-        template_save_path = "{0}/{1}".format(self.settings.folder_user_populated, name)
-        with open(template_save_path, "wb") as f:
+        self.path_populated = "{0}/{1}".format(self.settings.folder_user_populated, name)
+        with open(self.path_populated, "wb") as f:
             f.write(rendered.encode("UTF-8"))
         f.close()
 
@@ -57,8 +58,8 @@ class LocalTemplate(object):
         template = env.get_template(file_template)
         rendered = template.render(ig=ig, settings=self.settings)
 
-        save_path = "{0}/{1}".format(self.settings.folder_user_populated, file_populated)
-        with open(save_path, "wb") as f:
+        self.path_populated = "{0}/{1}".format(self.settings.folder_user_populated, file_populated)
+        with open(self.path_populated, "wb") as f:
             f.write(rendered.encode("UTF-8"))
         f.close()
 
@@ -70,8 +71,8 @@ class LocalTemplate(object):
         if self.settings.provision.cloud == "minikube":
             rendered = self.overwrite_nodeselector_for_minikube (rendered)
 
-        template_save_path = "{0}/{1}".format(self.settings.folder_user_populated, item.template)
-        with open(template_save_path, "wb") as f:
+        self.path_populated = "{0}/{1}".format(self.settings.folder_user_populated, item.template)
+        with open(self.path_populated, "wb") as f:
             f.write(rendered.encode("UTF-8"))
         f.close()
 

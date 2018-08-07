@@ -12,13 +12,13 @@ metadata:
 spec:
   tls:
   - hosts:
-    - kc.{{ settings.provision.domain }}
+    - signin.{{ settings.provision.domain }}
     secretName: keycloak-tls
   rules:
-  - host: kc.{{ settings.provision.domain }}
+  - host: signin.{{ settings.provision.domain }}
     http:
       paths:
       - path: /
         backend:
-          serviceName: keycloak-http
+          serviceName: mad-keycloak-http
           servicePort: 80
