@@ -2,6 +2,7 @@
 cluster:
     name: demo
     ingress_instance_group: ingress
+    email: github@styk.tv
 
 provision:
     cloud: aws
@@ -185,5 +186,39 @@ elements:
         - name: scrapy-cluster-kafka-monitor
           template: kubectl.9289.scrapy-cluster-kafka-monitor.yaml
 
+    tron:
+        - name: tron
+          template: kubectl.9291.tron.yaml
+
+    keycloak:
+        - name: keycloak-namespace
+          template: kubectl.9103.keycloak.namespace.yaml
+        - name: keycloak
+          template: values.helm.9100.keycloak.yaml
+          release: mad
+          chart: stable/keycloak
+          postgresPasswordOpaque: OTNIanMmaGZedGZrc3VCTQo=
+          uiPasswordOpaque: QkxseHVQYkpSNg==
+          uiUsername: admin
+#        - name: keycloak
+#          template: kubectl.9100.keycloak.yaml
+        - name: keycloak-cert
+          template: kubectl.9101.keycloak.cert.yaml
+        - name: keycloak-ingress
+          template: kubectl.9102.keycloak.ingress.yaml
+
+    certmanager:
+        - name: certmanager
+          template: kubectl.9000.cert-manager.yaml
+          taint:
+              before: master-remove-all
+              after: master-add-noschedule
+
+    postgresql:
+        - name: postgresql
+          release: mad
+          chart: stable/postgresql
+          template: values.helm.8100.postgresql.yaml
+          postgresPassword: 93Hjs&hf^tfksuBM
 
 

@@ -76,7 +76,12 @@ def main(args=None):
     group.add_argument('--install-kafka', help='install apache kafka', action='store_true')
     group.add_argument('--install-flink', help='install apache flink', action='store_true')
     group.add_argument('--install-scrapy', help='install scrapy cluster', action='store_true')
+    group.add_argument('--install-scrapyrc', help='install scrapy rc cluster', action='store_true')
     group.add_argument('--install-tron', help='install tron network', action='store_true')
+    group.add_argument('--install-storm', help='install storm', action='store_true')
+    group.add_argument('--install-keycloak', help='install keycloak', action='store_true')
+    group.add_argument('--install-cert-manager', help='install cert manager', action='store_true')
+    group.add_argument('--install-postgresql', help='install postgresql', action='store_true')
 
     args = parser.parse_args()
 
@@ -132,39 +137,51 @@ def main(args=None):
 
     elif args.install_core:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("core")
+        el.install_elements("core")
 
     elif args.install_elk:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("elk")
+        el.install_elements("elk")
 
     elif args.install_neo4j:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("neo4j")
+        el.install_elements("neo4j")
 
     elif args.install_kafka:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("kafka")
+        el.install_elements("kafka")
 
     elif args.install_flink:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("flink")
+        el.install_elements("flink")
 
     elif args.install_scrapy:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("scrapy")
+        el.install_elements("scrapy")
 
     elif args.install_scrapyrc:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("scrapyrc")
+        el.install_elements("scrapyrc")
 
     elif args.install_storm:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("storm")
+        el.install_elements("storm")
 
     elif args.install_tron:
         el = elements.Elements(sett)
-        el.kubectl_install_elements("tron")
+        el.install_elements("tron")
+
+    elif args.install_keycloak:
+        el = elements.Elements(sett)
+        el.install_elements("keycloak")
+
+    elif args.install_cert_manager:
+        el = elements.Elements(sett)
+        el.install_elements("certmanager")
+
+    elif args.install_postgresql:
+        el = elements.Elements(sett)
+        el.install_elements("postgresql")
 
     elif args.kubectl_use_context:
         kc = cmdkubectl.CmdKubectl(sett)
