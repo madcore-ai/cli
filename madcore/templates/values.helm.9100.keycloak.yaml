@@ -211,7 +211,7 @@ keycloak:
   ## Persistence configuration
   persistence:
     # If true, the Postgres chart is deployed
-    deployPostgres: true
+    deployPostgres: {{ component.deployPostgres }}
 
     # The database vendor. Can be either "postgres", "mysql", "mariadb", or "h2"
     dbVendor: postgres
@@ -224,10 +224,10 @@ keycloak:
     # The key in the existing secret that stores the password
     existingSecretKey: password
 
-    dbName: keycloak
-    dbHost: mykeycloak
-    dbPort: 5432
-    dbUser: keycloak
+    dbName: {{ component.dbName }}
+    dbHost: {{ component.dbHost }}
+    dbPort: {{ component.dbPort }}
+    dbUser: {{ component.dbUser }}
 
     # Only used if no existing secret is specified. In this case a new secret is created
     dbPassword: "{{ component.postgresPasswordOpaque }}"

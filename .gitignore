@@ -5,3 +5,4 @@ madcore.egg-info/
 .pydevproject
 dist/
 build/
+madcore/clusters/prod.yaml
