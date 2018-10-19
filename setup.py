@@ -57,6 +57,7 @@ setup(
 
     description='Madcore Core CLI - Deep Learning & Machine Intelligence Infrastructure Controller',
     long_description=long_description,
+    long_description_content_type='text/markdown',
 
     author='Peter Styk',
     author_email='humans@madcore.ai',

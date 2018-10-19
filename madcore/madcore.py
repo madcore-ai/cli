@@ -97,6 +97,7 @@ def main(args=None):
         sett.set_clusterfile()
         sett.save_settings_file()
         sett.load_clusterfile()
+        sett.set_zone()
         prov = provision.Provision(sett)
         prov.start()
         return

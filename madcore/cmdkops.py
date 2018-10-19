@@ -54,6 +54,8 @@ class CmdKops(object):
         name = "CREATE CLUSTER"
         Static.figletcyber(name)
 
+# commented multi-master (WIP)
+#        cmd = "kops create cluster --zones {0} --master-zones {0} --master-count 3 --vpc {1} --dns-zone={2} --state={3} {4}".format(
         cmd = "kops create cluster --zones {0} --vpc {1} --dns-zone={2} --state={3} {4}".format(
             self.settings.aws_zone,
             self.settings.provision.vpc_id,

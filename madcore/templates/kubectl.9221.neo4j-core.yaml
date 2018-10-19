@@ -58,7 +58,7 @@ metadata:
   namespace: neo4j
 spec:
   serviceName: neo4j
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: neo4j
@@ -74,12 +74,12 @@ spec:
         image: "neo4j:3.1.4-enterprise"
         imagePullPolicy: Always
         env:
-#          - name: NEO4J_causalClustering_initialDiscoveryMembers
-#            # all nodes should be listed here if more than one replica
-#            value: "neo4j-core-0.neo4j.neo4j.svc.cluster.local:5000;neo4j-core-1.neo4j.neo4j.svc.cluster.local:5000"
+          - name: NEO4J_causalClustering_initialDiscoveryMembers
+            # all nodes should be listed here if more than one replica
+            value: "neo4j-core-0.neo4j.neo4j.svc.cluster.local:5000;neo4j-core-1.neo4j.neo4j.svc.cluster.local:5000"
           - name: NEO4J_dbms_mode
-            value: SINGLE
-#            value: CORE
+#            value: SINGLE
+            value: HA
         command: ["/bin/bash", "-c", 'export NEO4J_dbms_connectors_defaultAdvertisedAddress=$(hostname -f) && export NEO4J_causalClustering_discoveryAdvertisedAddress=$(hostname -f)::5000 &&
                                       export NEO4J_causalClustering_transactionAdvertisedAddress=$(hostname -f):6000 && export NEO4J_causalClustering_raftAdvertisedAddress=$(hostname -f):7000 &&
                                       export NEO4J_AUTH="none" >> conf/neo4j.conf && exec /docker-entrypoint.sh "neo4j"']
