@@ -4,7 +4,6 @@
 # name: value
 
 name: "neo4j"
-
 # Specs for the Neo4j docker image
 image: "neo4j"
 imageTag: "3.4.5-enterprise"
@@ -54,8 +53,7 @@ core:
 
   ## Pass extra environment variables to the Neo4j container.
   ##
-  # extraVars:
-  # - name: EXTRA_VAR_1
+  #  extraVars:
   #   value: extra-var-value-1
   # - name: EXTRA_VAR_2
   #   value: extra-var-value-2

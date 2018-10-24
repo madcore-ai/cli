@@ -12,10 +12,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - signin.{{ settings.provision.domain }}
+    - neo4j.{{ settings.provision.domain }}
     secretName: neo4j-tls
   rules:
-  - host: signin.{{ settings.provision.domain }}
+  - host: neo4j.{{ settings.provision.domain }}
     http:
       paths:
       - path: /

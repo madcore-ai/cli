@@ -9,12 +9,12 @@ spec:
   issuerRef:
     name: letsencrypt-prod
     kind: ClusterIssuer
-  commonName: signin.{{ settings.provision.domain }}
+  commonName: neo4j.{{ settings.provision.domain }}
   dnsNames:
-  - signin.{{ settings.provision.domain }}
+  - neo4j.{{ settings.provision.domain }}
   acme:
     config:
     - dns01:
         provider: route53
       domains:
-      - signin.{{ settings.provision.domain }}
+      - neo4j.{{ settings.provision.domain }}
