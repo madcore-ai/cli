@@ -55,8 +55,8 @@ data:
 
 
     # Allow log level to be configured via environment variable
-    /subsystem=logging/console-handler=CONSOLE:write-attribute(name=level, value=${env.WILDFLY_LOGLEVEL:INFO})
-    /subsystem=logging/root-logger=ROOT:write-attribute(name=level, value=${env.WILDFLY_LOGLEVEL:INFO})
+    /subsystem=logging/console-handler=CONSOLE:write-attribute(name=level, value=${env.WILDFLY_LOGLEVEL:DEBUG})
+    /subsystem=logging/root-logger=ROOT:write-attribute(name=level, value=${env.WILDFLY_LOGLEVEL:DEBUG})
 
     # Log only to console
     /subsystem=logging/root-logger=ROOT:write-attribute(name=handlers, value=[CONSOLE])

@@ -61,6 +61,6 @@ spec:
         {
             "Effect": "Allow",
             "Action": "route53:ListHostedZonesByName",
-            "Resource": "arn:aws:route53:::hostedzone/{{ settings.provision.dnszone_id }}"
+            "Resource": "*"
         }
       ]
