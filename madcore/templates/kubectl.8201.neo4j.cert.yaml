@@ -1,0 +1,20 @@
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: neo4j-tls
+  namespace: neo4j
+spec:
+  secretName: neo4j-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: signin.{{ settings.provision.domain }}
+  dnsNames:
+  - signin.{{ settings.provision.domain }}
+  acme:
+    config:
+    - dns01:
+        provider: route53
+      domains:
+      - signin.{{ settings.provision.domain }}

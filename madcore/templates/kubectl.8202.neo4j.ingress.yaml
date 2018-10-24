@@ -20,5 +20,5 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: mad-neo4j-http
-          servicePort: 80
+          serviceName: neo4j
+          servicePort: 7474
