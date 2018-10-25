@@ -82,6 +82,7 @@ def main(args=None):
     group.add_argument('--install-keycloak', help='install keycloak', action='store_true')
     group.add_argument('--install-cert-manager', help='install cert manager', action='store_true')
     group.add_argument('--install-postgresql', help='install postgresql', action='store_true')
+    group.add_argument('--install-jenkins', help='install jenkins', action='store_true')
 
     args = parser.parse_args()
 
@@ -147,6 +148,10 @@ def main(args=None):
     elif args.install_neo4j:
         el = elements.Elements(sett)
         el.install_elements("neo4j")
+
+    elif args.install_jenkins:
+        el = elements.Elements(sett)
+        el.install_elements("jenkins")
 
     elif args.install_kafka:
         el = elements.Elements(sett)

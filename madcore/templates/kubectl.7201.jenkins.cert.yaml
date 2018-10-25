@@ -1,0 +1,20 @@
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: Certificate
+metadata:
+  name: jenkins-tls
+  namespace: jenkins
+spec:
+  secretName: jenkins-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: jenkins.{{ settings.provision.domain }}
+  dnsNames:
+  - jenkins.{{ settings.provision.domain }}
+  acme:
+    config:
+    - dns01:
+        provider: route53
+      domains:
+      - jenkins.{{ settings.provision.domain }}
