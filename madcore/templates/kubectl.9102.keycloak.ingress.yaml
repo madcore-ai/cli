@@ -12,13 +12,13 @@ metadata:
 spec:
   tls:
   - hosts:
-    - signin.{{ settings.provision.domain }}
+    - signin.madcore.ai
     secretName: keycloak-tls
   rules:
-  - host: signin.{{ settings.provision.domain }}
+  - host: signin.madcore.ai
     http:
       paths:
       - path: /
         backend:
-          serviceName: mad-keycloak-http
+          serviceName: prod-keycloak-http
           servicePort: 80

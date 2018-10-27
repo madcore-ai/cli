@@ -12,10 +12,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - jenkins.{{ settings.provision.domain }}
+    - jenkins.mad.rest
     secretName: jenkins-tls
   rules:
-  - host: jenkins.{{ settings.provision.domain }}
+  - host: jenkins.mad.rest
     http:
       paths:
       - path: /

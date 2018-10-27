@@ -54,11 +54,12 @@ class CmdHelm(object):
 
 
         # name autoassigned, replace to use same name, unsafe in prod, good for testing
-        cmd = "helm upgrade --install --debug --namespace {1} --values={2} {0} {3}".format(
+        cmd = "helm upgrade --install --debug --namespace {1} --version {4} --values={2} {0}-{1} {3}".format(
             self.settings.cluster.name,
             element.name,
             self.localtemplate.path_populated,
-            element.chart
+            element.chart,
+            element.version
         )
 
         print cmd
