@@ -20,5 +20,5 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: neo4j
+          serviceName: prod-neo4j-neo4j
           servicePort: 7474

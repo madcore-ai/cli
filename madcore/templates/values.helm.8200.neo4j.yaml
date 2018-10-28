@@ -9,7 +9,7 @@ image: "neo4j"
 imageTag: "3.4.5-enterprise"
 imagePullPolicy: "IfNotPresent"
 # imagePullSecret: registry-secret
-acceptLicenseAgreement: "yes"
+acceptLicenseAgreement: "{{ component.acceptLicenseAgreement }}"
 podDisruptionBudget: {}
   # minAvailable: 2
   # maxUnavailable: 1
@@ -27,7 +27,7 @@ testImageTag: "master"
 
 # Cores
 core:
-  numberOfServers: 3
+  numberOfServers: 1
   persistentVolume:
 
     ## core server data Persistent Volume mount root path
@@ -44,7 +44,7 @@ core:
     ## If undefined (the default) or set to null, no storageClassName spec is
     ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
     ##   GKE, AWS & OpenStack)
-    ## storageClass: "-"
+    storageClass: "gp2"
 
     ## Subdirectory of core server data Persistent Volume to mount
     ## Useful if the volume's root directory is not empty
@@ -63,19 +63,19 @@ core:
   #  - name: my-sidecar
   #    image: nginx:latest
 
-  initContainers: []
-  ## init containers to run before the Neo4j core pod e.g. to install plugins
-
-  # - name: init-plugins
-  #   image: "appropriate/curl:latest"
-  #   imagePullPolicy: "IfNotPresent"
-  #   volumeMounts:
-  #   - name: plugins
-  #     mountPath: /plugins
-  #   command:
-  #     - "/bin/sh"
-  #     - "-c"
-  #     - |
+  initContainers:
+#    - name: init-plugins
+#      image: "appropriate/curl:latest"
+#      imagePullPolicy: "IfNotPresent"
+#      volumeMounts:
+#      - name: plugins
+#        mountPath: /plugins
+#        command:
+#          - "/bin/sh"
+#          - "-c"
+#          - |
+#            curl -L https://github.com/neo4j-graphql/neo4j-graphql/releases/download/3.4.0.1/neo4j-graphql-3.4.0.1.jar
+#            cp neo4j-graphql-3.4.0.1.jar /plugins/
   #       curl -L https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/download/3.2.0.3/apoc-3.2.0.3-all.jar -O
   #       cp apoc-3.2.0.3-all.jar /plugins/
 
