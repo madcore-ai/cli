@@ -82,7 +82,7 @@ setup(
         'Jinja2==2.9.6',
         'yamlordereddictloader==0.4.0',
         'pyOpenSSL==16.2.0',
-        'urllib3==1.22',
+        'urllib3==1.24.2',
         'prettytable==0.7.2',
         'requests==2.18.4',
     ],
