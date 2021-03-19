@@ -79,7 +79,7 @@ setup(
     #provides=[],
     install_requires=[
         'termcolor==1.1.0',
-        'Jinja2==2.9.6',
+        'Jinja2==2.11.3',
         'yamlordereddictloader==0.4.0',
         'pyOpenSSL==16.2.0',
         'urllib3==1.22',
